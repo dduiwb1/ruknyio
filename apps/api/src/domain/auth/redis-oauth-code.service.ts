@@ -41,23 +41,37 @@ export class RedisOAuthCodeService implements OnModuleInit, OnModuleDestroy {
   constructor(private configService: ConfigService) {}
 
   async onModuleInit() {
-    // Initialize Redis connection
-    const host = this.configService.get<string>('REDIS_HOST') || 'localhost';
-    const port = this.configService.get<number>('REDIS_PORT') || 6379;
-    const password = this.configService.get<string>('REDIS_PASSWORD');
-    const db = this.configService.get<number>('REDIS_DB') || 0;
+    // Initialize Redis connection - prefer REDIS_URL for Railway/production
+    const redisUrl = this.configService.get<string>('REDIS_URL');
+    
+    if (redisUrl) {
+      // Use REDIS_URL if available (Railway, production)
+      this.redis = new Redis(redisUrl, {
+        retryStrategy: (times) => {
+          const delay = Math.min(times * 50, 2000);
+          return delay;
+        },
+        maxRetriesPerRequest: 3,
+      });
+    } else {
+      // Fallback to individual settings (local development)
+      const host = this.configService.get<string>('REDIS_HOST') || 'localhost';
+      const port = this.configService.get<number>('REDIS_PORT') || 6379;
+      const password = this.configService.get<string>('REDIS_PASSWORD');
+      const db = this.configService.get<number>('REDIS_DB') || 0;
 
-    this.redis = new Redis({
-      host,
-      port,
-      password,
-      db,
-      retryStrategy: (times) => {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      },
-      maxRetriesPerRequest: 3,
-    });
+      this.redis = new Redis({
+        host,
+        port,
+        password,
+        db,
+        retryStrategy: (times) => {
+          const delay = Math.min(times * 50, 2000);
+          return delay;
+        },
+        maxRetriesPerRequest: 3,
+      });
+    }
 
     this.redis.on('error', (err) => {
       console.error('❌ Redis connection error:', err);
