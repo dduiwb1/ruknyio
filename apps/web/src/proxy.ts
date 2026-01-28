@@ -26,10 +26,12 @@ export function proxy(request: NextRequest) {
 
   // Get access token from cookie or check localStorage marker
   // Note: We can't access localStorage in proxy, so we check for a cookie
-  const accessToken = request.cookies.get('access_token')?.value;
+  // In production, cookies have __Secure- prefix
+  const accessToken = request.cookies.get('__Secure-access_token')?.value || 
+                      request.cookies.get('access_token')?.value;
   // Backend uses 'refresh_token' in dev, '__Secure-refresh_token' in prod
-  const hasSession = request.cookies.get('refresh_token')?.value || 
-                     request.cookies.get('__Secure-refresh_token')?.value;
+  const hasSession = request.cookies.get('__Secure-refresh_token')?.value ||
+                     request.cookies.get('refresh_token')?.value;
 
   // If trying to access protected route without auth
   if (isProtectedRoute && !accessToken && !hasSession) {
