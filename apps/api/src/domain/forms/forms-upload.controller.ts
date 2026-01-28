@@ -54,7 +54,7 @@ export class FormsUploadController {
     FilesInterceptor('files', 10, {
       storage: diskStorage({
         destination: (req, file, cb) => {
-          const formId = req.params.id;
+          const formId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
           const uploadPath = join(process.cwd(), 'uploads', 'forms', formId);
 
           // Create directory if it doesn't exist
@@ -373,7 +373,7 @@ export class FormsUploadController {
     FilesInterceptor('files', 10, {
       storage: diskStorage({
         destination: async (req, file, cb) => {
-          const slug = req.params.slug;
+          const slug = Array.isArray(req.params.slug) ? req.params.slug[0] : req.params.slug;
 
           // We need to get formId from slug, but we can't use await here
           // So we'll use a temporary folder based on slug
