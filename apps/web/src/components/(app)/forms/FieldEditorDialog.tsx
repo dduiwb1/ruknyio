@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
 } from '@/components/ui/dialog';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { FieldType, FIELD_TYPE_LABELS } from '@/lib/hooks/useForms';
 import { cn } from '@/lib/utils';
 import { FormFieldInput } from './FieldEditor';
@@ -95,6 +97,9 @@ export function FieldEditorDialog({ field, open, onOpenChange, onUpdate, onSave 
         className="max-w-md h-[calc(100%-1rem)] p-0 gap-0 rounded-3xl border-0 shadow-2xl bg-white dark:bg-gray-900" 
         showCloseButton={false}
       >
+        <VisuallyHidden>
+          <DialogTitle>تعديل الحقل</DialogTitle>
+        </VisuallyHidden>
         {/* Header */}
         <div className="flex items-center justify-between p-5 pb-4">
           <div className="flex items-center gap-3">

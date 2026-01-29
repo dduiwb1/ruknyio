@@ -8,7 +8,13 @@ import {
   MessageSquare, 
   FileText,
   Globe,
-  Check
+  Check,
+  ClipboardList,
+  UserPlus,
+  ShoppingBag,
+  Star,
+  HelpCircle,
+  FormInput,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { 
@@ -32,31 +38,20 @@ interface FormTemplateSelectorProps {
 }
 
 // ============================================
-// Icon Map
+// Icon Map - Updated with more icons
 // ============================================
 
-const iconMap: Record<string, React.ReactNode> = {
-  'mail': <Mail className="w-5 h-5" />,
-  'wrench': <Wrench className="w-5 h-5" />,
-  'message-square': <MessageSquare className="w-5 h-5" />,
-};
-
-const colorMap: Record<string, { bg: string; border: string; icon: string }> = {
-  'blue': {
-    bg: 'bg-blue-50 dark:bg-blue-950/30',
-    border: 'border-blue-200 dark:border-blue-800',
-    icon: 'text-blue-600 dark:text-blue-400',
-  },
-  'orange': {
-    bg: 'bg-amber-50 dark:bg-amber-950/30',
-    border: 'border-amber-200 dark:border-amber-800',
-    icon: 'text-amber-600 dark:text-amber-400',
-  },
-  'purple': {
-    bg: 'bg-violet-50 dark:bg-violet-950/30',
-    border: 'border-violet-200 dark:border-violet-800',
-    icon: 'text-violet-600 dark:text-violet-400',
-  },
+const iconMap: Record<string, React.ElementType> = {
+  'mail': Mail,
+  'wrench': Wrench,
+  'message-square': MessageSquare,
+  'clipboard-list': ClipboardList,
+  'user-plus': UserPlus,
+  'shopping-bag': ShoppingBag,
+  'star': Star,
+  'help-circle': HelpCircle,
+  'form-input': FormInput,
+  'file-text': FileText,
 };
 
 // ============================================
@@ -88,114 +83,153 @@ export function FormTemplateSelector({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="text-center space-y-2">
-        <h2 className="text-lg font-bold text-foreground">اختر قالباً</h2>
-        <div className="flex items-center justify-center gap-2">
-          <Globe className="w-4 h-4 text-muted-foreground" />
-          <div className="flex rounded-full bg-muted p-0.5">
+      <div className="text-center space-y-3">
+        <p className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-medium px-3 py-1 rounded-full inline-block">
+          الخطوة 1 من 5
+        </p>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">اختر قالباً</h2>
+        <p className="text-gray-500 dark:text-gray-400 text-sm">
+          ابدأ بقالب جاهز أو أنشئ نموذجك من الصفر
+        </p>
+        
+        {/* Language Switcher */}
+        <div className="flex items-center justify-center gap-2 pt-2">
+          <Globe className="w-4 h-4 text-gray-400" />
+          <div className="flex rounded-full bg-gray-100 dark:bg-gray-800 p-0.5">
             <button
+              type="button"
               onClick={() => handleLanguageChange('ar')}
               className={cn(
-                "px-3 py-1 rounded-full text-xs font-medium transition-all",
+                "px-4 py-1.5 rounded-full text-xs font-medium transition-all",
                 selectedLanguage === 'ar' 
-                  ? "bg-primary text-primary-foreground" 
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900" 
+                  : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
               )}
             >
               عربي
             </button>
             <button
+              type="button"
               onClick={() => handleLanguageChange('en')}
               className={cn(
-                "px-3 py-1 rounded-full text-xs font-medium transition-all",
+                "px-4 py-1.5 rounded-full text-xs font-medium transition-all",
                 selectedLanguage === 'en' 
-                  ? "bg-primary text-primary-foreground" 
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900" 
+                  : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
               )}
             >
-              EN
+              English
             </button>
           </div>
         </div>
       </div>
 
-      {/* Templates Grid - Compact */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      {/* Templates Grid - FormCard Style */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         {FORM_TEMPLATES.map((template, index) => {
-          const colors = colorMap[template.color] || colorMap.blue;
           const isSelected = selectedTemplateId === template.id;
+          const IconComponent = iconMap[template.icon] || FileText;
           
           return (
             <motion.button
               key={template.id}
+              type="button"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
+              whileHover={{ y: -2 }}
               onClick={() => handleSelectTemplate(template)}
               className={cn(
-                "relative p-3 rounded-xl border-2 text-center transition-all",
-                colors.bg,
+                "relative bg-white dark:bg-gray-800 rounded-2xl border p-3 text-right transition-all duration-200 group cursor-pointer",
                 isSelected 
-                  ? "border-primary ring-2 ring-primary/20" 
-                  : colors.border + " hover:border-primary/50"
+                  ? "border-gray-900 dark:border-white ring-2 ring-gray-900/10 dark:ring-white/10 shadow-lg" 
+                  : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md"
               )}
             >
-              {/* Selected Check */}
-              {isSelected && (
-                <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                  <Check className="w-3 h-3 text-primary-foreground" />
+              {/* Image/Icon Section - Similar to FormCard */}
+              <div className="relative aspect-[4/3] bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded-xl overflow-hidden mb-3">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className={cn(
+                    "w-14 h-14 rounded-xl flex items-center justify-center",
+                    "bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm shadow-sm"
+                  )}>
+                    <IconComponent className="w-7 h-7 text-gray-700 dark:text-gray-300" />
+                  </div>
                 </div>
-              )}
 
-              {/* Icon */}
-              <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-1", colors.icon)}>
-                {iconMap[template.icon]}
+                {/* Selected Badge */}
+                {isSelected && (
+                  <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md text-[10px] font-bold bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center gap-1">
+                    <Check className="w-3 h-3" />
+                    محدد
+                  </span>
+                )}
+
+                {/* Fields Count Badge */}
+                <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-bold bg-white/90 dark:bg-gray-800/90 text-gray-600 dark:text-gray-400">
+                  {template.fields.length} حقول
+                </span>
               </div>
 
-              {/* Name */}
-              <h3 className="text-xs font-medium text-foreground mb-0.5 line-clamp-1">
-                {template.name[selectedLanguage]}
-              </h3>
-
-              {/* Fields Count */}
-              <p className="text-[10px] text-muted-foreground">
-                {template.fields.length} حقول
-              </p>
+              {/* Content Section */}
+              <div>
+                <h3 className="font-bold text-gray-900 dark:text-white text-[14px] leading-tight line-clamp-1 mb-1">
+                  {template.name[selectedLanguage]}
+                </h3>
+                <p className="text-[12px] text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                  {template.description[selectedLanguage]}
+                </p>
+              </div>
             </motion.button>
           );
         })}
 
-        {/* Start from Scratch */}
+        {/* Start from Scratch - FormCard Style */}
         <motion.button
+          type="button"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
+          whileHover={{ y: -2 }}
           onClick={onStartFromScratch}
           className={cn(
-            "relative p-3 rounded-xl border-2 border-dashed text-center transition-all",
-            "bg-muted/20 border-muted-foreground/20 hover:border-primary/50",
-            selectedTemplateId === null && "border-primary ring-2 ring-primary/20 bg-primary/5"
+            "relative bg-white dark:bg-gray-800 rounded-2xl border-2 border-dashed p-3 text-right transition-all duration-200 group cursor-pointer",
+            selectedTemplateId === null 
+              ? "border-gray-900 dark:border-white ring-2 ring-gray-900/10 dark:ring-white/10 shadow-lg bg-gray-50 dark:bg-gray-800" 
+              : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 hover:shadow-md"
           )}
         >
-          {selectedTemplateId === null && (
-            <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-              <Check className="w-3 h-3 text-primary-foreground" />
+          {/* Image/Icon Section */}
+          <div className="relative aspect-[4/3] bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded-xl overflow-hidden mb-3">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className={cn(
+                "w-14 h-14 rounded-xl flex items-center justify-center",
+                "bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm shadow-sm border-2 border-dashed border-gray-300 dark:border-gray-600"
+              )}>
+                <FileText className="w-7 h-7 text-gray-400" />
+              </div>
             </div>
-          )}
 
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-1 text-muted-foreground">
-            <FileText className="w-4 h-4" />
+            {/* Selected Badge */}
+            {selectedTemplateId === null && (
+              <span className="absolute top-2 right-2 px-2 py-0.5 rounded-md text-[10px] font-bold bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center gap-1">
+                <Check className="w-3 h-3" />
+                محدد
+              </span>
+            )}
           </div>
 
-          <h3 className="text-xs font-medium text-foreground mb-0.5">
-            من الصفر
-          </h3>
-
-          <p className="text-[10px] text-muted-foreground">
-            نموذج فارغ
-          </p>
+          {/* Content Section */}
+          <div>
+            <h3 className="font-bold text-gray-900 dark:text-white text-[14px] leading-tight mb-1">
+              ابدأ من الصفر
+            </h3>
+            <p className="text-[12px] text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
+              أنشئ نموذجك المخصص بدون قالب
+            </p>
+          </div>
         </motion.button>
       </div>
     </div>

@@ -64,9 +64,8 @@ export function useGoogleSheets(): UseGoogleSheetsReturn {
     try {
       setIsLoading(true);
       setError(null);
-      
-      const response = await secureFetch(buildApiPath(`/forms/${formId}/google-sheets/status`));
-      
+      // تعديل المسار ليطابق backend
+      const response = await secureFetch(buildApiPath(`/integrations/google-sheets/status/${formId}`));
       if (response.ok) {
         const data = await response.json();
         const statusData: GoogleSheetsStatus = {

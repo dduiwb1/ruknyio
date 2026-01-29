@@ -100,7 +100,7 @@ export class TokenService {
 
     // 3. حساب أوقات الانتهاء
     const sessionExpiresAt = new Date();
-    sessionExpiresAt.setMinutes(sessionExpiresAt.getMinutes() + 15);
+    sessionExpiresAt.setMinutes(sessionExpiresAt.getMinutes() + 30); // ✅ مطابق لـ ACCESS_TOKEN_EXPIRY
 
     const refreshExpiresAt = new Date();
     refreshExpiresAt.setDate(refreshExpiresAt.getDate() + 30);
@@ -318,7 +318,7 @@ export class TokenService {
 
     // 7. حساب أوقات انتهاء جديدة
     const newSessionExpiresAt = new Date();
-    newSessionExpiresAt.setMinutes(newSessionExpiresAt.getMinutes() + 15);
+    newSessionExpiresAt.setMinutes(newSessionExpiresAt.getMinutes() + 30); // ✅ مطابق لـ ACCESS_TOKEN_EXPIRY
 
     // 8. تحديث الجلسة (Rotation) - فقط Refresh Token Hash الجديد
     // ⚠️ بعد هذه النقطة، أي استخدام للـ token القديم = سرقة محتملة
