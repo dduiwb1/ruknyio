@@ -75,10 +75,10 @@ export class AuthService {
     // 1. إنشاء Session ID
     const sessionId = crypto.randomUUID();
 
-    // 2. إنشاء Access Token مع sid (15 دقيقة)
+    // 2. إنشاء Access Token مع sid (30 دقيقة)
     const accessToken = this.jwtService.sign(
       { sub: userId, sid: sessionId, email, type: 'access' },
-      { expiresIn: '15m' },
+      { expiresIn: '30m' },
     );
 
     // 3. إنشاء Refresh Token (30 يوم)
@@ -86,7 +86,7 @@ export class AuthService {
 
     // 4. حساب أوقات الانتهاء
     const sessionExpiresAt = new Date();
-    sessionExpiresAt.setMinutes(sessionExpiresAt.getMinutes() + 15);
+    sessionExpiresAt.setMinutes(sessionExpiresAt.getMinutes() + 30);
 
     const refreshExpiresAt = new Date();
     // 🔒 تقليل مدة Refresh Token من 30 يوم إلى 14 يوم (أكثر أماناً)

@@ -22,7 +22,7 @@ async function proxyRequest(request: NextRequest, method: string) {
   const pathSegments = url.pathname.replace('/api/auth/', '');
   const targetUrl = `${API_URL}/api/v1/auth/${pathSegments}${url.search}`;
 
-  // Forward headers
+  // Forward headers including cookies
   const headers = new Headers();
   request.headers.forEach((value, key) => {
     if (!EXCLUDED_REQUEST_HEADERS.includes(key.toLowerCase())) {
@@ -30,11 +30,18 @@ async function proxyRequest(request: NextRequest, method: string) {
     }
   });
 
+  // 🔒 Forward cookies from the original request
+  // This is critical for refresh token which is in httpOnly cookie
+  const cookies = request.headers.get('cookie');
+  if (cookies) {
+    headers.set('cookie', cookies);
+  }
+
   // Build fetch options
   const fetchOptions: RequestInit = {
     method,
     headers,
-    credentials: 'include',
+    // Note: credentials doesn't work in Node.js fetch, we manually forward cookies above
   };
 
   // Add body for non-GET requests
@@ -57,11 +64,27 @@ async function proxyRequest(request: NextRequest, method: string) {
   }
 
   try {
+    // 🔒 Debug logging for refresh endpoint
+    if (pathSegments === 'refresh') {
+      console.log('[Auth Proxy] Refresh request:', {
+        hasCookies: !!cookies,
+        cookieNames: cookies ? cookies.split(';').map(c => c.trim().split('=')[0]) : [],
+      });
+    }
+
     // Make the request to the backend
     const response = await fetch(targetUrl, fetchOptions);
 
     // Get response body
     const responseBody = await response.text();
+
+    // 🔒 Debug logging for refresh endpoint
+    if (pathSegments === 'refresh') {
+      console.log('[Auth Proxy] Refresh response:', {
+        status: response.status,
+        hasSetCookie: response.headers.has('set-cookie'),
+      });
+    }
 
     // Create response with proper headers
     const responseHeaders = new Headers();

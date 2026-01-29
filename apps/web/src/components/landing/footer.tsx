@@ -35,6 +35,9 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
+            <Link href="/" className="inline-block mb-4">
+              <span className="text-xl font-bold">Rukny<span className="text-primary">.io</span></span>
+            </Link>
             <p className="text-sm text-muted-foreground">
               منصة متكاملة لإنشاء حضورك الرقمي
             </p>

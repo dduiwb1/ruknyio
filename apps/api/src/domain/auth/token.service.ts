@@ -42,7 +42,7 @@ export interface SessionInfo {
 @Injectable()
 export class TokenService {
   // 🔒 إعدادات الأمان
-  private readonly ACCESS_TOKEN_EXPIRY = '15m'; // 15 دقيقة
+  private readonly ACCESS_TOKEN_EXPIRY = '30m'; // 30 دقيقة
   private readonly REFRESH_TOKEN_EXPIRY = '30d'; // 30 يوم
   private readonly MAX_ROTATION_COUNT = 100; // الحد الأقصى للتدوير قبل إجبار إعادة تسجيل الدخول
   private readonly GRACE_PERIOD_MS = 30000; // 30 ثانية سماح لاستخدام token قديم (race condition)

@@ -176,6 +176,17 @@ export function setRefreshState(refreshing: boolean, failed?: boolean): void {
   }
 }
 
+// Auth pages where redirect should NOT happen
+const AUTH_PAGES = [
+  '/login',
+  '/register',
+  '/quicksign',
+  '/complete-profile',
+  '/auth/',
+  '/forgot-password',
+  '/reset-password',
+];
+
 /**
  * Handle authentication failure - redirect to login
  */
@@ -185,8 +196,15 @@ function handleAuthFailure(reason: 'expired' | 'invalid' = 'expired'): void {
   refreshPromise = null;
   
   if (typeof window !== 'undefined') {
-    // Avoid redirect loops - only redirect if not already on login page
-    if (!window.location.pathname.startsWith('/login')) {
+    const pathname = window.location.pathname;
+
+    // Only auto-redirect on protected app routes.
+    // Public pages like '/' should not force a login redirect.
+    const isProtectedRoute = pathname === '/app' || pathname.startsWith('/app/');
+
+    // 🔒 Don't redirect if already on auth pages
+    const isAuthPage = AUTH_PAGES.some(page => pathname.startsWith(page));
+    if (isProtectedRoute && !isAuthPage) {
       window.location.href = `/login?session=${reason}`;
     }
   }

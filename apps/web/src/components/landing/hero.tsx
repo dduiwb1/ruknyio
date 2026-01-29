@@ -2,74 +2,11 @@
 
 import Link from "next/link";
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Sparkles, Zap, Users, Calendar, FileText, CheckCircle, Store, Play, Rocket, ChevronLeft, ChevronRight, Link2, Ticket, BarChart3 } from "lucide-react";
+import { ArrowRight, Sparkles, Zap, Users, Calendar, FileText, CheckCircle, Star, Store } from "lucide-react";
 import { Marquee } from "./marquee";
 import { RotatingText } from "@/components/ui/rotating-text";
-import { cn } from "@/lib/utils";
-import { useState, useEffect, useCallback } from "react";
 
 export function Hero() {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
-
-  const slides = [
-    {
-      id: 1,
-      badge: "منصة ركني - النسخة التجريبية المجانية",
-      badgeIcon: Sparkles,
-      title: "اجمع كل روابطك",
-      subtitle: "في مكان واحد",
-      description: "منصة ركني تجمع كل ما تحتاجه - من إنشاء ملفك الشخصي إلى إدارة فعالياتك وجمع البيانات بذكاء.",
-      gradient: "from-primary via-primary to-primary/90",
-      rotatingTexts: ['Facebook', 'Instagram', 'LinkedIn', 'YouTube', 'TikTok', 'X', 'Snapchat'],
-      icon: Link2,
-    },
-    {
-      id: 2,
-      badge: "إدارة الفعاليات بذكاء",
-      badgeIcon: Calendar,
-      title: "أنشئ فعالياتك",
-      subtitle: "بسهولة تامة",
-      description: "نظام متكامل لإدارة الفعاليات من الإنشاء إلى التذاكر والتسجيل مع تحليلات متقدمة.",
-      gradient: "from-emerald-500 via-emerald-500 to-emerald-600",
-      rotatingTexts: ['مؤتمرات', 'ورش عمل', 'ندوات', 'حفلات', 'معارض', 'لقاءات'],
-      icon: Calendar,
-    },
-    {
-      id: 3,
-      badge: "متجر إلكتروني احترافي",
-      badgeIcon: Store,
-      title: "أطلق متجرك",
-      subtitle: "وابدأ البيع",
-      description: "أنشئ متجرك الإلكتروني بدقائق مع نظام دفع متكامل وإدارة مخزون ذكية.",
-      gradient: "from-purple-500 via-purple-500 to-purple-600",
-      rotatingTexts: ['منتجات', 'خدمات', 'دورات', 'استشارات', 'تصاميم', 'كتب'],
-      icon: Store,
-    },
-    {
-      id: 4,
-      badge: "تذاكر وحجوزات",
-      badgeIcon: Ticket,
-      title: "بيع التذاكر",
-      subtitle: "بكل سهولة",
-      description: "نظام تذاكر متقدم مع QR Code وتتبع الحضور في الوقت الفعلي.",
-      gradient: "from-orange-500 via-orange-500 to-orange-600",
-      rotatingTexts: ['VIP', 'عادي', 'مجاني', 'حصري', 'مبكر', 'طلابي'],
-      icon: Ticket,
-    },
-    {
-      id: 5,
-      badge: "تحليلات متقدمة",
-      badgeIcon: BarChart3,
-      title: "تابع أداءك",
-      subtitle: "بالأرقام",
-      description: "احصل على رؤى عميقة حول زوارك وعملائك مع تقارير تفصيلية.",
-      gradient: "from-cyan-500 via-cyan-500 to-cyan-600",
-      rotatingTexts: ['الزيارات', 'المبيعات', 'التحويلات', 'الإيرادات', 'النمو', 'التفاعل'],
-      icon: BarChart3,
-    },
-  ];
-
   const categories = [
     "للمبدعين",
     "صناع المحتوى",
@@ -82,150 +19,35 @@ export function Hero() {
   ];
 
   const features = [
-    { icon: Users, text: "ملفات شخصية احترافية", color: "text-blue-500" },
-    { icon: Calendar, text: "إدارة الفعاليات", color: "text-emerald-500" },
-    { icon: Store, text: "متجر الالكتروني", color: "text-purple-500" },
-    { icon: FileText, text: "نماذج ذكية", color: "text-orange-500" },
-    { icon: Zap, text: "تخصيص فائق", color: "text-pink-500" },
+    { icon: Users, text: "ملفات شخصية احترافية" },
+    { icon: Calendar, text: "إدارة الفعاليات" },
+    { icon: Store, text: "متجر الالكتروني" },
+    { icon: FileText, text: "نماذج ذكية" },
+    { icon: Zap, text: "تخصيص فائق" },
   ];
 
-  const nextSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev + 1) % slides.length);
-  }, [slides.length]);
-
-  const prevSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
-  }, [slides.length]);
-
-  const goToSlide = (index: number) => {
-    setCurrentSlide(index);
-    setIsAutoPlaying(false);
-    setTimeout(() => setIsAutoPlaying(true), 10000);
-  };
-
-  useEffect(() => {
-    if (!isAutoPlaying) return;
-    const interval = setInterval(nextSlide, 5000);
-    return () => clearInterval(interval);
-  }, [isAutoPlaying, nextSlide]);
-
-  const currentSlideData = slides[currentSlide];
-
   return (
-    <section className="relative min-h-screen overflow-hidden bg-background">
-      {/* Animated Gradient Background - Dynamic based on slide */}
-      <div className="absolute inset-0 -z-10 transition-all duration-1000">
-        {/* Main gradient orbs */}
-        <div 
-          className={cn(
-            "absolute top-0 -right-40 w-[500px] h-[500px] rounded-full blur-[120px] animate-pulse transition-colors duration-1000",
-            currentSlide === 0 && "bg-primary/20",
-            currentSlide === 1 && "bg-emerald-500/20",
-            currentSlide === 2 && "bg-purple-500/20",
-            currentSlide === 3 && "bg-orange-500/20",
-            currentSlide === 4 && "bg-cyan-500/20",
-          )} 
-        />
-        <div 
-          className={cn(
-            "absolute -top-20 -left-40 w-[400px] h-[400px] rounded-full blur-[100px] animate-pulse delay-1000 transition-colors duration-1000",
-            currentSlide === 0 && "bg-purple-500/15",
-            currentSlide === 1 && "bg-cyan-500/15",
-            currentSlide === 2 && "bg-pink-500/15",
-            currentSlide === 3 && "bg-yellow-500/15",
-            currentSlide === 4 && "bg-blue-500/15",
-          )} 
-        />
-        <div 
-          className={cn(
-            "absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full blur-[120px] animate-pulse delay-500 transition-colors duration-1000",
-            currentSlide === 0 && "bg-cyan-500/10",
-            currentSlide === 1 && "bg-emerald-500/10",
-            currentSlide === 2 && "bg-purple-500/10",
-            currentSlide === 3 && "bg-orange-500/10",
-            currentSlide === 4 && "bg-cyan-500/10",
-          )} 
-        />
-        
-        {/* Grid pattern overlay */}
-        <div 
-          className="absolute inset-0 opacity-[0.02]"
-          style={{
-            backgroundImage: `linear-gradient(to right, currentColor 1px, transparent 1px),
-                             linear-gradient(to bottom, currentColor 1px, transparent 1px)`,
-            backgroundSize: '50px 50px'
-          }}
-        />
-        
-        {/* Floating particles */}
-        <div className="absolute top-1/4 right-1/4 w-2 h-2 bg-primary/40 rounded-full animate-bounce delay-300" />
-        <div className="absolute top-1/3 left-1/4 w-1.5 h-1.5 bg-purple-500/40 rounded-full animate-bounce delay-700" />
-        <div className="absolute bottom-1/3 right-1/3 w-2.5 h-2.5 bg-cyan-500/40 rounded-full animate-bounce delay-1000" />
-      </div>
+    <section className="relative min-h-screen overflow-hidden bg-gradient-to-b from-primary/5 via-background to-background">
       
-      <div className="relative flex items-center justify-center px-4 md:px-8 pt-28 pb-16 min-h-screen">
+      <div className="relative flex items-center justify-center px-4 md:px-8 pt-24 pb-16 min-h-screen">
         <div className="container max-w-6xl">
-          {/* Slider Navigation Arrows */}
-          <button
-            onClick={prevSlide}
-            className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full bg-card/80 backdrop-blur-sm border border-border/50 shadow-lg hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 group"
-            aria-label="الشريحة السابقة"
-          >
-            <ChevronRight className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
-          </button>
-          <button
-            onClick={nextSlide}
-            className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-20 p-3 rounded-full bg-card/80 backdrop-blur-sm border border-border/50 shadow-lg hover:bg-primary/10 hover:border-primary/50 transition-all duration-300 group"
-            aria-label="الشريحة التالية"
-          >
-            <ChevronLeft className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
-          </button>
-
           <div className="text-center space-y-8">
             
-            {/* Floating Badge with animation - Dynamic */}
-            <div 
-              key={`badge-${currentSlide}`}
-              className={cn(
-                "inline-flex items-center gap-2 px-5 py-2.5 rounded-full border text-sm font-semibold shadow-lg transition-all duration-500 cursor-default animate-fade-in",
-                currentSlide === 0 && "border-primary/30 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 text-primary shadow-primary/5",
-                currentSlide === 1 && "border-emerald-500/30 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-emerald-500/10 text-emerald-500 shadow-emerald-500/5",
-                currentSlide === 2 && "border-purple-500/30 bg-gradient-to-r from-purple-500/10 via-purple-500/5 to-purple-500/10 text-purple-500 shadow-purple-500/5",
-                currentSlide === 3 && "border-orange-500/30 bg-gradient-to-r from-orange-500/10 via-orange-500/5 to-orange-500/10 text-orange-500 shadow-orange-500/5",
-                currentSlide === 4 && "border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 via-cyan-500/5 to-cyan-500/10 text-cyan-500 shadow-cyan-500/5",
-              )}
-            >
-              <currentSlideData.badgeIcon className="h-4 w-4 animate-pulse" />
-              <span>{currentSlideData.badge}</span>
-              <span 
-                className={cn(
-                  "px-2.5 py-1 text-white text-xs rounded-full font-bold animate-pulse",
-                  currentSlide === 0 && "bg-gradient-to-r from-primary to-primary/80",
-                  currentSlide === 1 && "bg-gradient-to-r from-emerald-500 to-emerald-600",
-                  currentSlide === 2 && "bg-gradient-to-r from-purple-500 to-purple-600",
-                  currentSlide === 3 && "bg-gradient-to-r from-orange-500 to-orange-600",
-                  currentSlide === 4 && "bg-gradient-to-r from-cyan-500 to-cyan-600",
-                )}
-              >
-                جديد
-              </span>
+            {/* Floating Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/30 bg-primary/10 text-sm font-semibold text-primary">
+              <Sparkles className="h-4 w-4" />
+              <span>منصة ركني - النسخة التجريبية المجانية</span>
+              <span className="px-2 py-0.5 bg-primary text-primary-foreground text-xs rounded-full">جديد</span>
             </div>
 
             {/* Marquee Categories */}
             <div className="relative flex w-full flex-col items-center justify-center overflow-hidden rounded-2xl">
-              <Marquee className="[--duration:25s] py-2" pauseOnHover>
+              <Marquee  className="[--duration:30s] py-2">
                 {categories.map((category, index) => (
                   <span
                     key={index}
-                    className={cn(
-                      "inline-flex items-center px-5 py-2.5 rounded-full",
-                      "bg-gradient-to-r from-card to-card/80 border border-border/50",
-                      "text-sm font-medium text-foreground/80 whitespace-nowrap mx-2",
-                      "hover:border-primary/50 hover:bg-primary/5 hover:text-primary",
-                      "transition-all duration-300 cursor-default shadow-sm"
-                    )}
+                    className="inline-flex items-center px-4 py-2 rounded-full bg-card border border-border/50 text-sm font-medium text-foreground/80 whitespace-nowrap mx-2"
                   >
-                    <Rocket className="h-3.5 w-3.5 ml-2 opacity-50" />
                     {category}
                   </span>
                 ))}
@@ -234,31 +56,18 @@ export function Hero() {
               <div className="pointer-events-none absolute inset-y-0 right-0 w-1/4 bg-gradient-to-l from-background to-transparent"></div>
             </div>
 
-            {/* Main Heading with Slide Animation */}
-            <div className="space-y-6 min-h-[280px] md:min-h-[320px] flex flex-col justify-center">
-              <h1 
-                key={`title-${currentSlide}`}
-                className="text-4xl md:text-5xl lg:text-7xl font-black tracking-tight leading-tight animate-slide-up"
-              >
-                <span className="block bg-gradient-to-r from-foreground via-foreground to-foreground/70 bg-clip-text text-transparent">
-                  {currentSlideData.title}
-                </span>
-                <div className="flex mt-6 items-center justify-center">
+            {/* Main Heading */}
+            <div className="space-y-4">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-tight">
+                <span className="block text-foreground">اجمع كل روابطك</span>
+                <div className="flex mt-4 items-center justify-center">
                   <span 
                     dir="ltr" 
-                    className={cn(
-                      "inline-block px-8 py-4 text-white rounded-2xl shadow-xl transition-all duration-500 hover:scale-[1.02]",
-                      `bg-gradient-to-r ${currentSlideData.gradient}`,
-                      currentSlide === 0 && "shadow-primary/25 hover:shadow-primary/40",
-                      currentSlide === 1 && "shadow-emerald-500/25 hover:shadow-emerald-500/40",
-                      currentSlide === 2 && "shadow-purple-500/25 hover:shadow-purple-500/40",
-                      currentSlide === 3 && "shadow-orange-500/25 hover:shadow-orange-500/40",
-                      currentSlide === 4 && "shadow-cyan-500/25 hover:shadow-cyan-500/40",
-                    )}
+                    className="inline-block px-6 py-3 bg-primary text-primary-foreground rounded-2xl"
                   >
                     <RotatingText
-                      texts={currentSlideData.rotatingTexts}
-                      mainClassName="text-2xl md:text-3xl lg:text-5xl font-bold"
+                      texts={['Facebook', 'Instagram', 'LinkedIn', 'YouTube', 'TikTok', 'X']}
+                      mainClassName="text-2xl md:text-3xl lg:text-4xl font-bold"
                       staggerFrom="first"
                       initial={{ y: "100%", opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
@@ -266,151 +75,60 @@ export function Hero() {
                       staggerDuration={0.02}
                       splitLevelClassName="overflow-hidden"
                       transition={{ type: "spring", damping: 30, stiffness: 400 }}
-                      rotationInterval={2000}
+                      rotationInterval={2500}
                     />
                   </span>
                 </div>
-                <span className="block text-muted-foreground text-xl md:text-2xl lg:text-3xl font-medium mt-6">
-                  {currentSlideData.subtitle.split(' ').map((word, i) => (
-                    <span key={i}>
-                      {i === currentSlideData.subtitle.split(' ').length - 1 ? (
-                        <span className={cn(
-                          "font-bold",
-                          currentSlide === 0 && "text-primary",
-                          currentSlide === 1 && "text-emerald-500",
-                          currentSlide === 2 && "text-purple-500",
-                          currentSlide === 3 && "text-orange-500",
-                          currentSlide === 4 && "text-cyan-500",
-                        )}>{word}</span>
-                      ) : (
-                        <>{word} </>
-                      )}
-                    </span>
-                  ))}
-                </span>
+                <span className="block text-muted-foreground text-xl md:text-2xl font-medium mt-4">في مكان واحد</span>
               </h1>
             </div>
 
-            {/* Description with Slide Animation */}
-            <p 
-              key={`desc-${currentSlide}`}
-              className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed animate-fade-in"
-            >
-              {currentSlideData.description}
+            {/* Description */}
+            <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              منصة <span className="text-foreground font-semibold">ركني</span> تجمع كل ما تحتاجه - من إنشاء ملفك الشخصي إلى إدارة فعالياتك وجمع البيانات بذكاء.
             </p>
 
-            {/* Slide Indicators */}
-            <div className="flex justify-center gap-3 pt-2">
-              {slides.map((slide, index) => (
-                <button
-                  key={slide.id}
-                  onClick={() => goToSlide(index)}
-                  className={cn(
-                    "group relative flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300",
-                    currentSlide === index 
-                      ? "bg-card border border-border shadow-md" 
-                      : "hover:bg-card/50"
-                  )}
-                  aria-label={`انتقل للشريحة ${index + 1}`}
-                >
-                  <slide.icon className={cn(
-                    "w-4 h-4 transition-all duration-300",
-                    currentSlide === index 
-                      ? cn(
-                          index === 0 && "text-primary",
-                          index === 1 && "text-emerald-500",
-                          index === 2 && "text-purple-500",
-                          index === 3 && "text-orange-500",
-                          index === 4 && "text-cyan-500",
-                        )
-                      : "text-muted-foreground"
-                  )} />
-                  <div className={cn(
-                    "w-2 h-2 rounded-full transition-all duration-300",
-                    currentSlide === index 
-                      ? cn(
-                          "w-8",
-                          index === 0 && "bg-primary",
-                          index === 1 && "bg-emerald-500",
-                          index === 2 && "bg-purple-500",
-                          index === 3 && "bg-orange-500",
-                          index === 4 && "bg-cyan-500",
-                        )
-                      : "bg-muted-foreground/30"
-                  )} />
-                </button>
-              ))}
-            </div>
-
-            {/* Features Pills with colors */}
-            <div className="flex flex-wrap justify-center gap-3 pt-2">
+            {/* Features Pills */}
+            <div className="flex flex-wrap justify-center gap-3">
               {features.map((feature, index) => (
                 <div 
                   key={index}
-                  className={cn(
-                    "group inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full",
-                    "bg-card/80 backdrop-blur-sm border border-border/50",
-                    "text-sm font-medium shadow-sm",
-                    "hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5",
-                    "transition-all duration-300 cursor-default"
-                  )}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted/50 border border-border/50 text-sm font-medium"
                 >
-                  <feature.icon className={cn("h-4 w-4", feature.color, "group-hover:scale-110 transition-transform")} />
+                  <feature.icon className="h-4 w-4 text-primary" />
                   <span>{feature.text}</span>
-                  <CheckCircle className="h-4 w-4 text-emerald-500" />
+                  <CheckCircle className="h-3.5 w-3.5 text-green-500" />
                 </div>
               ))}
             </div>
 
-            {/* CTA Buttons - Enhanced */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6">
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
               <Link href="/login">
-                <Button size="lg" className="group h-14 px-10 text-lg font-bold shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:scale-105 transition-all duration-300">
-                  <Zap className="ml-2 h-5 w-5 animate-pulse" />
+                <Button size="lg" className="group h-12 px-8 text-base font-bold">
+                  <Zap className="ml-2 h-5 w-5" />
                   ابدأ مجاناً الآن
-                  <ArrowRight className="mr-2 h-5 w-5 transition-transform group-hover:-translate-x-1.5 rotate-180" />
+                  <ArrowRight className="mr-2 h-5 w-5 transition-transform group-hover:-translate-x-1 rotate-180" />
                 </Button>
               </Link>
               <Link href="#features">
-                <Button variant="outline" size="lg" className="group h-14 px-8 text-lg font-semibold hover:bg-primary/5 hover:border-primary/50 transition-all duration-300">
-                  <Play className="ml-2 h-4 w-4 text-primary" />
-                  شاهد كيف يعمل
-                  <ArrowRight className="mr-2 h-4 w-4 rotate-180 transition-transform group-hover:-translate-x-1" />
+                <Button variant="outline" size="lg" className="group h-12 px-6 text-base font-semibold">
+                  اكتشف المزيد
+                  <ArrowRight className="mr-2 h-4 w-4 rotate-180" />
                 </Button>
               </Link>
             </div>
 
-            {/* Trust indicators with icons */}
-            <div className="flex flex-wrap justify-center gap-6 pt-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                  <CheckCircle className="h-3 w-3 text-emerald-500" />
-                </div>
-                <span>مجاني للأبد</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center">
-                  <CheckCircle className="h-3 w-3 text-blue-500" />
-                </div>
-                <span>بدون بطاقة ائتمان</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="w-5 h-5 rounded-full bg-purple-500/20 flex items-center justify-center">
-                  <CheckCircle className="h-3 w-3 text-purple-500" />
-                </div>
-                <span>دعم عربي كامل</span>
-              </div>
-            </div>
+            {/* Simple Notice */}
+            <p className="text-sm text-muted-foreground">
+              ✓ مجاني للأبد &nbsp;•&nbsp; ✓ بدون بطاقة ائتمان &nbsp;•&nbsp; ✓ دعم عربي
+            </p>
 
-            {/* Trusted By / Payment Methods - Enhanced */}
-            <div className="pt-12 border-t border-border/30 mt-8">
-              <p className="text-sm text-muted-foreground mb-6 flex items-center justify-center gap-2">
-                <span className="w-12 h-px bg-gradient-to-r from-transparent to-border/50" />
-                <span>موثوق من قبل آلاف المستخدمين • ندعم جميع طرق الدفع</span>
-                <span className="w-12 h-px bg-gradient-to-l from-transparent to-border/50" />
-              </p>
+            {/* Trusted By / Payment Methods */}
+            <div className="pt-8 border-t border-border/40">
+              <p className="text-xs text-muted-foreground mb-4">موثوق من قبل آلاف المستخدمين • ندعم جميع طرق الدفع</p>
               <div className="relative flex w-full flex-col items-center justify-center overflow-hidden">
-                <Marquee className="[--duration:25s]" pauseOnHover>
+                <Marquee className="[--duration:25s]">
                   {/* VISA */}
                   <div className="flex items-center justify-center mx-4 px-4 py-2 rounded-lg">
                     <svg className="h-8 w-auto" viewBox="0 0 750 471" fill="currentColor">

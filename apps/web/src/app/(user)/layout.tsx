@@ -18,12 +18,14 @@ export default function UserLayout({
     setMounted(true);
   }, []);
   
-  // Don't show main sidebar on settings pages (they have their own sidebar)
+  // Don't show main sidebar on settings pages and form creation pages (they have their own layout)
   const isSettingsPage = pathname?.startsWith('/app/settings');
+  const isFormCreatePage = pathname?.startsWith('/app/forms/create');
+  const hideSidebar = isSettingsPage || isFormCreatePage;
 
   return (
     <div className="flex h-svh overflow-hidden" dir="rtl">
-      {!isSettingsPage && (
+      {!hideSidebar && (
         <div className="hidden md:block">
           {mounted ? <Sidebar /> : <SidebarSkeleton />}
         </div>
@@ -34,12 +36,6 @@ export default function UserLayout({
         {children}
       </main>
 
-      {/* Notifications Sidebar - Right side */}
-      {!isSettingsPage && (
-        <div className="hidden xl:block ms-2">
-          {mounted ? <NotificationsSidebar /> : <NotificationsSidebarSkeleton />}
-        </div>
-      )}
     </div>
   );
 }

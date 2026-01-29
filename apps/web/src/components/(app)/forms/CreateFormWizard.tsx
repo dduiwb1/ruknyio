@@ -1,0 +1,982 @@
+'use client';
+
+import React, { useState, useCallback, useEffect } from 'react';
+import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import {
+  FileText,
+  Mail,
+  Plus,
+  GripVertical,
+  Trash2,
+  Copy,
+  Edit2,
+  ArrowRight,
+  Loader2,
+  ImageIcon,
+  Layers,
+  Image as ImageLucide,
+} from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import ProgressIndicator from '@/components/ui/progress-indicator';
+import { 
+  useForms, 
+  FormType, 
+  FormStatus,
+  FieldType,
+  FORM_TYPE_LABELS,
+  FORM_STATUS_LABELS,
+  FIELD_TYPE_LABELS,
+} from '@/lib/hooks/useForms';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { FieldTypeSelector } from './FieldTypeSelector';
+import { type FormFieldInput } from './FieldEditor';
+import { FieldEditorDialog } from './FieldEditorDialog';
+import { StepEditor, type FormStepInput } from './StepEditor';
+import FormBannersUpload, { type BannerDisplayMode } from './FormBannersUpload';
+import { FormTemplateSelector, type TemplateLanguage, getTemplateById } from './templates';
+
+// ============================================
+// Constants
+// ============================================
+
+const TOTAL_STEPS = 5;
+
+// ============================================
+// Component
+// ============================================
+
+export function CreateFormWizard() {
+  const router = useRouter();
+  const { createForm, isLoading } = useForms();
+  
+  const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Step 0: Template Selection
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [templateLanguage, setTemplateLanguage] = useState<TemplateLanguage>('ar');
+  
+  // Step 1: Basic Info
+  const [title, setTitle] = useState('');
+  const [slug, setSlug] = useState('');
+  const [description, setDescription] = useState('');
+  const [formType, setFormType] = useState<FormType>(FormType.SURVEY);
+  const [status, setStatus] = useState<FormStatus>(FormStatus.DRAFT);
+  // Banners state (cover images)
+  const [banners, setBanners] = useState<(File | string)[]>([]);
+  const [bannerDisplayMode, setBannerDisplayMode] = useState<BannerDisplayMode>('single');
+  const [isMultiStep, setIsMultiStep] = useState(false);
+  
+  // Step 2: Fields (single-step form)
+  const [fields, setFields] = useState<FormFieldInput[]>([]);
+  const [showFieldSelector, setShowFieldSelector] = useState(false);
+  const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
+  
+  // Step 2: Steps (multi-step form)
+  const [formSteps, setFormSteps] = useState<FormStepInput[]>([]);
+  
+  // Step 3: Settings
+  const [allowMultipleSubmissions, setAllowMultipleSubmissions] = useState(false);
+  const [requiresAuthentication, setRequiresAuthentication] = useState(false);
+  const [showProgressBar, setShowProgressBar] = useState(true);
+  const [showQuestionNumbers, setShowQuestionNumbers] = useState(true);
+  const [notifyOnSubmission, setNotifyOnSubmission] = useState(false);
+  const [notificationEmail, setNotificationEmail] = useState('');
+
+  // Generate unique slug
+  const generateSlug = useCallback(() => {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < 10; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }, []);
+
+  // Initialize slug on mount
+  useEffect(() => {
+    if (!slug) {
+      setSlug(generateSlug());
+    }
+  }, []);
+
+  // Handle template selection
+  const handleSelectTemplate = (templateId: string | null, fields: FormFieldInput[]) => {
+    setSelectedTemplateId(templateId);
+    if (templateId) {
+      const template = getTemplateById(templateId);
+      if (template) {
+        // Set title from template
+        setTitle(template.name[templateLanguage]);
+        setDescription(template.description[templateLanguage]);
+        // Set fields from template
+        setFields(fields);
+      }
+    }
+  };
+
+  // Handle start from scratch
+  const handleStartFromScratch = () => {
+    setSelectedTemplateId(null);
+    setTitle('');
+    setDescription('');
+    setFields([]);
+  };
+
+  // Handle language change
+  const handleTemplateLanguageChange = (language: TemplateLanguage) => {
+    setTemplateLanguage(language);
+  };
+
+  // Helper to convert File to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Get preview URL for banner (first one for cover)
+  const getCoverPreview = (): string | null => {
+    if (banners.length === 0) return null;
+    const first = banners[0];
+    if (typeof first === 'string') return first;
+    return URL.createObjectURL(first);
+  };
+
+  // Add new field
+  const handleAddField = (type: FieldType) => {
+    const newField: FormFieldInput = {
+      id: `field-${Date.now()}`,
+      label: FIELD_TYPE_LABELS[type],
+      type,
+      order: fields.length,
+      required: false,
+      placeholder: '',
+      options: type === FieldType.SELECT || type === FieldType.RADIO || type === FieldType.CHECKBOX 
+        ? ['خيار 1', 'خيار 2', 'خيار 3'] 
+        : undefined,
+      minValue: type === FieldType.RATING ? 1 : type === FieldType.SCALE ? 0 : undefined,
+      maxValue: type === FieldType.RATING ? 5 : type === FieldType.SCALE ? 10 : undefined,
+    };
+    setFields(prev => [...prev, newField]);
+    setShowFieldSelector(false);
+    setEditingFieldId(newField.id);
+  };
+
+  // Update field
+  const handleUpdateField = (id: string, updates: Partial<FormFieldInput>) => {
+    setFields(prev => prev.map(f => f.id === id ? { ...f, ...updates } : f));
+  };
+
+  // Delete field
+  const handleDeleteField = (id: string) => {
+    setFields(prev => prev.filter(f => f.id !== id));
+    if (editingFieldId === id) setEditingFieldId(null);
+  };
+
+  // Duplicate field
+  const handleDuplicateField = (id: string) => {
+    const field = fields.find(f => f.id === id);
+    if (field) {
+      const newField: FormFieldInput = {
+        ...field,
+        id: `field-${Date.now()}`,
+        label: `${field.label} (نسخة)`,
+        order: fields.length,
+      };
+      setFields(prev => [...prev, newField]);
+    }
+  };
+
+  // Reorder fields
+  const handleReorderFields = (newOrder: FormFieldInput[]) => {
+    setFields(newOrder.map((f, index) => ({ ...f, order: index })));
+  };
+
+  // Get total fields count
+  const getTotalFieldsCount = () => {
+    if (isMultiStep) {
+      return formSteps.reduce((acc, step) => acc + step.fields.length, 0);
+    }
+    return fields.length;
+  };
+
+  // Validate step
+  const validateStep = () => {
+    // Step 1: Template selection - no validation needed
+    if (currentStep === 1) {
+      return true;
+    }
+    // Step 2: Basic Info
+    if (currentStep === 2) {
+      if (!title.trim()) {
+        toast.error('الرجاء إدخال عنوان النموذج');
+        return false;
+      }
+      if (!slug || slug.length < 3) {
+        toast.error('الرجاء إدخال رابط صالح (3 أحرف على الأقل)');
+        return false;
+      }
+    }
+    // Step 3: Fields
+    if (currentStep === 3) {
+      if (isMultiStep) {
+        if (formSteps.length === 0) {
+          toast.error('الرجاء إضافة خطوة واحدة على الأقل');
+          return false;
+        }
+        const totalFields = getTotalFieldsCount();
+        if (totalFields === 0) {
+          toast.error('الرجاء إضافة حقل واحد على الأقل');
+          return false;
+        }
+      } else {
+        if (fields.length === 0) {
+          toast.error('الرجاء إضافة حقل واحد على الأقل');
+          return false;
+        }
+      }
+    }
+    return true;
+  };
+
+  // Navigation
+  const handleContinue = () => {
+    if (validateStep()) {
+      setCurrentStep(prev => Math.min(prev + 1, TOTAL_STEPS));
+    }
+  };
+
+  const handleBack = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
+
+  // Submit form
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (currentStep !== TOTAL_STEPS) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Convert banner files to base64
+      let coverImageData: string | undefined;
+      let bannerImagesData: string[] = [];
+      
+      for (const banner of banners) {
+        if (typeof banner === 'string') {
+          bannerImagesData.push(banner);
+        } else {
+          const base64 = await fileToBase64(banner);
+          bannerImagesData.push(base64);
+        }
+      }
+      
+      // Use first banner as cover image for backwards compatibility
+      if (bannerImagesData.length > 0) {
+        coverImageData = bannerImagesData[0];
+      }
+
+      const formData: any = {
+        title,
+        slug,
+        description: description || undefined,
+        type: formType,
+        status,
+        isMultiStep,
+        allowMultipleSubmissions,
+        requiresAuthentication,
+        showProgressBar,
+        showQuestionNumbers,
+        notifyOnSubmission,
+        notificationEmail: notifyOnSubmission ? notificationEmail : undefined,
+        coverImage: coverImageData,
+        bannerImages: bannerImagesData.length > 0 ? bannerImagesData : undefined,
+        bannerDisplayMode: bannerImagesData.length > 0 ? bannerDisplayMode : undefined,
+      };
+
+      // Add fields or steps based on form type
+      if (isMultiStep) {
+        formData.steps = formSteps.map(step => ({
+          title: step.title,
+          description: step.description,
+          order: step.order,
+          fields: step.fields.map(f => ({
+            label: f.label,
+            description: f.description,
+            type: f.type,
+            order: f.order,
+            required: f.required,
+            placeholder: f.placeholder,
+            options: f.options,
+            minValue: f.minValue,
+            maxValue: f.maxValue,
+          })),
+        }));
+      } else {
+        formData.fields = fields.map(f => ({
+          label: f.label,
+          description: f.description,
+          type: f.type,
+          order: f.order,
+          required: f.required,
+          placeholder: f.placeholder,
+          options: f.options,
+          minValue: f.minValue,
+          maxValue: f.maxValue,
+        }));
+      }
+      
+      const result = await createForm(formData);
+      
+      if (result) {
+        toast.success('تم إنشاء النموذج بنجاح! 🎉');
+        router.push('/forms');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'فشل في إنشاء النموذج');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const editingField = editingFieldId ? (fields.find(f => f.id === editingFieldId) ?? null) : null;
+
+  // ============================================
+  // Render Steps
+  // ============================================
+
+  // Step 1: Template Selection
+  const renderStep1 = () => (
+    <motion.div
+      key="step1"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col items-center text-sm text-slate-800 dark:text-slate-200"
+    >
+      <div className="w-full max-w-xl">
+        <FormTemplateSelector
+          selectedTemplateId={selectedTemplateId}
+          selectedLanguage={templateLanguage}
+          onSelectTemplate={handleSelectTemplate}
+          onLanguageChange={handleTemplateLanguageChange}
+          onStartFromScratch={handleStartFromScratch}
+        />
+      </div>
+    </motion.div>
+  );
+
+  // Step 2: Basic Info
+  const renderStep2 = () => (
+    <motion.div
+      key="step2"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col  items-center text-sm text-slate-800 dark:text-slate-200"
+    >
+      {/* Step Header */}
+      <p className="text-xs bg-indigo-200 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 font-medium px-3 py-1 rounded-full">
+        الخطوة 2 من 5
+      </p>
+      <h2 className="text-2xl font-bold py-3 text-center text-gray-900 dark:text-white">معلومات النموذج</h2>
+      <p className="text-gray-500 dark:text-gray-400 pb-6 text-center text-sm">
+        أخبرنا عن نموذجك الجديد
+      </p>
+
+      {/* Form Fields */}
+      <div className="w-full max-w-md px-4 space-y-5">
+        {/* Title */}
+        <div>
+          <label htmlFor="title" className="font-medium text-gray-800 dark:text-gray-200">
+            عنوان النموذج <span className="text-red-500">*</span>
+          </label>
+          <div className="flex items-center mt-2 mb-4 h-11 pr-3 border border-slate-300 dark:border-slate-600 rounded-full focus-within:ring-2 focus-within:ring-indigo-400 transition-all overflow-hidden bg-white dark:bg-gray-800">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M17 3H3C1.89543 3 1 3.89543 1 5V15C1 16.1046 1.89543 17 3 17H17C18.1046 17 19 16.1046 19 15V5C19 3.89543 18.1046 3 17 3Z" stroke="#64748b" strokeWidth="1.5" fill="none"/>
+              <path d="M5 7H15M5 10H12" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            <input
+              id="title"
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="مثال: استبيان رضا العملاء"
+              className="h-full px-3 w-full outline-none bg-transparent text-gray-800 dark:text-gray-200 placeholder:text-gray-400"
+              required
+            />
+          </div>
+        </div>
+
+        {/* Description */}
+        <div>
+          <label htmlFor="description" className="font-medium text-gray-800 dark:text-gray-200">
+            الوصف (اختياري)
+          </label>
+          <textarea
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="وصف مختصر للنموذج..."
+            rows={3}
+            className="w-full mt-2 p-3 bg-white dark:bg-gray-800 border border-slate-300 dark:border-slate-600 rounded-2xl resize-none outline-none focus:ring-2 focus-within:ring-indigo-400 transition-all text-gray-800 dark:text-gray-200 placeholder:text-gray-400"
+          />
+        </div>
+
+        {/* Form Type & Status - Side by Side */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Form Type */}
+          <div className="text-right">
+            <label className="font-medium text-gray-800 dark:text-gray-200">نوع النموذج</label>
+            <Select value={formType} onValueChange={(v) => setFormType(v as FormType)}>
+              <SelectTrigger className="mt-2 h-12 w-full rounded-full border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-800 text-right">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                {Object.entries(FORM_TYPE_LABELS).map(([key, label]) => (
+                  <SelectItem key={key} value={key} className="rounded-lg text-right">{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Form Status */}
+          <div className="text-right">
+            <label className="font-medium text-gray-800 dark:text-gray-200">حالة النموذج</label>
+            <Select value={status} onValueChange={(v) => setStatus(v as FormStatus)}>
+              <SelectTrigger className="mt-2 h-12 w-full rounded-full border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-800 text-right">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                {Object.entries(FORM_STATUS_LABELS).map(([key, label]) => (
+                  <SelectItem key={key} value={key} className="rounded-lg text-right">{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Multi-step Toggle */}
+        <div className="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
+              <Layers className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div>
+              <p className="font-medium text-sm text-gray-800 dark:text-gray-200">نموذج متعدد الخطوات</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">تقسيم النموذج إلى عدة مراحل</p>
+            </div>
+          </div>
+          <div dir="ltr">
+            <Switch
+              checked={isMultiStep}
+              onCheckedChange={setIsMultiStep}
+            />
+          </div>
+        </div>
+
+        {/* Cover Image / Banners */}
+        <div>
+          <label className="font-medium text-gray-800 dark:text-gray-200 flex items-center gap-2 mb-2">
+            <ImageLucide className="w-4 h-4" />
+            صور الغلاف (اختياري)
+          </label>
+          <FormBannersUpload
+            banners={banners}
+            onChange={setBanners}
+            displayMode={bannerDisplayMode}
+            onDisplayModeChange={setBannerDisplayMode}
+            maxFiles={5}
+            maxSizeMB={5}
+          />
+        </div>
+      </div>
+    </motion.div>
+  );
+
+  // Step 3: Fields
+  const renderStep3 = () => {
+    // Icons for field types
+    const getFieldIcon = (type: FieldType) => {
+      const icons: Record<string, React.ReactNode> = {
+        [FieldType.TEXT]: <FileText className="w-4 h-4" />,
+        [FieldType.TEXTAREA]: <FileText className="w-4 h-4" />,
+        [FieldType.EMAIL]: <Mail className="w-4 h-4" />,
+        [FieldType.NUMBER]: <FileText className="w-4 h-4" />,
+        [FieldType.SELECT]: <FileText className="w-4 h-4" />,
+      };
+      return icons[type] || <FileText className="w-4 h-4" />;
+    };
+
+    // Get color for field type
+    const getFieldColor = (index: number) => {
+      const colors = [
+        { bg: 'bg-indigo-100 dark:bg-indigo-900/30', icon: 'text-indigo-600 dark:text-indigo-400', border: 'border-indigo-200 dark:border-indigo-800' },
+        { bg: 'bg-purple-100 dark:bg-purple-900/30', icon: 'text-purple-600 dark:text-purple-400', border: 'border-purple-200 dark:border-purple-800' },
+        { bg: 'bg-cyan-100 dark:bg-cyan-900/30', icon: 'text-cyan-600 dark:text-cyan-400', border: 'border-cyan-200 dark:border-cyan-800' },
+        { bg: 'bg-emerald-100 dark:bg-emerald-900/30', icon: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-800' },
+        { bg: 'bg-amber-100 dark:bg-amber-900/30', icon: 'text-amber-600 dark:text-amber-400', border: 'border-amber-200 dark:border-amber-800' },
+        { bg: 'bg-rose-100 dark:bg-rose-900/30', icon: 'text-rose-600 dark:text-rose-400', border: 'border-rose-200 dark:border-rose-800' },
+      ];
+      return colors[index % colors.length];
+    };
+
+    return (
+      <motion.div
+        key="step3"
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -20 }}
+        transition={{ duration: 0.3 }}
+        className="flex flex-col items-center text-sm text-slate-800 dark:text-slate-200"
+      >
+        {/* Step Header */}
+        <p className="text-xs bg-emerald-200 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 font-medium px-3 py-1 rounded-full">
+          الخطوة 3 من 5
+        </p>
+        <h2 className="text-2xl font-bold py-3 text-center text-gray-900 dark:text-white">حقول النموذج</h2>
+        <p className="text-gray-500 dark:text-gray-400 pb-4 text-center text-sm">
+          {selectedTemplateId ? 'راجع الحقول أو عدّلها حسب احتياجاتك' : 'أضف الحقول التي تريد جمع بياناتها'}
+        </p>
+
+        {/* Fields Counter */}
+        {fields.length > 0 && (
+          <div className="flex items-center gap-2 mb-4 text-xs">
+            <span className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-600 dark:text-gray-400">
+              {fields.length} حقول
+            </span>
+            <span className="text-gray-400">•</span>
+            <span className="text-gray-500 dark:text-gray-400">اسحب للترتيب</span>
+          </div>
+        )}
+
+        <div className="w-full max-w-lg px-4 space-y-3">
+          {/* Multi-step Editor */}
+          {isMultiStep ? (
+            <StepEditor
+              steps={formSteps}
+              onStepsChange={setFormSteps}
+            />
+          ) : (
+            <>
+              {/* Fields List */}
+              {fields.length > 0 ? (
+                <Reorder.Group 
+                  axis="y" 
+                  values={fields} 
+                  onReorder={handleReorderFields}
+                  className="space-y-2"
+                >
+                  {fields.map((field, index) => {
+                    const colors = getFieldColor(index);
+                    return (
+                      <Reorder.Item
+                        key={field.id}
+                        value={field}
+                        className={cn(
+                          "group relative flex items-center gap-3 p-3 bg-white dark:bg-gray-800/50 rounded-xl border transition-all cursor-grab active:cursor-grabbing",
+                          "hover:shadow-md hover:scale-[1.01]",
+                          colors.border
+                        )}
+                      >
+                        {/* Drag Handle */}
+                        <div className="flex flex-col items-center gap-0.5 text-gray-300 dark:text-gray-600 group-hover:text-gray-400">
+                          <GripVertical className="w-4 h-4" />
+                        </div>
+
+                        {/* Field Icon */}
+                        <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0", colors.bg, colors.icon)}>
+                          {getFieldIcon(field.type as FieldType)}
+                        </div>
+
+                        {/* Field Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm text-gray-900 dark:text-white truncate">{field.label}</span>
+                            {field.required && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded">
+                                مطلوب
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {FIELD_TYPE_LABELS[field.type as FieldType]}
+                          </span>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            type="button"
+                            onClick={() => setEditingFieldId(field.id)}
+                            className="p-2 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                            title="تعديل"
+                          >
+                            <Edit2 className="w-4 h-4 text-indigo-500" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDuplicateField(field.id)}
+                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            title="نسخ"
+                          >
+                            <Copy className="w-4 h-4 text-gray-500" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteField(field.id)}
+                            className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                            title="حذف"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-500" />
+                          </button>
+                        </div>
+
+                        {/* Order Number */}
+                        <div className="absolute -right-1 -top-1 w-5 h-5 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[10px] font-bold flex items-center justify-center">
+                          {index + 1}
+                        </div>
+                      </Reorder.Item>
+                    );
+                  })}
+                </Reorder.Group>
+              ) : (
+                <div className="text-center py-10 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/30">
+                  <div className="w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-3">
+                    <Plus className="w-7 h-7 text-gray-400" />
+                  </div>
+                  <p className="text-gray-600 dark:text-gray-400 font-medium mb-1">لم تقم بإضافة أي حقول بعد</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">ابدأ بإضافة الحقول لنموذجك</p>
+                </div>
+              )}
+
+              {/* Field Editor Dialog */}
+              <FieldEditorDialog
+                field={editingField}
+                open={editingFieldId !== null}
+                onOpenChange={(open) => !open && setEditingFieldId(null)}
+                onUpdate={(updates) => editingField && handleUpdateField(editingField.id, updates)}
+                onSave={() => setEditingFieldId(null)}
+              />
+
+              {/* Add Field Button */}
+              <button
+                type="button"
+                onClick={() => setShowFieldSelector(true)}
+                className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl transition-all font-medium shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30"
+              >
+                <Plus className="w-5 h-5" />
+                <span>إضافة حقل جديد</span>
+              </button>
+
+              {/* Field Type Selector Modal */}
+              <AnimatePresence>
+                {showFieldSelector && (
+                  <FieldTypeSelector
+                    onSelect={handleAddField}
+                    onClose={() => setShowFieldSelector(false)}
+                  />
+                )}
+              </AnimatePresence>
+            </>
+          )}
+        </div>
+      </motion.div>
+    );
+  };
+
+  // Step 4: Settings
+  const renderStep4 = () => (
+    <motion.div
+      key="step4"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col items-center text-sm text-slate-800 dark:text-slate-200"
+    >
+      {/* Step Header */}
+      <p className="text-xs bg-amber-200 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 font-medium px-3 py-1 rounded-full">
+        الخطوة 4 من 5
+      </p>
+      <h2 className="text-2xl font-bold py-3 text-center text-gray-900 dark:text-white">إعدادات النموذج</h2>
+      <p className="text-gray-500 dark:text-gray-400 pb-6 text-center text-sm">
+        خصص سلوك النموذج
+      </p>
+
+      {/* Settings List */}
+      <div className="w-full max-w-md px-4 space-y-3">
+        {/* Multiple Submissions */}
+        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 border border-slate-300 dark:border-slate-600 rounded-2xl">
+          <div>
+            <p className="font-medium text-sm text-gray-800 dark:text-gray-200">السماح بالإرسال المتعدد</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">السماح للمستخدم بإرسال أكثر من رد</p>
+          </div>
+          <div dir="ltr">
+            <Switch checked={allowMultipleSubmissions} onCheckedChange={setAllowMultipleSubmissions} />
+          </div>
+        </div>
+
+        {/* Requires Authentication */}
+        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 border border-slate-300 dark:border-slate-600 rounded-2xl">
+          <div>
+            <p className="font-medium text-sm text-gray-800 dark:text-gray-200">يتطلب تسجيل الدخول</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">يجب على المستخدم تسجيل الدخول للإرسال</p>
+          </div>
+          <div dir="ltr">
+            <Switch checked={requiresAuthentication} onCheckedChange={setRequiresAuthentication} />
+          </div>
+        </div>
+
+        {/* Show Progress Bar */}
+        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 border border-slate-300 dark:border-slate-600 rounded-2xl">
+          <div>
+            <p className="font-medium text-sm text-gray-800 dark:text-gray-200">إظهار شريط التقدم</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">عرض نسبة الإكمال للمستخدم</p>
+          </div>
+          <div dir="ltr">
+            <Switch checked={showProgressBar} onCheckedChange={setShowProgressBar} />
+          </div>
+        </div>
+
+        {/* Show Question Numbers */}
+        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 border border-slate-300 dark:border-slate-600 rounded-2xl">
+          <div>
+            <p className="font-medium text-sm text-gray-800 dark:text-gray-200">ترقيم الأسئلة</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">عرض أرقام الأسئلة</p>
+          </div>
+          <div dir="ltr">
+            <Switch checked={showQuestionNumbers} onCheckedChange={setShowQuestionNumbers} />
+          </div>
+        </div>
+
+        {/* Notify on Submission */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 border border-slate-300 dark:border-slate-600 rounded-2xl">
+            <div>
+              <p className="font-medium text-sm text-gray-800 dark:text-gray-200">إشعار عند الإرسال</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">استلام بريد عند كل رد جديد</p>
+            </div>
+            <div dir="ltr">
+              <Switch checked={notifyOnSubmission} onCheckedChange={setNotifyOnSubmission} />
+            </div>
+          </div>
+          
+          {notifyOnSubmission && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+            >
+              <div className="flex items-center h-11 pr-3 border border-slate-300 dark:border-slate-600 rounded-full focus-within:ring-2 focus-within:ring-indigo-400 transition-all overflow-hidden bg-white dark:bg-gray-800">
+                <Mail className="w-5 h-5 text-gray-400" />
+                <input
+                  type="email"
+                  value={notificationEmail}
+                  onChange={(e) => setNotificationEmail(e.target.value)}
+                  placeholder="example@email.com"
+                  className="h-full px-3 w-full outline-none bg-transparent text-gray-800 dark:text-gray-200 placeholder:text-gray-400"
+                  dir="ltr"
+                />
+              </div>
+            </motion.div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+
+  // Step 5: Preview
+  const renderStep5 = () => (
+    <motion.div
+      key="step5"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col items-center text-sm text-slate-800 dark:text-slate-200"
+    >
+      {/* Step Header */}
+      <p className="text-xs bg-blue-200 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 font-medium px-3 py-1 rounded-full">
+        الخطوة 5 من 5
+      </p>
+      <h2 className="text-2xl font-bold py-3 text-center text-gray-900 dark:text-white">معاينة النموذج</h2>
+      <p className="text-gray-500 dark:text-gray-400 pb-6 text-center text-sm">
+        راجع النموذج قبل الإنشاء
+      </p>
+
+      {/* Preview Card */}
+      <div className="w-full max-w-md px-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-300 dark:border-slate-600 overflow-hidden shadow-sm">
+        {/* Cover Image / Banner Preview */}
+        {banners.length > 0 && (
+          <div className="relative h-32 overflow-hidden">
+            {bannerDisplayMode === 'slider' && banners.length > 1 ? (
+              <div className="flex h-full">
+                {banners.slice(0, 3).map((banner, idx) => {
+                  const url = typeof banner === 'string' ? banner : URL.createObjectURL(banner);
+                  return (
+                    <div key={idx} className="flex-1 h-full">
+                      <img src={url} alt={`Banner ${idx + 1}`} className="w-full h-full object-cover" />
+                    </div>
+                  );
+                })}
+                {banners.length > 3 && (
+                  <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
+                    +{banners.length - 3} صور
+                  </div>
+                )}
+              </div>
+            ) : (
+              <img 
+                src={typeof banners[0] === 'string' ? banners[0] : URL.createObjectURL(banners[0])} 
+                alt="Cover" 
+                className="w-full h-full object-cover" 
+              />
+            )}
+            <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+              {bannerDisplayMode === 'slider' ? <Layers className="w-3 h-3" /> : <ImageLucide className="w-3 h-3" />}
+              {bannerDisplayMode === 'slider' ? 'سلايدر' : 'صورة واحدة'}
+            </div>
+          </div>
+        )}
+
+        <div className="p-5">
+          {/* Form Info */}
+          <div className="flex items-start gap-4 mb-5">
+            <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+              <FileText className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="font-bold text-lg text-gray-800 dark:text-gray-200">{title || 'بدون عنوان'}</h3>
+                <span className={cn(
+                  "px-2.5 py-1 text-xs font-medium rounded-full flex-shrink-0",
+                  status === FormStatus.PUBLISHED ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                  status === FormStatus.DRAFT ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' :
+                  status === FormStatus.ARCHIVED ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                  'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                )}>
+                  {FORM_STATUS_LABELS[status]}
+                </span>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{description || 'بدون وصف'}</p>
+              <div className="flex items-center gap-3 mt-3 flex-wrap">
+                <span className="text-xs px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full font-medium">
+                  {FORM_TYPE_LABELS[formType]}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {getTotalFieldsCount()} حقول
+                </span>
+                {isMultiStep && (
+                  <span className="text-xs text-gray-500">
+                    {formSteps.length} خطوات
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Settings Summary */}
+          <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
+            <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-3">الإعدادات</h4>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <div className={cn("w-2 h-2 rounded-full", allowMultipleSubmissions ? "bg-green-500" : "bg-gray-300")} />
+                <span className="text-gray-600 dark:text-gray-400">إرسال متعدد</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className={cn("w-2 h-2 rounded-full", requiresAuthentication ? "bg-green-500" : "bg-gray-300")} />
+                <span className="text-gray-600 dark:text-gray-400">يتطلب تسجيل دخول</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className={cn("w-2 h-2 rounded-full", notifyOnSubmission ? "bg-green-500" : "bg-gray-300")} />
+                <span className="text-gray-600 dark:text-gray-400">إشعارات البريد</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className={cn("w-2 h-2 rounded-full", showProgressBar ? "bg-green-500" : "bg-gray-300")} />
+                <span className="text-gray-600 dark:text-gray-400">شريط التقدم</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full flex items-center justify-center gap-2 mt-5 bg-indigo-500 hover:bg-indigo-600 disabled:bg-indigo-400 text-white py-3 rounded-full transition font-medium"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>جاري الإنشاء...</span>
+            </>
+          ) : (
+            <>
+              <span>إنشاء النموذج</span>
+              <ArrowRight className="w-4 h-4 mt-0.5" />
+            </>
+          )}
+        </button>
+      </div>
+    </motion.div>
+  );
+
+  // ============================================
+  // Main Render
+  // ============================================
+
+  return (
+    <form onSubmit={handleSubmit} className="max-w-2xl mx-auto">
+      {/* Form Container */}
+      <div className="p-4 sm:p-6">
+        <AnimatePresence mode="wait">
+          {currentStep === 1 && renderStep1()}
+          {currentStep === 2 && renderStep2()}
+          {currentStep === 3 && renderStep3()}
+          {currentStep === 4 && renderStep4()}
+          {currentStep === 5 && renderStep5()}
+        </AnimatePresence>
+      </div>
+
+      {/* Progress Indicator */}
+      <div className="mt-4">
+        <ProgressIndicator
+          currentStep={currentStep}
+          totalSteps={TOTAL_STEPS}
+          onBack={handleBack}
+          onContinue={handleContinue}
+          isLoading={isSubmitting}
+          isBackVisible={currentStep > 1}
+          continueLabel="التالي"
+          backLabel="السابق"
+          finishLabel={isSubmitting ? "جاري الإنشاء..." : "إنشاء النموذج"}
+          disabled={isSubmitting}
+        />
+      </div>
+    </form>
+  );
+}
+
+export default CreateFormWizard;

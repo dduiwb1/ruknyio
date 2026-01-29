@@ -99,8 +99,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
             await refreshToken();
             console.log('[AuthProvider] Refresh successful');
           } catch (err) {
-            // No valid session
+            // No valid session - clear any stale tokens
             console.log('[AuthProvider] Refresh failed:', err);
+            clearCsrfToken();
             setState(prev => ({ ...prev, isLoading: false }));
             return;
           }
@@ -120,7 +121,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         console.log('[AuthProvider] Auth state set to authenticated');
       } catch (err) {
         // Clear CSRF token
-        console.error('[AuthProvider] initAuth error:', err);
+        // Don't log error if it's just "Unauthorized" - this is expected when no user is logged in
+        if (err instanceof Error && !err.message.includes('Unauthorized')) {
+          console.error('[AuthProvider] initAuth error:', err);
+        } else {
+          console.log('[AuthProvider] No authenticated session found');
+        }
         clearCsrfToken();
         setState({
           user: null,
@@ -135,7 +141,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     initAuth();
   }, []);
 
-  // Set up token refresh interval (every 10 minutes)
+  // Set up proactive token refresh (every 25 minutes - 5 min before 30m expiry)
   useEffect(() => {
     if (!state.isAuthenticated) return;
 
@@ -144,6 +150,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         await refreshToken();
         // 🔒 Update session timeout tracker
         updateLastRefreshTime();
+        console.log('[AuthProvider] Proactive token refresh successful');
       } catch {
         // Token refresh failed, log out
         clearCsrfToken();
@@ -155,7 +162,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           error: 'Session expired. Please login again.',
         });
       }
-    }, 10 * 60 * 1000); // 10 minutes
+    }, 25 * 60 * 1000); // 25 minutes (refresh 5 min before 30m token expiry)
 
     return () => clearInterval(refreshInterval);
   }, [state.isAuthenticated]);

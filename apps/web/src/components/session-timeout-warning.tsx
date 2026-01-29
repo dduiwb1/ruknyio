@@ -38,6 +38,19 @@ function decodeJWT(token: string): { exp?: number; iat?: number } | null {
   }
 }
 
+// Auth pages and public pages where session timeout should NOT trigger
+const AUTH_PAGES = [
+  '/', // Landing page (public)
+  '/login',
+  '/register',
+  '/quicksign',
+  '/complete-profile',
+  '/auth/verify',
+  '/auth/callback',
+  '/forgot-password',
+  '/reset-password',
+];
+
 export function SessionTimeoutWarning({
   warningTime = 60,
   checkInterval = 30,
@@ -49,16 +62,37 @@ export function SessionTimeoutWarning({
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const checkRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Check if current page is an auth page or public page (should skip session check)
+  const isAuthPage = useCallback(() => {
+    if (typeof window === 'undefined') return true; // SSR - skip check
+    const pathname = window.location.pathname;
+    // Check exact match for root, or startsWith for other paths
+    return AUTH_PAGES.some(page => 
+      page === '/' ? pathname === '/' : pathname.startsWith(page)
+    );
+  }, []);
+
   // Check if session is about to expire
   const checkSession = useCallback(() => {
+    // 🔒 Skip session check on auth pages and public pages
+    if (isAuthPage()) {
+      setShowWarning(false);
+      return;
+    }
+
     const token = getAccessToken();
     if (!token) {
+      // No token - clear any stale CSRF tokens and don't show warning
+      clearCsrfToken();
       setShowWarning(false);
       return;
     }
 
     const decoded = decodeJWT(token);
     if (!decoded?.exp) {
+      // Invalid token - clear and don't show warning
+      clearCsrfToken();
+      clearAccessToken();
       setShowWarning(false);
       return;
     }
@@ -68,9 +102,14 @@ export function SessionTimeoutWarning({
     const remaining = Math.floor((expiresAt - now) / 1000); // Seconds
 
     if (remaining <= 0) {
-      // Token already expired
+      // Token already expired - only logout if not on public pages
       setShowWarning(false);
-      handleLogout();
+      if (!isAuthPage()) {
+        handleLogout();
+      } else {
+        clearCsrfToken();
+        clearAccessToken();
+      }
       return;
     }
 
@@ -81,7 +120,7 @@ export function SessionTimeoutWarning({
     } else {
       setShowWarning(false);
     }
-  }, [warningTime]);
+  }, [warningTime, isAuthPage]);
 
   // Countdown effect
   useEffect(() => {
@@ -155,8 +194,13 @@ export function SessionTimeoutWarning({
     }
   };
 
-  // Logout
+  // Logout - only redirect if not already on an auth page
   const handleLogout = () => {
+    // 🔒 Don't redirect to login if already on auth pages
+    if (isAuthPage()) {
+      setShowWarning(false);
+      return;
+    }
     clearCsrfToken();
     setShowWarning(false);
     window.location.href = '/login?session=expired';
