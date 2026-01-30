@@ -39,7 +39,7 @@ User Login → Access Token (Memory) + Refresh Token (Cookie) + Session (DB)
 
 | المكون | التخزين | الإرسال | مدة الصلاحية |
 |--------|---------|---------|--------------|
-| **Access Token** | Memory (Frontend) | Authorization Header | 15 دقيقة |
+| **Access Token** | httpOnly Cookie | تلقائي مع الطلبات | 30 دقيقة |
 | **Refresh Token** | httpOnly Cookie | تلقائي مع Cookie | 30 يوم |
 | **Session Record** | PostgreSQL | - | يُحدّث مع كل استخدام |
 
@@ -61,7 +61,7 @@ User Login → Access Token (Memory) + Refresh Token (Cookie) + Session (DB)
 httpOnly: true,        // 🔒 حماية XSS - لا يمكن قراءته بـ JavaScript
 secure: true,          // 🔒 HTTPS فقط في الإنتاج
 sameSite: 'lax',       // 🔒 يسمح بـ OAuth redirects + حماية CSRF أساسية
-path: '/api/v1/auth',  // 🔒 متاح فقط لمسارات المصادقة
+path: '/',  // 🔒 يجب '/' لأن الواجهة تستدعي /api/auth/* (proxy) وليس /api/v1/auth/*
 maxAge: 30 * 24 * 60 * 60 * 1000 // 30 يوم
 
 // ⚠️ Access Token لا يُخزن في Cookie

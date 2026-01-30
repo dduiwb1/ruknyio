@@ -37,14 +37,8 @@ export class FormsCommandsService {
    * Create a new form
    */
   async create(userId: string, createFormDto: CreateFormDto) {
-    // Check slug uniqueness
-    const existingForm = await this.prisma.form.findUnique({
-      where: { slug: createFormDto.slug },
-    });
-
-    if (existingForm) {
-      throw new ConflictException('Form slug already taken');
-    }
+    // Generate unique slug (auto-append suffix if taken)
+    const uniqueSlug = await this.generateUniqueSlug(createFormDto.slug);
 
     // Validate linked entities
     await this.validateLinkedEntities(userId, createFormDto);
@@ -76,6 +70,7 @@ export class FormsCommandsService {
         data: {
           id: formId,
           ...formData,
+          slug: uniqueSlug, // Use the generated unique slug
           coverImage: coverImageKey || (bannerImageKeys[0] ?? undefined),
           bannerImages: bannerImageKeys,
           bannerDisplayMode: bannerDisplayMode || 'single',

@@ -568,7 +568,7 @@ export class QuickSignController {
         avatar: user.profile?.avatar,
       },
       csrf_token: csrfToken,
-      expires_in: 15 * 60, // 15 minutes in seconds
+      expires_in: 30 * 60, // 30 minutes - matches access token
       message: 'تم التحقق بنجاح',
     };
   }
@@ -749,7 +749,7 @@ export class QuickSignController {
         slug: store.slug,
       },
       csrf_token: csrfToken,
-      expires_in: 15 * 60, // 15 minutes in seconds
+      expires_in: 30 * 60, // 30 minutes - matches access token
       message: 'تم إنشاء حسابك بنجاح',
     };
   }

@@ -86,6 +86,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const initAuth = async () => {
       console.log('[AuthProvider] initAuth started');
+      
+      // 🔒 Skip init if we're on OAuth callback page (will be handled by callback component)
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        if (url.pathname.includes('/auth/callback') && url.searchParams.has('code')) {
+          console.log('[AuthProvider] OAuth callback detected, skipping initAuth');
+          setState(prev => ({ ...prev, isLoading: false }));
+          return;
+        }
+      }
+      
       try {
         // 🔒 Check if we have a CSRF token (indicates logged-in state)
         // Access token is in httpOnly cookie (not accessible from JS)

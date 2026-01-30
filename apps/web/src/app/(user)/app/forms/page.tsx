@@ -71,7 +71,7 @@ export default function FormsPage() {
 
   // Handlers
   const handleCreateForm = () => {
-    router.push('/app/forms/create');
+    router.push('/app/forms/create?new=true');
   };
 
   const handleEditForm = (form: Form) => {

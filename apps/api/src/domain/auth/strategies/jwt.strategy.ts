@@ -141,9 +141,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       // Set cache FIRST to prevent concurrent updates
       lastActivityUpdateCache.set(session.id, now.getTime());
 
+      // 🔒 حساب expiresAt جديد (30 دقيقة من الآن) لتمديد الجلسة
+      const newExpiresAt = new Date(now.getTime() + 30 * 60 * 1000);
+
       this.prisma.$executeRaw`
         UPDATE sessions 
-        SET "lastActivity" = NOW() 
+        SET "lastActivity" = NOW(), "expiresAt" = ${newExpiresAt}
         WHERE id = ${session.id}
       `.catch(() => {
         // تجاهل الأخطاء - لا نريد أن يفشل الطلب بسبب تحديث النشاط

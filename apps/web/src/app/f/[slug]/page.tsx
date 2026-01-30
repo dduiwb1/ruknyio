@@ -1,0 +1,1161 @@
+'use client';
+
+import { useState, useEffect, useMemo, Fragment, ReactNode } from 'react';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
+import { useParams } from 'next/navigation';
+import {
+  FileText,
+  Send,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  AlertCircle,
+  Calendar,
+  Clock,
+  Lock,
+  Star,
+  Upload,
+  X,
+  Share2,
+  QrCode,
+  Copy,
+  Mail,
+  Phone,
+  Hash,
+  ArrowRight,
+  Info,
+} from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { QRCodeSVG } from 'qrcode.react';
+import { cn } from '@/lib/utils';
+import {
+  useForms,
+  Form,
+  FormField,
+  FieldType,
+  FormStatus,
+} from '@/lib/hooks/useForms';
+
+// API Base URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3001';
+
+// Helper functions
+const getInitials = (name: string): string => {
+  return name.split(' ').map(word => word[0]).join('').slice(0, 2).toUpperCase();
+};
+
+const getAvatarUrl = (avatar?: string | null): string | undefined => {
+  if (!avatar) return undefined;
+  if (avatar.startsWith('http')) return avatar;
+  if (avatar.startsWith('users/') || avatar.startsWith('profiles/')) {
+    return `${API_BASE_URL}/api/${avatar}`;
+  }
+  return `${API_BASE_URL}/uploads/avatars/${avatar.split('/').pop()}`;
+};
+
+export default function PublicFormPage() {
+  const params = useParams();
+  const slug = params.slug as string;
+  const { getFormBySlug, submitForm } = useForms();
+
+  const [form, setForm] = useState<Form | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [responses, setResponses] = useState<Record<string, any>>({});
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [showModal, setShowModal] = useState<'qr' | 'share' | null>(null);
+  const [showInfoSheet, setShowInfoSheet] = useState(false);
+  const [showQrInSheet, setShowQrInSheet] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const infoSheetDragControls = useDragControls();
+
+  // Fetch form data
+  useEffect(() => {
+    const fetchForm = async () => {
+      setLoading(true);
+      try {
+        const formData = await getFormBySlug(slug);
+        if (formData) {
+          setForm(formData);
+          const initialResponses: Record<string, any> = {};
+          formData.fields?.forEach((field) => {
+            if (field.defaultValue) {
+              initialResponses[field.id] = field.defaultValue;
+            } else if (field.type === FieldType.CHECKBOX) {
+              initialResponses[field.id] = [];
+            } else if (field.type === FieldType.TOGGLE) {
+              initialResponses[field.id] = false;
+            }
+          });
+          setResponses(initialResponses);
+        } else {
+          setError('النموذج غير موجود');
+        }
+      } catch {
+        setError('حدث خطأ أثناء تحميل النموذج');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (slug) fetchForm();
+  }, [slug, getFormBySlug]);
+
+  // Get current fields
+  const currentFields = useMemo(() => {
+    if (!form) return [];
+    if (form.isMultiStep && form.steps?.length) {
+      return form.steps[currentStep]?.fields || [];
+    }
+    return form.fields || [];
+  }, [form, currentStep]);
+
+  const totalSteps = form?.isMultiStep ? (form.steps?.length || 1) : 1;
+
+  // Progress
+  const progress = useMemo(() => {
+    if (!form?.fields?.length) return 0;
+    const answered = form.fields.filter(f => 
+      responses[f.id] !== undefined && responses[f.id] !== '' && responses[f.id] !== null
+    );
+    return Math.round((answered.length / form.fields.length) * 100);
+  }, [form, responses]);
+
+  // Validation
+  const validateCurrentFields = (): boolean => {
+    const errors: Record<string, string> = {};
+    currentFields.forEach((field) => {
+      if (field.required) {
+        const value = responses[field.id];
+        if (value === undefined || value === '' || value === null) {
+          errors[field.id] = 'هذا الحقل مطلوب';
+        } else if (field.type === FieldType.CHECKBOX && Array.isArray(value) && value.length === 0) {
+          errors[field.id] = 'اختر خياراً واحداً على الأقل';
+        }
+      }
+      if (field.type === FieldType.EMAIL && responses[field.id]) {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(responses[field.id])) {
+          errors[field.id] = 'بريد إلكتروني غير صالح';
+        }
+      }
+      if (field.type === FieldType.PHONE && responses[field.id]) {
+        if (!/^[\d\s\-+()]+$/.test(responses[field.id])) {
+          errors[field.id] = 'رقم هاتف غير صالح';
+        }
+      }
+    });
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleNext = () => {
+    if (validateCurrentFields() && currentStep < totalSteps - 1) {
+      setCurrentStep(prev => prev + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 0) {
+      setCurrentStep(prev => prev - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!validateCurrentFields()) return;
+    setIsSubmitting(true);
+    try {
+      const result = await submitForm(slug, responses);
+      if (result) {
+        setIsSubmitted(true);
+      } else {
+        setError('فشل في إرسال النموذج');
+      }
+    } catch {
+      setError('حدث خطأ أثناء الإرسال');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleFieldChange = (fieldId: string, value: any) => {
+    setResponses(prev => ({ ...prev, [fieldId]: value }));
+    if (validationErrors[fieldId]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldId];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Field renderer
+  const renderField = (field: FormField, index: number) => {
+    const hasError = !!validationErrors[field.id];
+    const value = responses[field.id];
+
+    const inputClass = cn(
+      "w-full h-12 px-4 bg-white border rounded-xl transition-all text-sm outline-none",
+      hasError 
+        ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-100" 
+        : "border-gray-200 focus:border-gray-400 focus:ring-2 focus:ring-gray-100"
+    );
+
+    // Field label and description
+    const fieldLabel = (
+      <>
+        <Label className={cn("text-sm font-medium", hasError ? "text-red-600" : "text-gray-700")}>
+          {field.label}
+          {field.required && <span className="text-red-500 mr-1">*</span>}
+        </Label>
+        {field.description && (
+          <p className="text-xs text-gray-500">{field.description}</p>
+        )}
+      </>
+    );
+
+    // Error message
+    const errorMessage = hasError && (
+      <p className="text-xs text-red-500 flex items-center gap-1">
+        <AlertCircle className="w-3 h-3" />
+        {validationErrors[field.id]}
+      </p>
+    );
+
+    switch (field.type) {
+      case FieldType.TEXT:
+        return (
+          <div className="space-y-2">
+            {fieldLabel}
+            <input
+              value={value || ''}
+              onChange={(e) => handleFieldChange(field.id, e.target.value)}
+              placeholder={field.placeholder || 'أدخل النص...'}
+              className={inputClass}
+            />
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.TEXTAREA:
+        return (
+          <div className="space-y-2">
+            {fieldLabel}
+            <textarea
+              value={value || ''}
+              onChange={(e) => handleFieldChange(field.id, e.target.value)}
+              placeholder={field.placeholder || 'أدخل النص...'}
+              rows={4}
+              className={cn(inputClass, "h-auto py-3 resize-none")}
+            />
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.EMAIL:
+        return (
+          <div className="space-y-2">
+            {fieldLabel}
+            <div className="relative">
+              <Mail className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="email"
+                value={value || ''}
+                onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                placeholder={field.placeholder || 'example@email.com'}
+                className={cn(inputClass, "pr-11")}
+                dir="ltr"
+              />
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.PHONE:
+        return (
+          <div className="space-y-2">
+            {fieldLabel}
+            <div className="relative">
+              <Phone className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="tel"
+                value={value || ''}
+                onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                placeholder={field.placeholder || '+964 XXX XXX XXXX'}
+                className={cn(inputClass, "pr-11")}
+                dir="ltr"
+              />
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.NUMBER:
+        return (
+          <div className="space-y-2">
+            {fieldLabel}
+            <div className="relative">
+              <Hash className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="number"
+                value={value || ''}
+                onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                placeholder={field.placeholder || '0'}
+                min={field.minValue}
+                max={field.maxValue}
+                className={cn(inputClass, "pr-11")}
+                dir="ltr"
+              />
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.DATE:
+        return (
+          <div className="space-y-2">
+            {fieldLabel}
+            <div className="relative">
+              <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="date"
+                value={value || ''}
+                onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                className={cn(inputClass, "pr-11")}
+                dir="ltr"
+              />
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.TIME:
+        return (
+          <div className="space-y-2">
+            {fieldLabel}
+            <div className="relative">
+              <Clock className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="time"
+                value={value || ''}
+                onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                className={cn(inputClass, "pr-11")}
+                dir="ltr"
+              />
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.DATETIME:
+        return (
+          <div className="space-y-2">
+            {fieldLabel}
+            <input
+              type="datetime-local"
+              value={value || ''}
+              onChange={(e) => handleFieldChange(field.id, e.target.value)}
+              className={inputClass}
+              dir="ltr"
+            />
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.SELECT:
+        return (
+          <div className="space-y-2">
+            {fieldLabel}
+            <Select value={value || ''} onValueChange={(v) => handleFieldChange(field.id, v)}>
+              <SelectTrigger className={cn(inputClass, "h-12")}>
+                <SelectValue placeholder={field.placeholder || 'اختر...'} />
+              </SelectTrigger>
+              <SelectContent>
+                {(field.options || []).map((opt, i) => {
+                  const optValue = typeof opt === 'string' ? opt : opt.value;
+                  const optLabel = typeof opt === 'string' ? opt : opt.label;
+                  return (
+                    <SelectItem key={i} value={optValue}>{optLabel}</SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.RADIO:
+        return (
+          <div className="space-y-2">
+            {fieldLabel}
+            <div className="space-y-2">
+              {(field.options || []).map((opt, i) => {
+                const optValue = typeof opt === 'string' ? opt : opt.value;
+                const optLabel = typeof opt === 'string' ? opt : opt.label;
+                const isSelected = value === optValue;
+                return (
+                  <label
+                    key={i}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all",
+                      isSelected ? "border-gray-900 bg-gray-50" : "border-gray-200 hover:border-gray-300"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-5 h-5 rounded-full border-2 flex items-center justify-center",
+                      isSelected ? "border-gray-900 bg-gray-900" : "border-gray-300"
+                    )}>
+                      {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                    </div>
+                    <span className="text-sm">{optLabel}</span>
+                    <input
+                      type="radio"
+                      className="hidden"
+                      checked={isSelected}
+                      onChange={() => handleFieldChange(field.id, optValue)}
+                    />
+                  </label>
+                );
+              })}
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.CHECKBOX:
+        const selectedValues = Array.isArray(value) ? value : [];
+        return (
+          <div className="space-y-2">
+            {fieldLabel}
+            <div className="space-y-2">
+              {(field.options || []).map((opt, i) => {
+                const optValue = typeof opt === 'string' ? opt : opt.value;
+                const optLabel = typeof opt === 'string' ? opt : opt.label;
+                const isSelected = selectedValues.includes(optValue);
+                return (
+                  <label
+                    key={i}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all",
+                      isSelected ? "border-gray-900 bg-gray-50" : "border-gray-200 hover:border-gray-300"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-5 h-5 rounded-md border-2 flex items-center justify-center",
+                      isSelected ? "border-gray-900 bg-gray-900" : "border-gray-300"
+                    )}>
+                      {isSelected && <Check className="w-3 h-3 text-white" />}
+                    </div>
+                    <span className="text-sm">{optLabel}</span>
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={isSelected}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          handleFieldChange(field.id, [...selectedValues, optValue]);
+                        } else {
+                          handleFieldChange(field.id, selectedValues.filter((v: string) => v !== optValue));
+                        }
+                      }}
+                    />
+                  </label>
+                );
+              })}
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.TOGGLE:
+        return (
+          <div className="space-y-2">
+            {fieldLabel}
+            <div className={cn(
+              "flex items-center justify-between p-3 rounded-xl border",
+              value ? "border-gray-900 bg-gray-50" : "border-gray-200"
+            )}>
+              <span className="text-sm">{value ? 'نعم' : 'لا'}</span>
+              <Switch
+                checked={value || false}
+                onCheckedChange={(checked) => handleFieldChange(field.id, checked)}
+              />
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.RATING:
+        const maxRating = field.maxValue || 5;
+        const currentRating = value || 0;
+        return (
+          <div className="space-y-2">
+            {fieldLabel}
+            <div className="flex items-center gap-1">
+              {Array.from({ length: maxRating }).map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => handleFieldChange(field.id, i + 1)}
+                  className="p-1"
+                >
+                  <Star
+                    className={cn(
+                      "w-8 h-8 transition-colors",
+                      i < currentRating ? "fill-amber-400 text-amber-400" : "text-gray-200"
+                    )}
+                  />
+                </button>
+              ))}
+              {currentRating > 0 && (
+                <span className="text-sm text-gray-500 mr-2">{currentRating}/{maxRating}</span>
+              )}
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.SCALE:
+        const min = field.minValue || 0;
+        const max = field.maxValue || 10;
+        return (
+          <div className="space-y-2">
+            {fieldLabel}
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>{field.minLabel || min}</span>
+                <span>{field.maxLabel || max}</span>
+              </div>
+              <div className="flex gap-1">
+                {Array.from({ length: max - min + 1 }).map((_, i) => {
+                  const num = min + i;
+                  return (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => handleFieldChange(field.id, num)}
+                      className={cn(
+                        "flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                        value === num ? "bg-gray-900 text-white" : "bg-gray-100 hover:bg-gray-200"
+                      )}
+                    >
+                      {num}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.FILE:
+        return (
+          <div className="space-y-2">
+            {fieldLabel}
+            <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center hover:border-gray-300 transition-colors">
+              <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+              <p className="text-sm text-gray-500">اضغط لرفع الملفات</p>
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.SIGNATURE:
+        return (
+          <div className="space-y-2">
+            {fieldLabel}
+            <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 text-center">
+              <p className="text-sm text-gray-500">التوقيع غير متاح حالياً</p>
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      default:
+        return (
+          <div className="space-y-2">
+            {fieldLabel}
+            <input
+              value={value || ''}
+              onChange={(e) => handleFieldChange(field.id, e.target.value)}
+              placeholder={field.placeholder || 'أدخل البيانات...'}
+              className={inputClass}
+            />
+            {errorMessage}
+          </div>
+        );
+    }
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-gray-400 mx-auto mb-3" />
+          <p className="text-sm text-gray-500">جاري التحميل...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !form) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-gray-400" />
+          </div>
+          <h1 className="text-lg font-semibold text-gray-900 mb-2">النموذج غير موجود</h1>
+          <p className="text-sm text-gray-500 mb-4">{error || 'لم نتمكن من العثور على هذا النموذج'}</p>
+          <a href="/" className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm">
+            <ArrowRight className="w-4 h-4" />
+            العودة للرئيسية
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Closed state
+  if (form.status !== FormStatus.PUBLISHED) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Lock className="w-8 h-8 text-gray-400" />
+          </div>
+          <h1 className="text-lg font-semibold text-gray-900 mb-2">النموذج مغلق</h1>
+          <p className="text-sm text-gray-500 mb-4">هذا النموذج لا يقبل إجابات جديدة</p>
+          <a href="/" className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm">
+            <ArrowRight className="w-4 h-4" />
+            العودة للرئيسية
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Success state
+  if (isSubmitted) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center max-w-sm"
+        >
+          <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Check className="w-8 h-8 text-green-600" />
+          </div>
+          <h1 className="text-xl font-semibold text-gray-900 mb-2">تم الإرسال بنجاح!</h1>
+          <p className="text-sm text-gray-500 mb-6">شكراً لمشاركتك في "{form.title}"</p>
+          {form.autoResponseMessage && (
+            <div className="bg-white border border-gray-200 rounded-xl p-4 text-right mb-6">
+              <p className="text-sm text-gray-600">{form.autoResponseMessage}</p>
+            </div>
+          )}
+          <a href="/" className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm">
+            <ArrowRight className="w-4 h-4" />
+            العودة للرئيسية
+          </a>
+        </motion.div>
+      </div>
+    );
+  }
+
+  const formUrl = typeof window !== 'undefined' ? window.location.href : '';
+  const ownerName = form.user?.profile?.name || form.user?.email?.split('@')[0] || 'مستخدم';
+
+  return (
+    <div className="min-h-screen bg-[#ffffff]" dir="rtl">
+      {/* Simple Header + بطاقة المعلومات تنبثق من هنا */}
+      <header className="sticky top-2 z-40 mx-4 sm:mx-auto max-w-2xl relative">
+        <div className="bg-white/90 backdrop-blur-md rounded-4xl border border-gray-100 px-4 py-3 flex items-center justify-between gap-3">
+          {/* Form Title */}
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <h1 className="text-sm font-semibold text-gray-900 truncate">ركني</h1>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button
+              onClick={() => setShowInfoSheet(!showInfoSheet)}
+              className={cn(
+                "w-9 h-9 flex items-center justify-center rounded-xl transition-colors",
+                showInfoSheet ? "bg-teal-100 text-teal-700" : "hover:bg-gray-100 text-gray-600"
+              )}
+              aria-label="معلومات"
+              aria-expanded={showInfoSheet}
+            >
+              <Info className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setShowModal('share')}
+              className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 rounded-xl transition-colors"
+              aria-label="مشاركة"
+            >
+              <Share2 className="w-4 h-4 text-gray-600" />
+            </button>
+            <button
+              onClick={() => setShowModal('qr')}
+              className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 rounded-xl transition-colors"
+              aria-label="QR Code"
+            >
+              <QrCode className="w-4 h-4 text-gray-600" />
+            </button>
+          </div>
+        </div>
+
+        {/* بطاقة المعلومات تنبثق من الهيدر */}
+        <AnimatePresence onExitComplete={() => setShowQrInSheet(false)}>
+          {showInfoSheet && (
+            <>
+              {/* خلفية شفافة — الضغط خارج البطاقة يغلق */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="fixed inset-0 z-40 bg-black/20"
+                onClick={() => setShowInfoSheet(false)}
+                aria-hidden
+              />
+              <motion.div
+                drag="y"
+                dragControls={infoSheetDragControls}
+                dragConstraints={{ top: 0, bottom: 0 }}
+                dragElastic={{ top: 0, bottom: 0.3 }}
+                dragMomentum={false}
+                onDragEnd={(_, { offset, velocity }) => {
+                  if (offset.y > 60 || velocity.y > 250) setShowInfoSheet(false);
+                }}
+                initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                transition={{ type: 'spring', damping: 28, stiffness: 400 }}
+                className="absolute top-full left-0 right-0 sm:left-auto sm:right-0 sm:w-80 mt-2 z-50 rounded-3xl shadow-2xl overflow-hidden bg-[#1a5c4c]"
+              >
+                {/* صورة الغلاف */}
+                <div className="relative h-36 overflow-hidden">
+                  {form.bannerImages?.[0] ? (
+                    <img 
+                      src={form.bannerImages[0]} 
+                      alt={form.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-[#2a7a66] to-[#1a5c4c]" />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#1a5c4c] via-[#1a5c4c]/40 to-transparent" />
+                  
+                  {/* زر الإغلاق */}
+                  <button
+                    onClick={() => setShowInfoSheet(false)}
+                    className="absolute top-3 left-3 w-8 h-8 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center hover:bg-black/30 transition-colors"
+                    aria-label="إغلاق"
+                  >
+                    <X className="w-4 h-4 text-white" />
+                  </button>
+                </div>
+
+                <div className="px-4 pt-4 pb-5 space-y-5">
+                  {/* الوصف */}
+                  <p className="text-white text-sm leading-relaxed font-medium">
+                    {form.description || form.title}
+                  </p>
+
+                  {/* المنشئ - تصميم محسّن */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="relative flex-shrink-0">
+                        <Avatar className="w-12 h-12 ring-2 ring-white/30 rounded-full shadow-lg">
+                          {form.user?.profile?.avatar && (
+                            <AvatarImage src={getAvatarUrl(form.user.profile.avatar)} alt={ownerName} />
+                          )}
+                          <AvatarFallback className="bg-[#2a7a66] text-white text-base font-semibold rounded-full">
+                            {getInitials(ownerName)}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-base font-semibold text-white truncate">{ownerName}</p>
+                          {/* شارة التوثيق الزرقاء الرسمية */}
+                          <span 
+                            className="relative w-5 h-5 flex-shrink-0"
+                            title="حساب موثق رسمياً"
+                          >
+                            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
+                              <circle cx="12" cy="12" r="10" fill="url(#blueGradient)" />
+                              <path 
+                                d="M9 12l2 2 4-4" 
+                                stroke="white" 
+                                strokeWidth="2.5" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round"
+                              />
+                              <defs>
+                                <linearGradient id="blueGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                  <stop offset="0%" stopColor="#3B82F6" />
+                                  <stop offset="100%" stopColor="#1D4ED8" />
+                                </linearGradient>
+                              </defs>
+                            </svg>
+                          </span>
+                          {/* شارة منشئ المحتوى */}
+                          <span 
+                            className="w-5 h-5 bg-white/15 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0 border border-white/20"
+                            title="منشئ محتوى"
+                          >
+                            <FileText className="w-2.5 h-2.5 text-white/80" />
+                          </span>
+                        </div>
+                        <p className="text-sm text-white/60 truncate mt-0.5" dir="ltr">
+                          {formUrl.replace(/^https?:\/\//, '')}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* معلومات إضافية عن الحساب */}
+                    <div className="flex items-center gap-4 pt-1">
+                      <div className="flex items-center gap-1.5">
+                        <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none">
+                          <circle cx="12" cy="12" r="10" fill="#3B82F6" />
+                          <path d="M9 12l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <span className="text-xs text-white/70">موثق رسمياً</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* مقبض سحب */}
+                <div
+                  className="py-3 flex justify-center cursor-grab active:cursor-grabbing touch-none border-t border-white/10"
+                  onPointerDown={(e) => infoSheetDragControls.start(e)}
+                  aria-hidden
+                >
+                  <div className="w-12 h-1 rounded-full bg-white/25" />
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-2xl mx-auto px-4 py-6">
+        {/* Cover Image */}
+        {form.bannerImages?.[0] && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 rounded-4xl overflow-hidden"
+          >
+            <img 
+              src={form.bannerImages[0]} 
+              alt={form.title}
+              className="w-full h-48 sm:h-56 object-cover"
+            />
+          </motion.div>
+        )}
+
+        {/* Form Info Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-4xl border border-gray-100 p-5 mb-6"
+        >
+          {/* Owner */}
+          <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-100">
+            <Avatar className="w-10 h-10">
+              {form.user?.profile?.avatar && (
+                <AvatarImage src={getAvatarUrl(form.user.profile.avatar)} alt={ownerName} />
+              )}
+              <AvatarFallback className="bg-gray-900 text-white text-sm">
+                {getInitials(ownerName)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">{ownerName}</p>
+              <p className="text-xs text-gray-500">منشئ النموذج</p>
+            </div>
+          </div>
+
+          {/* Title & Description */}
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <FileText className="w-5 h-5 text-gray-600" />
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold text-gray-900">{form.title}</h1>
+              {form.description && (
+                <p className="text-sm text-gray-500 mt-1">{form.description}</p>
+              )}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Multi-step indicator */}
+        {form.isMultiStep && form.steps && form.steps.length > 1 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <div className="flex gap-1 mb-2">
+              {form.steps.map((_, index) => (
+                <div
+                  key={index}
+                  className={cn(
+                    "flex-1 h-1 rounded-full transition-colors",
+                    index <= currentStep ? "bg-gray-900" : "bg-gray-200"
+                  )}
+                />
+              ))}
+            </div>
+            <div className="bg-white rounded-xl border border-gray-100 p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gray-900 text-white rounded-lg flex items-center justify-center text-sm font-semibold">
+                  {currentStep + 1}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{form.steps[currentStep].title}</p>
+                  {form.steps[currentStep].description && (
+                    <p className="text-xs text-gray-500">{form.steps[currentStep].description}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Form Fields */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white rounded-4xl border border-gray-100"
+        >
+          <div className="p-5 space-y-5">
+            {currentFields.map((field, index) => (
+              <Fragment key={field.id}>{renderField(field, index)}</Fragment>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div className="p-5 border-t border-gray-100 flex items-center justify-between gap-3">
+            {form.isMultiStep && currentStep > 0 ? (
+              <button
+                onClick={handlePrevious}
+                className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+                السابق
+              </button>
+            ) : (
+              <div />
+            )}
+
+            {form.isMultiStep && currentStep < totalSteps - 1 ? (
+              <button
+                onClick={handleNext}
+                className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
+              >
+                التالي
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    جاري الإرسال...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    إرسال
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Footer */}
+        <p className="text-center text-xs text-gray-400 mt-6">
+          مدعوم من{' '}
+          <a href="/" className="text-gray-600 hover:underline">Rukny</a>
+        </p>
+      </main>
+
+      {/* QR Modal */}
+      <AnimatePresence>
+        {showModal === 'qr' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+            onClick={() => setShowModal(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl p-6 max-w-xs w-full"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold">QR Code</h3>
+                <button onClick={() => setShowModal(null)} className="p-1 hover:bg-gray-100 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex justify-center p-4 bg-gray-50 rounded-xl">
+                <QRCodeSVG value={formUrl} size={180} />
+              </div>
+              <p className="text-center text-sm text-gray-500 mt-4">امسح للوصول للنموذج</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Share Modal */}
+      <AnimatePresence>
+        {showModal === 'share' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+            onClick={() => setShowModal(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl p-6 max-w-sm w-full"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold">مشاركة النموذج</h3>
+                <button onClick={() => setShowModal(null)} className="p-1 hover:bg-gray-100 rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              
+              {/* Copy Link */}
+              <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl mb-4">
+                <input
+                  type="text"
+                  value={formUrl}
+                  readOnly
+                  className="flex-1 bg-transparent text-sm text-gray-600 outline-none truncate"
+                  dir="ltr"
+                />
+                <button
+                  onClick={handleCopyLink}
+                  className={cn(
+                    "p-2 rounded-lg transition-colors",
+                    copied ? "bg-green-100 text-green-600" : "bg-gray-200 hover:bg-gray-300"
+                  )}
+                >
+                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                </button>
+              </div>
+
+              {/* Share Buttons */}
+              <div className="grid grid-cols-4 gap-3">
+                {/* WhatsApp */}
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(form.title + ' ' + formUrl)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-colors"
+                >
+                  <div className="w-12 h-12 bg-[#25D366] rounded-full flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                    </svg>
+                  </div>
+                  <span className="text-xs text-gray-600">واتساب</span>
+                </a>
+
+                {/* X (Twitter) */}
+                <a
+                  href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(formUrl)}&text=${encodeURIComponent(form.title)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-colors"
+                >
+                  <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                  </div>
+                  <span className="text-xs text-gray-600">X</span>
+                </a>
+
+                {/* Telegram */}
+                <a
+                  href={`https://t.me/share/url?url=${encodeURIComponent(formUrl)}&text=${encodeURIComponent(form.title)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-colors"
+                >
+                  <div className="w-12 h-12 bg-[#0088cc] rounded-full flex items-center justify-center">
+                    <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                    </svg>
+                  </div>
+                  <span className="text-xs text-gray-600">تيليجرام</span>
+                </a>
+
+                {/* Email */}
+                <a
+                  href={`mailto:?subject=${encodeURIComponent(form.title)}&body=${encodeURIComponent(formUrl)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-colors"
+                >
+                  <div className="w-12 h-12 bg-gray-600 rounded-full flex items-center justify-center">
+                    <Mail className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="text-xs text-gray-600">بريد</span>
+                </a>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

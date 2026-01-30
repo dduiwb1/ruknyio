@@ -9,6 +9,11 @@ import { DB_PERFORMANCE } from '../database.constants';
 
 /**
  * ⚡ Extended Prisma Client with performance optimizations
+ * 
+ * Features:
+ * - Connection pooling for Neon PostgreSQL
+ * - Automatic reconnection on connection errors
+ * - Query performance monitoring
  */
 @Injectable()
 export class PrismaService
@@ -18,6 +23,7 @@ export class PrismaService
   private readonly logger = new Logger(PrismaService.name);
   private queryCount = 0;
   private slowQueryCount = 0;
+  private isConnected = false;
 
   constructor() {
     // ⚠️ Validate DATABASE_URL exists before initializing
@@ -37,9 +43,13 @@ export class PrismaService
         { emit: 'stdout', level: 'error' },
         { emit: 'stdout', level: 'warn' },
       ],
-      // ⚡ Performance: Connection pooling configuration
-      // Prisma automatically uses DATABASE_URL from environment
-      // No need to specify datasources explicitly
+      // ⚡ Neon PostgreSQL connection settings
+      // These help with serverless connection pooling
+      datasources: {
+        db: {
+          url: databaseUrl,
+        },
+      },
     });
 
     // ⚡ Query performance monitoring
@@ -63,9 +73,48 @@ export class PrismaService
 
   async onModuleInit() {
     const startTime = Date.now();
-    await this.$connect();
+    await this.connectWithRetry();
     const duration = Date.now() - startTime;
     this.logger.log(`✅ Database connected successfully (${duration}ms)`);
+  }
+
+  /**
+   * ⚡ Connect with retry logic for Neon PostgreSQL
+   * Handles connection pool timeouts and serverless cold starts
+   */
+  private async connectWithRetry(maxRetries = 3, delayMs = 1000): Promise<void> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await this.$connect();
+        this.isConnected = true;
+        return;
+      } catch (error) {
+        this.logger.warn(
+          `Database connection attempt ${attempt}/${maxRetries} failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
+        
+        if (attempt === maxRetries) {
+          throw error;
+        }
+        
+        // Exponential backoff
+        await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
+      }
+    }
+  }
+
+  /**
+   * ⚡ Ensure connection is alive, reconnect if needed
+   * Call this before critical operations after long idle periods
+   */
+  async ensureConnection(): Promise<void> {
+    try {
+      await this.$queryRaw`SELECT 1`;
+    } catch (error) {
+      this.logger.warn('Connection lost, attempting to reconnect...');
+      this.isConnected = false;
+      await this.connectWithRetry();
+    }
   }
 
   async onModuleDestroy() {

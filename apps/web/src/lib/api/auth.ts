@@ -6,7 +6,7 @@
  * 2. OAuth (Google/LinkedIn) - Social login
  * 
  * 🔒 Token Strategy (httpOnly Cookies):
- * - Access Token: httpOnly cookie (15 min) - sent automatically with requests
+ * - Access Token: httpOnly cookie (30 min) - sent automatically with requests
  * - Refresh Token: httpOnly cookie (30 days) - used for token refresh
  * - CSRF Token: regular cookie (readable by JS) - sent in X-CSRF-Token header
  */

@@ -349,7 +349,7 @@ export class TwoFactorController {
       success: true,
       usedBackupCode: verification.usedBackupCode || false,
       csrf_token: csrfToken,
-      expires_in: 15 * 60,
+      expires_in: 30 * 60, // 30 minutes - matches access token
       user: {
         id: user.id,
         email: user.email,

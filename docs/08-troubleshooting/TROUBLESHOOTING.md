@@ -2,6 +2,65 @@
 
 ## المشاكل التي ظهرت:
 
+### 0️⃣ جلسة لا تُحفظ أو لا تُحدَّث في الإنتاج (Session / Refresh Token)
+
+**الأعراض:**
+- تسجيل الدخول يعمل ثم تُفقد الجلسة بعد إعادة تحميل الصفحة أو بعد دقائق
+- رسالة "Refresh token not found" أو 401 عند استدعاء `/api/auth/refresh`
+- يحدث في الإنتاج (production) بينما يعمل في التطوير
+
+**السبب:**
+- في `cookie.config.ts` كان يتم تعيين **Refresh Token** cookie بـ `path: '/api/v1/auth'` في الإنتاج
+- المتصفح يرسل الكوكي فقط عندما يكون مسار الطلب مطابقاً لـ path الكوكي
+- الواجهة تستدعي `/api/auth/refresh` (عبر Next.js proxy) وليس `/api/v1/auth/refresh`
+- لذلك المتصفح **لم يكن يرسل** refresh_token مع الطلب → فشل التجديد
+
+**الحل المطبق:**
+- تعيين `path: '/'` لـ Refresh Token cookie في كل البيئات (في `apps/api/src/domain/auth/cookie.config.ts`)
+- تعيين نفس `path: '/'` عند مسح الكوكي في `clearAuthCookies` و `clearRefreshTokenCookie`
+
+**التحقق:** بعد تسجيل الدخول في الإنتاج، طلب `/api/auth/refresh` يجب أن يستقبل refresh_token في الـ Cookie ويُعيد توكنز جديدة.
+
+---
+
+### 0️⃣ ب — انتهاء الجلسة بعد 15 دقيقة ورسالة "انتهت صلاحية جلستك. يرجى تسجيل الدخول"
+
+**الأعراض:**
+- بعد ~15 دقيقة من تسجيل الدخول يتم تسجيل الخروج تلقائياً مع رسالة "انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى" أو "Session ended, please log in"
+
+**السبب:**
+- **Access Token** (JWT) صالح لمدة **30 دقيقة** (في auth.service و token.service)
+- **كوكي Access Token** كان مضبوطاً على **maxAge: 15 دقيقة** في `cookie.config.ts`
+- المتصفح يحذف الكوكي بعد 15 دقيقة، فتصبح الطلبات التالية بدون access token → 401
+- التمديد التلقائي (proactive refresh) في الواجهة يعمل كل **25 دقيقة**، فلا يحدث تجديد قبل انتهاء الكوكي عند 15 دقيقة
+- عند 401 يحاول العميل استدعاء `/api/auth/refresh`؛ إن فشل (أو لم يُرسَل refresh_token سابقاً بسبب path خاطئ) يتم توجيه المستخدم لصفحة تسجيل الدخول
+
+**الحل المطبق:**
+- تعيين **maxAge** لكوكي Access Token إلى **30 دقيقة** (مطابق لصلاحية JWT) في `apps/api/src/domain/auth/cookie.config.ts`
+- تحديث `expires_in` في استجابات المصادقة إلى `30 * 60` (ثوانٍ) في auth.controller و quicksign.controller و two-factor.controller
+
+بعد التعديل، الكوكي والـ JWT ينتهيان معاً بعد 30 دقيقة، والتمديد التلقائي عند 25 دقيقة يجدد التوكنز قبل انتهاء الصلاحية.
+
+---
+
+### 0️⃣ ج — تسجيل خروج خاطئ بعد 401 عند استخدام secureFetch (تم إصلاحه)
+
+**الأعراض:** عند انتهاء صلاحية access token، أي صفحة أو مكوّن يستخدم `secureFetch` من `api-client.ts` (مثل الإعدادات، لوحة التحكم، Google Sheets) كان يُسجّل المستخدم خروجاً حتى عند نجاح `/api/auth/refresh`.
+
+**السبب:** استجابة `/auth/refresh` تُرجع التوكنز في **كوكيز httpOnly** و`csrf_token` في الـ body فقط (بدون `access_token` في الـ body). كان `api-client` يتحقق من `data.access_token` ويعتبر التجديد فاشلاً عند غيابه فيُوجّه لصفحة تسجيل الدخول.
+
+**الحل المطبق:** في `apps/web/src/lib/api/api-client.ts`: اعتبار النجاح عند `data.success && data.csrf_token`، استدعاء `setCsrfToken(data.csrf_token)` و`updateLastRefreshTime()`، وإعادة الطلب الأصلي مع `credentials: 'include'` (بدون إضافة Authorization لأن التوكن في الكوكي).
+
+---
+
+### ⚠️ قيود / عيوب معروفة (لم تُصلح بعد)
+
+- **SessionTimeoutWarning:** المكوّن يعتمد على `getAccessToken()` لقراءة انتهاء صلاحية التوكن، لكن التوكن الآن في كوكي httpOnly فلا يُقرأ من JavaScript (`getAccessToken()` يُرجع دائماً `null`). لذلك تحذير "جلستك على وشك الانتهاء" لا يظهر. التمديد التلقائي عند 25 دقيقة ما زال يعمل عبر `auth-provider`، لكن المستخدم لا يرى نافذة التمديد.
+- **مدة Refresh Token:** OAuth (Google/LinkedIn) يُنشئ جلسات بمدة refresh **14 يوم** (auth.service)، بينما QuickSign/2FA يستخدمان **30 يوم** (token.service). سلوك متعمد لكن غير موحّد.
+- **ملف .env:** التأكد من أن `.env` مضاف في `.gitignore` وأن القيم الحقيقية (JWT_SECRET، مفاتيح OAuth، إلخ) لا تُرفع إلى المستودع. إذا تم رفع `.env` سابقاً يجب تدوير جميع المفاتيح.
+
+---
+
 ### 1️⃣ تحذير Middleware (⚠️ Deprecated)
 
 **نص الخطأ:**

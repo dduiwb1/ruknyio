@@ -20,9 +20,10 @@ const isProduction = process.env.NODE_ENV === 'production';
 const cookieSecure = (process.env.COOKIE_SECURE === 'true') || isProduction;
 
 // 🔒 Domain للكوكيز (مهم للـ cross-origin)
-// في بيئة التطوير، نستخدم 'localhost' للسماح بمشاركة الكوكيز بين ports مختلفة
+// ⚠️ في بيئة التطوير، نستخدم undefined (لا domain) للسماح بمشاركة الكوكيز بين ports مختلفة
+// domain: 'localhost' لا يعمل بشكل صحيح مع ports مختلفة في بعض المتصفحات
 // (Frontend على 3000، API على 3001)
-const cookieDomain = process.env.COOKIE_DOMAIN || (isProduction ? undefined : 'localhost');
+const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
 
 // 🔒 Origins المسموحة للـ CSRF validation
 // إضافة دعم للشبكة المحلية في بيئة التطوير
@@ -77,19 +78,16 @@ const getSameSite = (): 'strict' | 'lax' | 'none' => {
  * - secure: true → HTTPS فقط في الإنتاج
  * - sameSite: lax → حماية CSRF مع دعم OAuth/QuickSign redirects
  * - path: / → متاح لجميع المسارات (الـ proxy يستخدم /api/v1)
- * - صلاحية: 15 دقيقة
- * 
- * ⚠️ ملاحظة: نستخدم path: '/' و sameSite: 'lax' لأن:
- * - QuickSign/OAuth يوجه من API (port 3001) إلى Frontend (port 3000)
- * - strict يمنع إرسال الكوكي عند الـ redirect
- * - path: '/api' لا يعمل مع Next.js proxy على /api/v1
+ * - صلاحية: 30 دقيقة (يجب أن تطابق JWT expiresIn: '30m' حتى لا يُحذف الكوكي قبل انتهاء التوكن)
+ *   وكان 15 دقيقة سابقاً فكان المتصفح يحذف الكوكي بعد 15 دقيقة ويُسجّل المستخدم خروجاً عند أول 401
+ *   بينما التمديد التلقائي (proactive refresh) يعمل كل 25 دقيقة.
  */
 export const ACCESS_TOKEN_OPTIONS: CookieOptions = {
   httpOnly: true,
   secure: cookieSecure,
   sameSite: 'lax', // 🔒 Lax لدعم OAuth/QuickSign redirects
   path: '/',  // 🔒 متاح لجميع المسارات (للتوافق مع proxy)
-  maxAge: 15 * 60 * 1000, // 15 دقيقة
+  maxAge: 30 * 60 * 1000, // 30 دقيقة - مطابق لـ JWT access token expiry
   ...(cookieDomain && { domain: cookieDomain }),
 };
 
@@ -99,17 +97,15 @@ export const ACCESS_TOKEN_OPTIONS: CookieOptions = {
  * - httpOnly: true → لا يمكن قراءته من JavaScript (XSS protection)
  * - secure: true → HTTPS فقط في الإنتاج
  * - sameSite: lax → حماية CSRF مع دعم OAuth redirects
- * - path: / → في التطوير لدعم proxy، /api/v1/auth في الإنتاج
+ * - path: '/' دائماً → المتصفح يرسل الكوكي حسب مسار الطلب. الواجهة تستدعي /api/auth/*
+ *   (proxy لـ Next.js) وليس /api/v1/auth/*، لذا path=/api/v1/auth يمنع إرسال الكوكي في الإنتاج.
  * - صلاحية: 30 يوم
- * 
- * ⚠️ في التطوير: نستخدم path: '/' لأن Next.js proxy يمرر الطلبات
- * والكوكيز تحتاج أن تكون متاحة لجميع المسارات
  */
 export const REFRESH_TOKEN_OPTIONS: CookieOptions = {
   httpOnly: true,
   secure: cookieSecure,
   sameSite: getSameSite(), // Lax للسماح بـ OAuth
-  path: isProduction ? '/api/v1/auth' : '/',  // 🔒 في الإنتاج فقط للـ auth، في التطوير للجميع
+  path: '/',  // 🔒 يجب '/' حتى يُرسل مع /api/auth/refresh (proxy) وليس فقط /api/v1/auth
   maxAge: 30 * 24 * 60 * 60 * 1000, // 30 يوم
   ...(cookieDomain && { domain: cookieDomain }),
 };
@@ -166,7 +162,7 @@ export function clearAuthCookies(res: Response): void {
     httpOnly: true,
     secure: cookieSecure,
     sameSite: getSameSite(),
-    path: isProduction ? '/api/v1/auth' : '/',
+    path: '/',
     ...(cookieDomain && { domain: cookieDomain }),
   });
   res.clearCookie(COOKIE_NAMES.CSRF_TOKEN, {
@@ -186,7 +182,7 @@ export function clearRefreshTokenCookie(res: Response): void {
     httpOnly: true,
     secure: cookieSecure,
     sameSite: getSameSite(),
-    path: isProduction ? '/api/v1/auth' : '/',
+    path: '/',
     ...(cookieDomain && { domain: cookieDomain }),
   });
 }

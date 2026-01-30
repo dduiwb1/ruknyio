@@ -43,7 +43,7 @@ export interface SessionInfo {
 export class TokenService {
   // 🔒 إعدادات الأمان
   private readonly ACCESS_TOKEN_EXPIRY = '30m'; // 30 دقيقة
-  private readonly REFRESH_TOKEN_EXPIRY = '30d'; // 30 يوم
+  private readonly REFRESH_TOKEN_EXPIRY_DAYS = 14; // 14 يوم - ✅ موحد مع AuthService
   private readonly MAX_ROTATION_COUNT = 100; // الحد الأقصى للتدوير قبل إجبار إعادة تسجيل الدخول
   private readonly GRACE_PERIOD_MS = 30000; // 30 ثانية سماح لاستخدام token قديم (race condition)
 
@@ -103,7 +103,7 @@ export class TokenService {
     sessionExpiresAt.setMinutes(sessionExpiresAt.getMinutes() + 30); // ✅ مطابق لـ ACCESS_TOKEN_EXPIRY
 
     const refreshExpiresAt = new Date();
-    refreshExpiresAt.setDate(refreshExpiresAt.getDate() + 30);
+    refreshExpiresAt.setDate(refreshExpiresAt.getDate() + this.REFRESH_TOKEN_EXPIRY_DAYS);
 
     // 4. تحليل معلومات الجهاز
     const parser = new UAParser(sessionInfo?.userAgent);
@@ -188,34 +188,52 @@ export class TokenService {
       );
 
       // ✅ فترة السماح - إعادة استخدام Token خلال 30 ثانية من التدوير
+      // 🔒 نعيد نفس الـ session الحالي بدلاً من إنشاء tokens جديدة (تجنب race condition)
       if (tokenTheftCheck.isGracePeriod && tokenTheftCheck.session) {
         console.log(
-          '[TokenService] ✅ Grace period hit - returning new tokens',
+          '[TokenService] ✅ Grace period hit - fetching current session tokens',
         );
-        // نعيد توكنز جديدة بناءً على الجلسة الحالية (لا نحتاج تدوير جديد)
         const gracePeriodSession = tokenTheftCheck.session;
 
+        // 🔒 نحتاج جلب الـ session الحالي مع الـ refresh token hash الجديد
+        // ثم نعيد access token جديد فقط (الـ refresh token الحالي صالح)
+        const currentSession = await this.prisma.session.findUnique({
+          where: { id: gracePeriodSession.id },
+          select: {
+            id: true,
+            userId: true,
+            refreshTokenHash: true,
+            user: { select: { email: true } },
+          },
+        });
+
+        if (!currentSession) {
+          throw new UnauthorizedException('Session not found during grace period');
+        }
+
+        // نُنشئ access token جديد فقط
         const newAccessPayload: TokenPayload = {
-          sub: gracePeriodSession.userId,
-          sid: gracePeriodSession.id,
-          email: gracePeriodSession.user.email,
+          sub: currentSession.userId,
+          sid: currentSession.id,
+          email: currentSession.user.email,
           type: 'access',
         };
         const newAccessToken = this.jwtService.sign(newAccessPayload, {
           expiresIn: this.ACCESS_TOKEN_EXPIRY,
         });
 
-        // نولّد refresh token جديد لتجنب إعادة الاستخدام
+        // 🔒 نُعيد الـ refresh token الحالي (الذي تم تدويره مؤخراً)
+        // نحتاج لإرجاع الـ token الأصلي، لكننا لا نخزنه - فقط الـ hash
+        // لذا نُنشئ refresh token جديد ونُحدّث الـ hash
         const newRefreshToken = this.generateSecureRefreshToken();
 
-        // تحديث الـ hash الجديد
+        // تحديث الـ hash - بدون تغيير previousRefreshTokenHash لتجنب الـ cascade
         await this.prisma.session.update({
-          where: { id: gracePeriodSession.id },
+          where: { id: currentSession.id },
           data: {
-            previousRefreshTokenHash: gracePeriodSession.refreshTokenHash,
             refreshTokenHash: this.hashToken(newRefreshToken),
             lastActivity: new Date(),
-            lastRotatedAt: new Date(),
+            // 🔒 لا نُحدّث lastRotatedAt لتجنب تمديد grace period
           },
         });
 

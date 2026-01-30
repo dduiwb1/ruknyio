@@ -187,15 +187,37 @@ export class FormsService {
     return processedImages;
   }
 
-  async create(userId: string, createFormDto: CreateFormDto) {
-    // Check slug uniqueness
-    const existingForm = await this.prisma.form.findUnique({
-      where: { slug: createFormDto.slug },
-    });
+  /**
+   * Generate a unique slug by appending a random suffix if the base slug is taken
+   */
+  private async generateUniqueSlug(baseSlug: string): Promise<string> {
+    let slug = baseSlug;
+    let attempts = 0;
+    const maxAttempts = 10;
 
-    if (existingForm) {
-      throw new ConflictException('Form slug already taken');
+    while (attempts < maxAttempts) {
+      const existing = await this.prisma.form.findUnique({
+        where: { slug },
+        select: { id: true },
+      });
+
+      if (!existing) {
+        return slug;
+      }
+
+      // Append random suffix
+      const suffix = Math.random().toString(36).substring(2, 6);
+      slug = `${baseSlug}-${suffix}`;
+      attempts++;
     }
+
+    // Fallback: use timestamp
+    return `${baseSlug}-${Date.now()}`;
+  }
+
+  async create(userId: string, createFormDto: CreateFormDto) {
+    // Generate unique slug (auto-append suffix if taken)
+    const uniqueSlug = await this.generateUniqueSlug(createFormDto.slug);
 
     // Validate linked entities if provided
     if (createFormDto.linkedEventId) {
@@ -262,6 +284,7 @@ export class FormsService {
         data: {
           id: formId,
           ...formData,
+          slug: uniqueSlug, // Use the generated unique slug
           coverImage: coverImageKey,
           bannerImages: bannerImageKeys,
           bannerDisplayMode: bannerDisplayMode || 'single',

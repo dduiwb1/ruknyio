@@ -79,6 +79,22 @@ export class AuthController {
   }
 
   /**
+   * 🔒 GET handler for refresh endpoint - returns error (must use POST)
+   * This prevents 404 errors from browser prefetch/speculative requests
+   */
+  @Get('refresh')
+  @HttpCode(HttpStatus.METHOD_NOT_ALLOWED)
+  @ApiOperation({ summary: 'Refresh endpoint - must use POST' })
+  @ApiResponse({ status: 405, description: 'Method not allowed - use POST' })
+  refreshTokensGet() {
+    return {
+      success: false,
+      error: 'Method Not Allowed',
+      message: 'Use POST /auth/refresh to refresh tokens',
+    };
+  }
+
+  /**
    * 🔒 تجديد التوكنز باستخدام Refresh Token
    * 
    * Refresh Token في httpOnly Cookie → Access Token في Response Body
@@ -139,7 +155,7 @@ export class AuthController {
         success: true,
         message: 'Tokens refreshed successfully',
         csrf_token: csrfToken, // 🔒 CSRF token للـ frontend
-        expires_in: 15 * 60,
+        expires_in: 30 * 60, // 30 minutes - matches access token JWT and cookie
       };
     } catch (error) {
       // 🔒 مسح الكوكي الفاسدة عند فشل التجديد
@@ -292,7 +308,7 @@ export class AuthController {
     return { 
       success: true,
       csrf_token: csrfToken,
-      expires_in: 15 * 60,
+      expires_in: 30 * 60, // 30 minutes - matches access token JWT and cookie
       user,
       needsProfileCompletion,
       message: 'Tokens stored in httpOnly cookies',

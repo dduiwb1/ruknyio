@@ -14,7 +14,8 @@ import { API_URL } from '@/lib/config';
 import { 
   getAccessToken, 
   clearAccessToken, 
-  setAccessToken,
+  setCsrfToken,
+  updateLastRefreshTime,
   getRefreshState,
   setRefreshState,
   resetRefreshState 
@@ -54,63 +55,54 @@ function handleAuthFailure(reason: 'expired' | 'invalid' = 'expired'): void {
 }
 
 // Shared promise to prevent concurrent refresh attempts
-let sharedRefreshPromise: Promise<string | null> | null = null;
+let sharedRefreshPromise: Promise<boolean> | null = null;
 
 /**
- * Refresh access token using refresh token cookie
- * Uses a shared promise to ensure only one refresh happens at a time
+ * Refresh access token using refresh token cookie.
+ * Auth uses httpOnly cookies: refresh returns new access/refresh in Set-Cookie and csrf_token in body.
+ * Uses a shared promise to ensure only one refresh happens at a time.
  */
-async function refreshAccessToken(): Promise<string | null> {
+async function refreshAccessToken(): Promise<boolean> {
   const { isRefreshing, refreshFailed } = getRefreshState();
   
-  // If refresh already failed, don't try again
-  if (refreshFailed) {
-    return null;
-  }
-
-  // 🔒 If already refreshing, wait for the shared promise
+  if (refreshFailed) return false;
   if (isRefreshing && sharedRefreshPromise) {
     return sharedRefreshPromise;
   }
 
-  setRefreshState(true, false); // isRefreshing = true
+  setRefreshState(true, false);
 
-  // Create a shared promise
-  // 🔒 Use Route Handler for proper cookie forwarding
   sharedRefreshPromise = (async () => {
     try {
       const response = await fetch('/api/auth/refresh', {
         method: 'POST',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
 
       if (!response.ok) {
-        // API will clear the invalid cookie
         handleAuthFailure('expired');
-        return null;
+        return false;
       }
 
       const data = await response.json();
-      if (data.access_token) {
-        setAccessToken(data.access_token);
-        setRefreshState(false, false); // isRefreshing = false
+      // Tokens are in httpOnly cookies; body has success + csrf_token only
+      if (data.success && data.csrf_token) {
+        setCsrfToken(data.csrf_token);
+        updateLastRefreshTime();
+        setRefreshState(false, false);
         sharedRefreshPromise = null;
-        return data.access_token;
+        return true;
       }
 
       handleAuthFailure('invalid');
-      return null;
+      return false;
     } catch {
       handleAuthFailure('expired');
-      return null;
+      return false;
     } finally {
       setRefreshState(false, getRefreshState().refreshFailed);
-      if (getRefreshState().refreshFailed) {
-        sharedRefreshPromise = null;
-      }
+      if (getRefreshState().refreshFailed) sharedRefreshPromise = null;
     }
   })();
 
@@ -144,13 +136,11 @@ export async function secureFetch(
     credentials: 'include',
   });
 
-  // Handle 401 - try to refresh token
+  // Handle 401 - try to refresh (tokens are in httpOnly cookies)
   if (response.status === 401 && !skipRefresh && !refreshFailed) {
-    const newToken = await refreshAccessToken();
-    
-    if (newToken) {
-      // Retry with new token
-      (headers as Record<string, string>)['Authorization'] = `Bearer ${newToken}`;
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      // Retry: new access token is in cookie, no Authorization header needed
       response = await fetch(url, {
         ...restOptions,
         headers,
