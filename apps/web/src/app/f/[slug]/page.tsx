@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, Fragment, ReactNode } from 'react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import {
   FileText,
   Send,
@@ -25,6 +26,7 @@ import {
   Hash,
   ArrowRight,
   Info,
+  User,
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -728,17 +730,16 @@ export default function PublicFormPage() {
           </div>
         </div>
 
-        {/* بطاقة المعلومات تنبثق من الهيدر */}
+        {/* بطاقة المعلومات — نفس التصميم المرجعي: إطار أبيض، محتوى أخضر غامق، خلفية مُموّهة */}
         <AnimatePresence onExitComplete={() => setShowQrInSheet(false)}>
           {showInfoSheet && (
             <>
-              {/* خلفية شفافة — الضغط خارج البطاقة يغلق */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="fixed inset-0 z-40 bg-black/20"
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 z-40 bg-transparent"
                 onClick={() => setShowInfoSheet(false)}
                 aria-hidden
               />
@@ -746,118 +747,104 @@ export default function PublicFormPage() {
                 drag="y"
                 dragControls={infoSheetDragControls}
                 dragConstraints={{ top: 0, bottom: 0 }}
-                dragElastic={{ top: 0, bottom: 0.3 }}
+                dragElastic={{ top: 0, bottom: 0.25 }}
                 dragMomentum={false}
                 onDragEnd={(_, { offset, velocity }) => {
-                  if (offset.y > 60 || velocity.y > 250) setShowInfoSheet(false);
+                  if (offset.y > 50 || velocity.y > 200) setShowInfoSheet(false);
                 }}
-                initial={{ opacity: 0, y: -8, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -8, scale: 0.96 }}
-                transition={{ type: 'spring', damping: 28, stiffness: 400 }}
-                className="absolute top-full left-0 right-0 sm:left-auto sm:right-0 sm:w-80 mt-2 z-50 rounded-3xl shadow-2xl overflow-hidden bg-[#1a5c4c]"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+                className="absolute top-full left-0 right-0 sm:left-auto sm:right-0 sm:w-[340px] mt-2 z-50 rounded-4xl overflow-hidden bg-white shadow-xl border border-gray-200/90"
               >
-                {/* صورة الغلاف */}
-                <div className="relative h-36 overflow-hidden">
-                  {form.bannerImages?.[0] ? (
-                    <img 
-                      src={form.bannerImages[0]} 
+                {/* شريط علوي: زر رجوع دائري أبيض + حبة خضراء (مثل المرجع) */}
+                <div className="flex items-center gap-3 px-4 pt-4 pb-3">
+                  <button
+                    onClick={() => setShowInfoSheet(false)}
+                    className="w-9 h-9 rounded-full flex items-center justify-center bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors flex-shrink-0 shadow-sm"
+                    aria-label="إغلاق"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                  <span className="px-4 py-1.5 rounded-full bg-green-800 text-white text-sm font-medium">
+                    معلومات النموذج
+                  </span>
+                </div>
+
+                {/* صورة النموذج — منفصلة عن المعلومات */}
+                {form.bannerImages?.[0] && (
+                  <div className="mx-4 mb-3 rounded-4xl overflow-hidden aspect-video bg-gray-100">
+                    <img
+                      src={form.bannerImages[0]}
                       alt={form.title}
                       className="w-full h-full object-cover"
                     />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-[#2a7a66] to-[#1a5c4c]" />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#1a5c4c] via-[#1a5c4c]/40 to-transparent" />
-                  
-                  {/* زر الإغلاق */}
-                  <button
-                    onClick={() => setShowInfoSheet(false)}
-                    className="absolute top-3 left-3 w-8 h-8 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center hover:bg-black/30 transition-colors"
-                    aria-label="إغلاق"
-                  >
-                    <X className="w-4 h-4 text-white" />
-                  </button>
-                </div>
+                  </div>
+                )}
 
-                <div className="px-4 pt-4 pb-5 space-y-5">
-                  {/* الوصف */}
-                  <p className="text-white text-sm leading-relaxed font-medium">
-                    {form.description || form.title}
-                  </p>
+                {/* المحتوى الرئيسي — خلفية خضراء غامقة ونص أبيض (مثل المرجع) */}
+                <div className="mx-4 mb-4 rounded-4xl overflow-hidden bg-green-800 border border-green-700/50">
+                  <div className="p-4 space-y-4">
+                    {form.description && (
+                      <p className="text-white text-base leading-relaxed line-clamp-3">
+                        {form.description}
+                      </p>
+                    )}
+                    <p className="text-green-100 text-sm">
+                      {form.title} — ركني
+                    </p>
 
-                  {/* المنشئ - تصميم محسّن */}
-                  <div className="space-y-3">
+                    {/* اسم المنشئ + توثيق + زر الملف الشخصي */}
                     <div className="flex items-center gap-3">
                       <div className="relative flex-shrink-0">
-                        <Avatar className="w-12 h-12 ring-2 ring-white/30 rounded-full shadow-lg">
+                        <Avatar className="w-10 h-10 rounded-full ring-2 ring-white/30">
                           {form.user?.profile?.avatar && (
                             <AvatarImage src={getAvatarUrl(form.user.profile.avatar)} alt={ownerName} />
                           )}
-                          <AvatarFallback className="bg-[#2a7a66] text-white text-base font-semibold rounded-full">
+                          <AvatarFallback className="bg-green-700 text-white text-sm rounded-full">
                             {getInitials(ownerName)}
                           </AvatarFallback>
                         </Avatar>
+                        <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-white rounded-full border-2 border-green-800 flex items-center justify-center" title="موثق">
+                          <Check className="w-2.5 h-2.5 text-green-700" strokeWidth={2.5} />
+                        </span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-base font-semibold text-white truncate">{ownerName}</p>
-                          {/* شارة التوثيق الزرقاء الرسمية */}
-                          <span 
-                            className="relative w-5 h-5 flex-shrink-0"
-                            title="حساب موثق رسمياً"
-                          >
-                            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
-                              <circle cx="12" cy="12" r="10" fill="url(#blueGradient)" />
-                              <path 
-                                d="M9 12l2 2 4-4" 
-                                stroke="white" 
-                                strokeWidth="2.5" 
-                                strokeLinecap="round" 
-                                strokeLinejoin="round"
-                              />
-                              <defs>
-                                <linearGradient id="blueGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                  <stop offset="0%" stopColor="#3B82F6" />
-                                  <stop offset="100%" stopColor="#1D4ED8" />
-                                </linearGradient>
-                              </defs>
-                            </svg>
-                          </span>
-                          {/* شارة منشئ المحتوى */}
-                          <span 
-                            className="w-5 h-5 bg-white/15 backdrop-blur-sm rounded-full flex items-center justify-center flex-shrink-0 border border-white/20"
-                            title="منشئ محتوى"
-                          >
-                            <FileText className="w-2.5 h-2.5 text-white/80" />
-                          </span>
-                        </div>
-                        <p className="text-sm text-white/60 truncate mt-0.5" dir="ltr">
-                          {formUrl.replace(/^https?:\/\//, '')}
-                        </p>
+                        <p className="text-white font-medium truncate">{ownerName}</p>
+                        <span className="text-green-200 text-xs">موثق</span>
                       </div>
+                      {form.user?.profile?.username && (
+                        <Link
+                          href={`/${form.user.profile.username}`}
+                          className="w-9 h-9 rounded-full flex items-center justify-center bg-white/15 text-white border border-white/30 hover:bg-white/25 transition-colors flex-shrink-0"
+                          title="عرض الملف الشخصي"
+                          aria-label="عرض الملف الشخصي"
+                        >
+                          <User className="w-4 h-4" />
+                        </Link>
+                      )}
                     </div>
-                    
-                    {/* معلومات إضافية عن الحساب */}
-                    <div className="flex items-center gap-4 pt-1">
-                      <div className="flex items-center gap-1.5">
-                        <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none">
-                          <circle cx="12" cy="12" r="10" fill="#3B82F6" />
-                          <path d="M9 12l2 2 4-4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        <span className="text-xs text-white/70">موثق رسمياً</span>
-                      </div>
-                    </div>
+
+                    {/* الرابط */}
+                    <a
+                      href={formUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-green-100 text-sm truncate hover:text-white transition-colors"
+                    >
+                      {formUrl}
+                    </a>
                   </div>
                 </div>
 
-                {/* مقبض سحب */}
+                {/* مقبض سحب في الأسفل */}
                 <div
-                  className="py-3 flex justify-center cursor-grab active:cursor-grabbing touch-none border-t border-white/10"
+                  className="py-2 flex justify-center cursor-grab active:cursor-grabbing touch-none border-t border-gray-100"
                   onPointerDown={(e) => infoSheetDragControls.start(e)}
                   aria-hidden
                 >
-                  <div className="w-12 h-1 rounded-full bg-white/25" />
+                  <div className="w-8 h-1 rounded-full bg-gray-200" />
                 </div>
               </motion.div>
             </>
@@ -866,13 +853,13 @@ export default function PublicFormPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-2xl mx-auto px-4 py-6">
+      <main className="max-w-2xl  mx-auto px-4 py-6">
         {/* Cover Image */}
         {form.bannerImages?.[0] && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 rounded-4xl overflow-hidden"
+            className="mb-6 rounded-4xl border border-gray-100 overflow-hidden"
           >
             <img 
               src={form.bannerImages[0]} 
@@ -890,7 +877,7 @@ export default function PublicFormPage() {
         >
           {/* Owner */}
           <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-100">
-            <Avatar className="w-10 h-10">
+            <Avatar className="w-10 h-10 flex-shrink-0">
               {form.user?.profile?.avatar && (
                 <AvatarImage src={getAvatarUrl(form.user.profile.avatar)} alt={ownerName} />
               )}
@@ -902,6 +889,16 @@ export default function PublicFormPage() {
               <p className="text-sm font-medium text-gray-900 truncate">{ownerName}</p>
               <p className="text-xs text-gray-500">منشئ النموذج</p>
             </div>
+            {form.user?.profile?.username && (
+              <Link
+                href={`/${form.user.profile.username}`}
+                className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors flex-shrink-0"
+                title="عرض الملف الشخصي"
+                aria-label="عرض الملف الشخصي"
+              >
+                <User className="w-4 h-4" />
+              </Link>
+            )}
           </div>
 
           {/* Title & Description */}
@@ -957,7 +954,7 @@ export default function PublicFormPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-4xl border border-gray-100"
+          className="bg-white rounded-4xl"
         >
           <div className="p-5 space-y-5">
             {currentFields.map((field, index) => (
