@@ -135,24 +135,63 @@ export const CSRF_TOKEN_OPTIONS: Omit<CookieOptions, 'httpOnly'> & { httpOnly: f
 };
 
 /**
- * 🔒 إعداد Access Token في httpOnly Cookie
+ * 🔒 بناء سطر Set-Cookie يدوياً لضمان HttpOnly و Max-Age الصحيحين
+ * (تجنب سلوك Express أحياناً مع domain الذي يضع Expires بعيد)
+ */
+function buildSetCookieHeader(
+  name: string,
+  value: string,
+  opts: CookieOptions,
+): string {
+  const parts = [
+    `${encodeURIComponent(name)}=${encodeURIComponent(value)}`,
+    `Path=${opts.path}`,
+    `Max-Age=${Math.floor(opts.maxAge / 1000)}`, // بالثواني
+    opts.httpOnly ? 'HttpOnly' : '',
+    opts.secure ? 'Secure' : '',
+    `SameSite=${opts.sameSite}`,
+  ];
+  if (opts.domain) {
+    const domain = opts.domain.startsWith('.') ? opts.domain : `.${opts.domain}`;
+    parts.push(`Domain=${domain}`);
+  }
+  return parts.filter(Boolean).join('; ');
+}
+
+/**
+ * 🔒 إعداد Access Token في httpOnly Cookie (30 دقيقة، HttpOnly)
  */
 export function setAccessTokenCookie(res: Response, accessToken: string): void {
-  res.cookie(COOKIE_NAMES.ACCESS_TOKEN, accessToken, ACCESS_TOKEN_OPTIONS);
+  const header = buildSetCookieHeader(
+    COOKIE_NAMES.ACCESS_TOKEN,
+    accessToken,
+    ACCESS_TOKEN_OPTIONS,
+  );
+  res.append('Set-Cookie', header);
 }
 
 /**
- * 🔒 إعداد Refresh Token في httpOnly Cookie
+ * 🔒 إعداد Refresh Token في httpOnly Cookie (14 يوم، HttpOnly)
  */
 export function setRefreshTokenCookie(res: Response, refreshToken: string): void {
-  res.cookie(COOKIE_NAMES.REFRESH_TOKEN, refreshToken, REFRESH_TOKEN_OPTIONS);
+  const header = buildSetCookieHeader(
+    COOKIE_NAMES.REFRESH_TOKEN,
+    refreshToken,
+    REFRESH_TOKEN_OPTIONS,
+  );
+  res.append('Set-Cookie', header);
 }
 
 /**
- * 🔒 إعداد CSRF Token
+ * 🔒 إعداد CSRF Token (24 ساعة، غير HttpOnly لقراءة الـ frontend)
  */
 export function setCsrfTokenCookie(res: Response, csrfToken: string): void {
-  res.cookie(COOKIE_NAMES.CSRF_TOKEN, csrfToken, CSRF_TOKEN_OPTIONS);
+  const header = buildSetCookieHeader(
+    COOKIE_NAMES.CSRF_TOKEN,
+    csrfToken,
+    CSRF_TOKEN_OPTIONS as CookieOptions,
+  );
+  res.append('Set-Cookie', header);
 }
 
 /**
