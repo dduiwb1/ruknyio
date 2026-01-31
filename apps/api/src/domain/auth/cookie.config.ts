@@ -23,12 +23,19 @@ const cookieSecure = (process.env.COOKIE_SECURE === 'true') || isProduction;
 // ⚠️ في بيئة التطوير، نستخدم undefined (لا domain) للسماح بمشاركة الكوكيز بين ports مختلفة
 // domain: 'localhost' لا يعمل بشكل صحيح مع ports مختلفة في بعض المتصفحات
 // (Frontend على 3000، API على 3001)
+//
+// 🔒 في الإنتاج مع subdomains (مثل auth.rukny.xyz + rukny.xyz):
+//    اضبط COOKIE_DOMAIN=rukny.xyz (بدون نقطة في البداية)
+//    هذا يسمح لجميع الـ subdomains بمشاركة الكوكيز
+//    إذا تركته undefined، الكوكي سيكون host-only على auth.rukny.xyz فقط
 const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
 
 // 🔒 Origins المسموحة للـ CSRF validation
 // إضافة دعم للشبكة المحلية في بيئة التطوير
+// ⚠️ تأكد من إضافة جميع النطاقات المستخدمة (www و non-www)
 const ALLOWED_ORIGINS: string[] = [
   process.env.FRONTEND_URL || 'http://localhost:3000',
+  process.env.FRONTEND_URL_ALT, // e.g. https://www.rukny.xyz if FRONTEND_URL is https://rukny.xyz
   'http://localhost:3000',
   'http://127.0.0.1:3000',
   // Local network IPs are handled dynamically in validateCsrfOrigin()
@@ -99,14 +106,15 @@ export const ACCESS_TOKEN_OPTIONS: CookieOptions = {
  * - sameSite: lax → حماية CSRF مع دعم OAuth redirects
  * - path: '/' دائماً → المتصفح يرسل الكوكي حسب مسار الطلب. الواجهة تستدعي /api/auth/*
  *   (proxy لـ Next.js) وليس /api/v1/auth/*، لذا path=/api/v1/auth يمنع إرسال الكوكي في الإنتاج.
- * - صلاحية: 30 يوم
+ * - صلاحية: 14 يوم ✅ موحد مع token.service.ts و auth.service.ts (refreshExpiresAt)
+ *   ⚠️ يجب أن تتطابق المدة مع DB session expiresAt وإلا ستحصل على 401 رغم وجود الـ cookie
  */
 export const REFRESH_TOKEN_OPTIONS: CookieOptions = {
   httpOnly: true,
   secure: cookieSecure,
   sameSite: getSameSite(), // Lax للسماح بـ OAuth
   path: '/',  // 🔒 يجب '/' حتى يُرسل مع /api/auth/refresh (proxy) وليس فقط /api/v1/auth
-  maxAge: 30 * 24 * 60 * 60 * 1000, // 30 يوم
+  maxAge: 14 * 24 * 60 * 60 * 1000, // 14 يوم - ✅ موحد مع DB refreshExpiresAt
   ...(cookieDomain && { domain: cookieDomain }),
 };
 

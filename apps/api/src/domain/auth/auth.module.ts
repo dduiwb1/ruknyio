@@ -37,7 +37,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
         // Do not allow fallback secrets in production
         secret: configService.get<string>('JWT_SECRET') ?? undefined,
         signOptions: {
-          expiresIn: '15m', // 🔒 Access Token قصير المدة
+          expiresIn: '30m', // 🔒 Access Token - موحد مع token.service.ts و auth.service.ts
         },
       }),
       inject: [ConfigService],
