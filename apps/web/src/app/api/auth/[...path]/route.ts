@@ -88,14 +88,18 @@ async function proxyRequest(request: NextRequest, method: string) {
 
     // Create response with proper headers
     const responseHeaders = new Headers();
+    // 🔒 Forward ALL Set-Cookie headers with full attributes (HttpOnly, Max-Age, etc.)
+    // Fetch API merges multiple set-cookie into one; getSetCookie() returns each separately (Node 19+)
+    const setCookies = typeof response.headers.getSetCookie === 'function'
+      ? response.headers.getSetCookie()
+      : [response.headers.get('set-cookie')].filter(Boolean) as string[];
+    for (const cookie of setCookies) {
+      responseHeaders.append('set-cookie', cookie);
+    }
     response.headers.forEach((value, key) => {
+      if (key.toLowerCase() === 'set-cookie') return; // already handled above
       if (!EXCLUDED_RESPONSE_HEADERS.includes(key.toLowerCase())) {
-        // Forward Set-Cookie headers properly
-        if (key.toLowerCase() === 'set-cookie') {
-          responseHeaders.append(key, value);
-        } else {
-          responseHeaders.set(key, value);
-        }
+        responseHeaders.set(key, value);
       }
     });
 
