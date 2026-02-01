@@ -1,11 +1,9 @@
 export { SecuritySettings } from './SecuritySettings';
 export { ProfileSettings } from './ProfileSettings';
-export { SettingsSidebar } from './SettingsSidebar';
 export { TwoFactorAuth } from './TwoFactorAuth';
 export { SessionsManager } from './SessionsManager';
 export { TrustedDevices } from './TrustedDevices';
 export { SecurityLogs } from './SecurityLogs';
-export { IPBlocklist } from './IPBlocklist';
 export { IPProtectionSettings } from './IPProtectionSettings';
 
 // Integrations

@@ -488,6 +488,11 @@ export function getApiClient() {
       return res.json();
     },
 
+    async post<T = void>(endpoint: string, body?: unknown): Promise<T> {
+      const res = await api.post<T>(endpoint, body);
+      return (res as ApiResponse<T>).data;
+    },
+
     async delete(endpoint: string): Promise<void> {
       await api.delete(endpoint);
     },
