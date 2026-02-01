@@ -24,7 +24,7 @@ setInterval(() => {
  * 🔒 JWT Strategy with Session Validation via sid claim
  *
  * تحسينات أمنية:
- * - استخراج Access Token من Authorization Header فقط (حماية CSRF)
+ * - استخراج Access Token من Cookie أولاً ثم Authorization Header (لدعم SPA مع httpOnly)
  * - استخدام sid (Session ID) من JWT للتحقق من الجلسة
  * - لا نخزن Access Token hash (JWT Stateless)
  * - Revocation سريع عبر isRevoked flag
@@ -37,11 +37,7 @@ setInterval(() => {
  */
 
 /**
- * 🔒 Custom extractor: Authorization Header فقط
- *
- * لماذا لا نستخدم Cookie؟
- * - Cookie يُرسل تلقائياً مع كل طلب → عرضة لـ CSRF
- * - Authorization Header يجب إضافته يدوياً → آمن من CSRF
+ * 🔒 Custom extractor: Cookie أولاً ثم Authorization Header
  */
 const bearerExtractor = (req: any): string | null => {
   return extractAccessToken(req);
@@ -110,16 +106,35 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       );
     }
 
-    // 🔒 التحقق من انتهاء صلاحية الجلسة (expiresAt)
-    if (session.expiresAt && session.expiresAt < new Date()) {
-      throw new UnauthorizedException(
-        'Session has expired. Please login again.',
-      );
+    const now = new Date();
+
+    // 🔒 انتهاء expiresAt (30 دقيقة) لا يُسجّل خروجاً إذا كان refresh token ما زال صالحاً
+    // نمدد الجلسة تلقائياً لتقليل تسجيل الخروج المفاجئ بعد فترة قصيرة من عدم النشاط
+    if (session.expiresAt && session.expiresAt < now) {
+      const refreshStillValid =
+        session.refreshExpiresAt && session.refreshExpiresAt > now;
+      if (refreshStillValid) {
+        // تمديد الجلسة بدلاً من تسجيل الخروج
+        const newExpiresAt = new Date(now.getTime() + 30 * 60 * 1000);
+        this.prisma
+          .session.update({
+            where: { id: session.id },
+            data: {
+              expiresAt: newExpiresAt,
+              lastActivity: now,
+            },
+          })
+          .catch(() => {});
+        // متابعة التحقق دون رمي 401
+      } else {
+        throw new UnauthorizedException(
+          'Session has expired. Please login again.',
+        );
+      }
     }
 
     // 🔒 التحقق من Idle Timeout (24 ساعة من عدم النشاط)
     const IDLE_TIMEOUT_MS = 24 * 60 * 60 * 1000; // 24 ساعة
-    const now = new Date();
     const lastActivity = session.lastActivity || session.createdAt;
     const timeSinceLastActivity = now.getTime() - lastActivity.getTime();
 
@@ -168,11 +183,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       bannerUrls: session.user.bannerUrls || [],
       sessionId: session.id, // 🔒 Session ID للاستخدام لاحقاً
     };
-    console.log('[JwtStrategy] User profile data:', {
-      hasProfile: !!session.user.profile,
-      name: result.name,
-      username: result.username,
-    });
     return result;
   }
 }

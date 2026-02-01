@@ -1,128 +1,163 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FileText,
-  Plus,
-  RefreshCw
-} from 'lucide-react';
-import { 
+import { FileText, Plus, RefreshCw, AlertCircle } from 'lucide-react';
+import {
   FormsStats,
   FormsFiltersBar,
   FormCard,
   EmptyFormsState,
   DeleteFormModal,
   FormsGridSkeleton,
-  FormsStatsSkeleton
+  FormsStatsSkeleton,
 } from '@/components/(app)/forms';
-import { 
-  useForms, 
-  Form, 
+import {
+  useForms,
+  Form,
   FormsFilters,
   FormsStats as StatsType,
   FormsSortOption,
   filterForms,
   sortForms,
-  calculateFormsStats
+  calculateFormsStats,
 } from '@/lib/hooks/useForms';
 import { useRouter } from 'next/navigation';
+import { toast, toastMessages } from '@/components/toast-provider';
+
+const VIEW_MODE_STORAGE_KEY = 'forms-view-mode';
+
+function getStoredViewMode(): 'grid' | 'list' {
+  if (typeof window === 'undefined') return 'grid';
+  try {
+    const stored = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+    if (stored === 'grid' || stored === 'list') return stored;
+  } catch {
+    // ignore
+  }
+  return 'grid';
+}
 
 export default function FormsPage() {
   const router = useRouter();
-  const { 
-    getMyForms, 
-    deleteForm, 
+  const {
+    getMyForms,
+    deleteForm,
     duplicateForm,
-    isLoading 
+    isLoading,
+    error: hookError,
   } = useForms();
-  
+
   const [forms, setForms] = useState<Form[]>([]);
-  const [loadingForms, setLoadingForms] = useState(true);
   const [filters, setFilters] = useState<FormsFilters>({});
   const [sortBy, setSortBy] = useState<FormsSortOption>('newest');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => getStoredViewMode());
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [formToDelete, setFormToDelete] = useState<Form | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Load forms on mount
-  useEffect(() => {
-    loadForms();
-  }, []);
-
-  const loadForms = async () => {
-    setLoadingForms(true);
+  const loadForms = useCallback(async () => {
     const data = await getMyForms();
     setForms(data);
-    setLoadingForms(false);
-  };
+  }, [getMyForms]);
 
-  // Calculate stats
+  useEffect(() => {
+    loadForms();
+  }, [loadForms]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(VIEW_MODE_STORAGE_KEY, viewMode);
+    } catch {
+      // ignore
+    }
+  }, [viewMode]);
+
   const stats: StatsType = useMemo(() => {
     return calculateFormsStats(forms);
   }, [forms]);
 
-  // Filter and sort forms
   const filteredForms = useMemo(() => {
     const filtered = filterForms(forms, filters);
     return sortForms(filtered, sortBy);
   }, [forms, filters, sortBy]);
 
-  // Handlers
-  const handleCreateForm = () => {
+  const handleCreateForm = useCallback(() => {
     router.push('/app/forms/create?new=true');
-  };
+  }, [router]);
 
-  const handleEditForm = (form: Form) => {
-    router.push(`/app/forms/${form.id}/edit`);
-  };
+  const handleEditForm = useCallback(
+    (form: Form) => {
+      router.push(`/app/forms/${form.id}/edit`);
+    },
+    [router]
+  );
 
-  const handleViewForm = (form: Form) => {
-    router.push(`/app/forms/${form.id}`);
-  };
+  const handleViewForm = useCallback(
+    (form: Form) => {
+      router.push(`/app/forms/${form.id}`);
+    },
+    [router]
+  );
 
-  const handleViewResponses = (form: Form) => {
-    router.push(`/app/forms/${form.id}/responses`);
-  };
+  const handleViewResponses = useCallback(
+    (form: Form) => {
+      router.push(`/app/forms/${form.id}/responses`);
+    },
+    [router]
+  );
 
-  const handleDuplicateForm = async (form: Form) => {
-    const duplicated = await duplicateForm(form.id);
-    if (duplicated) {
-      setForms(prev => [duplicated, ...prev]);
-    }
-  };
+  const handleDuplicateForm = useCallback(
+    async (form: Form) => {
+      const duplicated = await duplicateForm(form.id);
+      if (duplicated) {
+        setForms((prev) => [duplicated, ...prev]);
+        toast.success('تم نسخ النموذج بنجاح');
+      } else {
+        toast.error('فشل نسخ النموذج. يرجى المحاولة مرة أخرى');
+      }
+    },
+    [duplicateForm]
+  );
 
-  const handleDeleteClick = (form: Form) => {
+  const handleDeleteClick = useCallback((form: Form) => {
     setFormToDelete(form);
     setDeleteModalOpen(true);
-  };
+  }, []);
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = useCallback(async () => {
     if (!formToDelete) return;
-    
+
     setIsDeleting(true);
     const success = await deleteForm(formToDelete.id);
-    
-    if (success) {
-      setForms(prev => prev.filter(f => f.id !== formToDelete.id));
-    }
-    
     setIsDeleting(false);
-    setDeleteModalOpen(false);
-    setFormToDelete(null);
-  };
 
-  const handleDeleteCancel = () => {
+    if (success) {
+      setForms((prev) => prev.filter((f) => f.id !== formToDelete.id));
+      setDeleteModalOpen(false);
+      setFormToDelete(null);
+      toastMessages.deleteSuccess('النموذج');
+    } else {
+      toast.error('فشل حذف النموذج. يرجى المحاولة مرة أخرى');
+    }
+  }, [formToDelete, deleteForm]);
+
+  const handleDeleteCancel = useCallback(() => {
     setDeleteModalOpen(false);
     setFormToDelete(null);
-  };
+  }, []);
+
+  const handleViewModeChange = useCallback((mode: 'grid' | 'list') => {
+    setViewMode(mode);
+  }, []);
 
   return (
-    <div className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 bg-card m-2 md:ms-0 rounded-2xl border border-border/50 overflow-hidden" dir="rtl">
+    <div
+      className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 bg-card m-2 md:ms-0 rounded-2xl border border-border/50 overflow-hidden"
+      dir="rtl"
+    >
       <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <div className="p-4 sm:p-6 space-y-5">
-          
           {/* Page Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -141,18 +176,22 @@ export default function FormsPage() {
                 </div>
               </div>
 
-              {/* Actions */}
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={loadForms}
-                  disabled={loadingForms}
-                  className={`p-2 sm:p-2.5 rounded-xl  bg-card text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 ${loadingForms ? 'animate-spin' : ''}`}
+                  disabled={isLoading}
+                  aria-label="تحديث قائمة النماذج"
+                  aria-busy={isLoading}
+                  className={`p-2 sm:p-2.5 rounded-xl bg-card text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:pointer-events-none ${isLoading ? 'animate-spin' : ''}`}
                 >
                   <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
-                
+
                 <button
+                  type="button"
                   onClick={handleCreateForm}
+                  aria-label="إنشاء نموذج جديد"
                   className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors"
                 >
                   <Plus className="w-4 h-4" />
@@ -162,16 +201,38 @@ export default function FormsPage() {
             </div>
           </motion.div>
 
+          {/* Error block with retry */}
+          {hookError && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span className="truncate">{hookError}</span>
+              </div>
+              <button
+                type="button"
+                onClick={loadForms}
+                disabled={isLoading}
+                className="shrink-0 rounded-lg px-3 py-1.5 font-medium bg-destructive/20 hover:bg-destructive/30 transition-colors disabled:opacity-50"
+              >
+                إعادة المحاولة
+              </button>
+            </motion.div>
+          )}
+
           {/* Stats */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            {loadingForms ? (
+            {isLoading ? (
               <FormsStatsSkeleton />
             ) : (
-              <FormsStats stats={stats} isLoading={loadingForms} />
+              <FormsStats stats={stats} isLoading={isLoading} />
             )}
           </motion.div>
 
@@ -182,21 +243,21 @@ export default function FormsPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <FormsFiltersBar 
+              <FormsFiltersBar
                 filters={filters}
                 onFiltersChange={setFilters}
                 sortBy={sortBy}
                 onSortChange={setSortBy}
                 resultsCount={filteredForms.length}
                 viewMode={viewMode}
-                onViewModeChange={setViewMode}
+                onViewModeChange={handleViewModeChange}
               />
             </motion.div>
           )}
 
           {/* Content */}
           <AnimatePresence mode="popLayout">
-            {loadingForms ? (
+            {isLoading ? (
               <motion.div
                 key="loading"
                 initial={{ opacity: 0 }}
@@ -223,15 +284,20 @@ export default function FormsPage() {
                 className="rounded-2xl border border-border/50 bg-card p-8 text-center"
               >
                 <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-                <h3 className="text-base font-semibold text-foreground mb-1">لا توجد نتائج</h3>
-                <p className="text-sm text-muted-foreground">جرب تغيير معايير البحث</p>
+                <h3 className="text-base font-semibold text-foreground mb-1">
+                  لا توجد نتائج
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  جرب تغيير معايير البحث
+                </p>
               </motion.div>
             ) : (
               <motion.div
                 layout
-                className={viewMode === 'grid' 
-                  ? "grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4"
-                  : "flex flex-col gap-3"
+                className={
+                  viewMode === 'grid'
+                    ? 'grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4'
+                    : 'flex flex-col gap-3'
                 }
               >
                 {filteredForms.map((form, index) => (
@@ -242,7 +308,7 @@ export default function FormsPage() {
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ delay: index * 0.03 }}
                   >
-                    <FormCard 
+                    <FormCard
                       form={form}
                       onEdit={handleEditForm}
                       onDelete={handleDeleteClick}
@@ -262,7 +328,6 @@ export default function FormsPage() {
         </div>
       </div>
 
-      {/* Delete Modal */}
       <DeleteFormModal
         isOpen={deleteModalOpen}
         formTitle={formToDelete?.title || ''}

@@ -81,7 +81,6 @@ const settingsSections: SettingsSection[] = [
       { href: "/app/settings?tab=sessions", label: "الجلسات النشطة", icon: MonitorSmartphone },
       { href: "/app/settings?tab=devices", label: "الأجهزة الموثوقة", icon: Smartphone },
       { href: "/app/settings?tab=logs", label: "سجل الأمان", icon: History },
-      { href: "/app/settings?tab=blocklist", label: "قائمة الحظر", icon: Ban },
     ],
   },
   {
@@ -91,9 +90,6 @@ const settingsSections: SettingsSection[] = [
     iconBg: "bg-info/10",
     iconColor: "text-info",
     items: [
-      { href: "/app/settings?tab=overview", label: "نظرة عامة", icon: Zap },
-      { href: "/app/settings?tab=social", label: "وسائل التواصل", icon: Share2 },
-      { href: "/app/settings?tab=analytics", label: "التحليلات", icon: BarChart3 },
       { href: "/app/settings?tab=notifications", label: "الإشعارات", icon: Bell },
       { href: "/app/settings?tab=storage", label: "التخزين السحابي", icon: Cloud },
     ],
@@ -379,11 +375,6 @@ export default function SettingsLayout({
         <div className="relative flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {children}
         </div>
-      </div>
-
-      {/* Account Sidebar - Left side (Desktop only) */}
-      <div className="hidden xl:block">
-        {mounted ? <AccountSidebar /> : <AccountSidebarSkeleton />}
       </div>
     </div>
   );

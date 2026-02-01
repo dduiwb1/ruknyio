@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
   experimental: {
     // Optimize package imports
     optimizePackageImports: ["lucide-react", "recharts", "@radix-ui/react-slot"],
+    // Disable Turbopack due to known panic issues with catch-all routes
+    turbo: {
+      resolveAlias: {},
+    },
   },
 
   // 🖼️ Image optimization

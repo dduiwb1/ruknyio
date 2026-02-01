@@ -152,6 +152,50 @@ export function updateLastRefreshTime(): void {
   lastRefreshTime = Date.now();
 }
 
+// ===== Silent Refresh (تقليل انقطاع الجلسة) =====
+let silentRefreshTimerId: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Schedule a single silent refresh before access token expires.
+ * Refreshes at ~80% of expires_in (min 1 min) to avoid session gap.
+ */
+export function scheduleSilentRefresh(expiresInSeconds: number): void {
+  if (typeof window === 'undefined') return;
+  clearSilentRefresh();
+  const ms = Math.max(60_000, Math.floor(expiresInSeconds * 0.8) * 1000);
+  silentRefreshTimerId = setTimeout(async () => {
+    silentRefreshTimerId = null;
+    try {
+      const res = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.success && data.csrf_token) {
+        setCsrfToken(data.csrf_token);
+        updateLastRefreshTime();
+        if (typeof data.expires_in === 'number') {
+          scheduleSilentRefresh(data.expires_in);
+        }
+      }
+    } catch {
+      // ignore; next 401 will trigger normal refresh
+    }
+  }, ms);
+}
+
+/**
+ * Clear silent refresh timer (e.g. on logout).
+ */
+export function clearSilentRefresh(): void {
+  if (silentRefreshTimerId) {
+    clearTimeout(silentRefreshTimerId);
+    silentRefreshTimerId = null;
+  }
+}
+
 /**
  * Get the last refresh time
  */
@@ -192,6 +236,7 @@ const AUTH_PAGES = [
  */
 function handleAuthFailure(reason: 'expired' | 'invalid' = 'expired'): void {
   clearAccessToken();
+  clearSilentRefresh();
   refreshFailed = true;
   refreshPromise = null;
   
@@ -217,6 +262,7 @@ export function resetRefreshState(): void {
   isRefreshing = false;
   refreshFailed = false;
   refreshPromise = null;
+  clearSilentRefresh();
 }
 
 /**

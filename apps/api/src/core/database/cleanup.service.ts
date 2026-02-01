@@ -142,13 +142,22 @@ export class DatabaseCleanupService implements OnModuleInit {
 
   /**
    * ⚡ Clean up expired sessions
+   *
+   * ⚠️ نَحذف فقط عندما تنتهي صلاحية refresh token (refreshExpiresAt)، وليس expiresAt (30 دقيقة).
+   * لو حذفنا عند انتهاء expiresAt، المستخدم يبقى عنده كوكي refresh صالح 14 يوم لكن الجلسة
+   * انمسحت من DB → "Session not found" وتسجيل خروج غير متوقع.
    */
   async cleanupExpiredSessions(): Promise<number> {
+    const now = new Date();
     const result = await this.prisma.session.deleteMany({
       where: {
         OR: [
-          { expiresAt: { lt: new Date() } },
-          { isRevoked: true, revokedAt: { lt: this.daysAgo(7) } },
+          // جلسات انتهت صلاحية refresh token (14 يوم)
+          { refreshExpiresAt: { lt: now } },
+          // جلسات مُبطلة قديمة (أكثر من 7 أيام)
+          {
+            isRevoked: true,
+            revokedAt: { lt: this.daysAgo(7) } },
         ],
       },
     });

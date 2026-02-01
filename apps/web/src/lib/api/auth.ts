@@ -12,7 +12,7 @@
  */
 
 import { z } from 'zod';
-import api, { setCsrfToken, clearCsrfToken, setAccessToken, clearAccessToken } from './client';
+import api, { setCsrfToken, clearCsrfToken, setAccessToken, clearAccessToken, scheduleSilentRefresh } from './client';
 
 // ============ Schemas ============
 
@@ -168,7 +168,11 @@ export async function refreshToken(): Promise<AuthResponse> {
   if (validated.csrf_token) {
     setCsrfToken(validated.csrf_token);
   }
-  
+  // تقليل انقطاع الجلسة: جدولة تجديد صامت قبل انتهاء الصلاحية
+  if (typeof validated.expires_in === 'number') {
+    scheduleSilentRefresh(validated.expires_in);
+  }
+
   return validated;
 }
 
@@ -265,7 +269,10 @@ export async function exchangeOAuthCode(code: string): Promise<AuthResponse> {
   if (validated.access_token) {
     setAccessToken(validated.access_token);
   }
-  
+  if (typeof validated.expires_in === 'number') {
+    scheduleSilentRefresh(validated.expires_in);
+  }
+
   return validated;
 }
 

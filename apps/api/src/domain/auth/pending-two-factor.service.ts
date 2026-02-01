@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../core/database/prisma/prisma.service';
 import { randomUUID } from 'crypto';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 /**
  * 🔐 خدمة إدارة جلسات 2FA المعلقة
  *
@@ -32,14 +34,16 @@ export class PendingTwoFactorService {
       },
     });
 
-    console.log('[Pending2FA] Session created:', {
-      sessionId: id,
-      userId,
-      email,
-      createdAt: now.toISOString(),
-      expiresAt: expiresAt.toISOString(),
-      expiryMinutes: this.SESSION_EXPIRY_MINUTES,
-    });
+    if (!isProduction) {
+      console.log('[Pending2FA] Session created:', {
+        sessionId: id,
+        userId,
+        email,
+        createdAt: now.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        expiryMinutes: this.SESSION_EXPIRY_MINUTES,
+      });
+    }
 
     return id;
   }

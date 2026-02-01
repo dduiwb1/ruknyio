@@ -16,7 +16,7 @@ import {
   Key,
   Smartphone
 } from 'lucide-react';
-import { setCsrfToken, resetRefreshState } from '@/lib/api/client';
+import { setCsrfToken, resetRefreshState, scheduleSilentRefresh } from '@/lib/api/client';
 
 // OTP Input Component
 function OTPInput({ 
@@ -116,6 +116,7 @@ function Verify2FAContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [useBackupCode, setUseBackupCode] = useState(false);
+  const [rememberDevice, setRememberDevice] = useState(true);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [sessionValid, setSessionValid] = useState(false);
 
@@ -217,6 +218,9 @@ function Verify2FAContent() {
         setCsrfToken(data.csrf_token);
         resetRefreshState(); // Reset any failed refresh state
       }
+      if (typeof data.expires_in === 'number') {
+        scheduleSilentRefresh(data.expires_in);
+      }
 
       // Show message if backup code was used
       if (data.usedBackupCode) {
@@ -310,6 +314,19 @@ function Verify2FAContent() {
             disabled={isLoading}
           />
         </div>
+      )}
+
+      {/* تذكر هذا الجهاز */}
+      {!useBackupCode && (
+        <label className="flex items-center gap-2 mb-5 cursor-pointer text-sm text-zinc-600 dark:text-zinc-400">
+          <input
+            type="checkbox"
+            checked={rememberDevice}
+            onChange={(e) => setRememberDevice(e.target.checked)}
+            className="rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500"
+          />
+          <span>تذكر هذا الجهاز (تخطي 2FA في المرات القادمة)</span>
+        </label>
       )}
 
       {/* Submit Button */}

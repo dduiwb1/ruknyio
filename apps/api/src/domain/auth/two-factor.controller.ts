@@ -22,6 +22,7 @@ import { TwoFactorService } from './two-factor.service';
 import { TokenService } from './token.service';
 import { PrismaService } from '../../core/database/prisma/prisma.service';
 import { SecurityLogService } from '../../infrastructure/security/log.service';
+import { SecurityDetectorService } from '../../infrastructure/security/detector.service';
 import { JwtAuthGuard } from '../../core/common/guards/auth/jwt-auth.guard';
 import { CurrentUser } from '../../core/common/decorators/auth/current-user.decorator';
 import { Throttle } from '@nestjs/throttler';
@@ -30,6 +31,7 @@ import {
   setRefreshTokenCookie,
   setCsrfTokenCookie,
   generateCsrfToken,
+  setTrustedDeviceCookie,
 } from './cookie.config';
 import { UAParser } from 'ua-parser-js';
 import {
@@ -41,6 +43,8 @@ import {
   TwoFactorStatusDto,
   EnableTwoFactorResponseDto,
 } from './dto/two-factor.dto';
+
+const isProduction = process.env.NODE_ENV === 'production';
 
 /**
  * 🔐 Two-Factor Authentication Controller
@@ -60,6 +64,7 @@ export class TwoFactorController {
     private tokenService: TokenService,
     private prisma: PrismaService,
     private securityLogService: SecurityLogService,
+    private securityDetectorService: SecurityDetectorService,
   ) {}
 
   /**
@@ -330,6 +335,18 @@ export class TwoFactorController {
     const parser = new UAParser(userAgent);
     const result = parser.getResult();
 
+    // تذكر هذا الجهاز: إنشاء جهاز موثوق وتفعيل الكوكي
+    if (dto.rememberDevice) {
+      const deviceId = await this.securityDetectorService.rememberDeviceFor2FA(user.id, {
+        browser: result.browser.name,
+        os: result.os.name,
+        deviceType: result.device.type || 'desktop',
+        ipAddress,
+        userAgent,
+      });
+      setTrustedDeviceCookie(res, deviceId);
+    }
+
     // تسجيل النجاح
     await this.securityLogService.createLog({
       userId: user.id,
@@ -403,7 +420,7 @@ export class TwoFactorController {
     });
 
     if (!pending) {
-      console.log('[2FA] Session not found:', sessionId);
+      if (!isProduction) console.log('[2FA] Session not found:', sessionId);
       return null;
     }
 
@@ -413,20 +430,24 @@ export class TwoFactorController {
     const timeUntilExpiry = expiresAt.getTime() - now.getTime();
     
     if (timeUntilExpiry <= 0) {
-      console.log('[2FA] Session expired:', {
-        sessionId,
-        expiresAt: expiresAt.toISOString(),
-        now: now.toISOString(),
-        timeUntilExpiry: `${Math.round(timeUntilExpiry / 1000)}s`,
-      });
+      if (!isProduction) {
+        console.log('[2FA] Session expired:', {
+          sessionId,
+          expiresAt: expiresAt.toISOString(),
+          now: now.toISOString(),
+          timeUntilExpiry: `${Math.round(timeUntilExpiry / 1000)}s`,
+        });
+      }
       return null;
     }
 
-    console.log('[2FA] Session valid:', {
-      sessionId,
-      expiresAt: expiresAt.toISOString(),
-      timeUntilExpiry: `${Math.round(timeUntilExpiry / 1000)}s`,
-    });
+    if (!isProduction) {
+      console.log('[2FA] Session valid:', {
+        sessionId,
+        expiresAt: expiresAt.toISOString(),
+        timeUntilExpiry: `${Math.round(timeUntilExpiry / 1000)}s`,
+      });
+    }
 
     return {
       userId: pending.userId,

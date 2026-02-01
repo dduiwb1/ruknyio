@@ -24,6 +24,7 @@ import { PendingTwoFactorService } from './pending-two-factor.service';
 import { AccountLockoutService } from './account-lockout.service';
 import { EmailService } from '../../integrations/email/email.service';
 import { SecurityLogService } from '../../infrastructure/security/log.service';
+import { SecurityDetectorService } from '../../infrastructure/security/detector.service';
 import { PrismaService } from '../../core/database/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { RequestQuickSignDto, ResendQuickSignDto, VerifyIPCodeDto, CompleteProfileDto, CheckUsernameDto } from './dto';
@@ -38,6 +39,7 @@ import {
   setRefreshTokenCookie,
   setCsrfTokenCookie,
   generateCsrfToken,
+  getTrustedDeviceId,
 } from './cookie.config';
 
 // Throttle policies:
@@ -53,6 +55,8 @@ const QUICK_SIGN_RESEND_THROTTLE =
     ? { default: { limit: 2, ttl: 60000 } } // 2 requests per minute
     : { default: { limit: 30, ttl: 60000 } }; // 30 requests per minute
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 @ApiTags('QuickSign Authentication')
 @Controller('auth/quicksign')
 export class QuickSignController {
@@ -65,6 +69,7 @@ export class QuickSignController {
     private accountLockoutService: AccountLockoutService,
     private emailService: EmailService,
     private securityLogService: SecurityLogService,
+    private securityDetectorService: SecurityDetectorService,
     private prisma: PrismaService,
     private jwtService: JwtService,
     private notificationsGateway: NotificationsGateway,
@@ -230,16 +235,16 @@ export class QuickSignController {
       // Redirect to frontend with error instead of throwing exception
       if (verification.used) {
         const errorUrl = `${frontendUrl}/auth/verify?error=used&message=${encodeURIComponent('هذا الرابط تم استخدامه مسبقاً')}`;
-        console.log('🔄 Redirecting to error page (used):', errorUrl);
+        if (!isProduction) console.log('🔄 Redirecting to error page (used):', errorUrl);
         return res.redirect(errorUrl);
       }
       if (verification.expired) {
         const errorUrl = `${frontendUrl}/auth/verify?error=expired&message=${encodeURIComponent('انتهت صلاحية هذا الرابط')}`;
-        console.log('🔄 Redirecting to error page (expired):', errorUrl);
+        if (!isProduction) console.log('🔄 Redirecting to error page (expired):', errorUrl);
         return res.redirect(errorUrl);
       }
       const errorUrl = `${frontendUrl}/auth/verify?error=invalid&message=${encodeURIComponent('رابط غير صالح')}`;
-      console.log('🔄 Redirecting to error page (invalid):', errorUrl);
+      if (!isProduction) console.log('🔄 Redirecting to error page (invalid):', errorUrl);
       return res.redirect(errorUrl);
     }
 
@@ -252,7 +257,7 @@ export class QuickSignController {
       // لا نعلم الرابط كمستخدم هنا - سيتم تعليمه عند إكمال الملف الشخصي
       // Redirect لصفحة إكمال الملف الشخصي مع الـ token
       const redirectUrl = `${frontendUrl}/complete-profile?email=${encodeURIComponent(verification.email)}&token=${encodeURIComponent(token)}`;
-      console.log('🔄 Redirecting to complete-profile:', redirectUrl);
+      if (!isProduction) console.log('🔄 Redirecting to complete-profile:', redirectUrl);
       return res.redirect(redirectUrl);
     }
 
@@ -302,6 +307,52 @@ export class QuickSignController {
     const requires2FA = await this.twoFactorService.requiresTwoFactor(verification.userId);
     
     if (requires2FA) {
+      // تذكر هذا الجهاز: إذا كان الطلب يحمل جهازاً موثوقاً صالحاً، تخطّ 2FA
+      const trustedDeviceId = getTrustedDeviceId(req);
+      if (trustedDeviceId) {
+        const trusted = await this.securityDetectorService.findTrustedDeviceById(
+          trustedDeviceId,
+          verification.userId,
+        );
+        if (trusted) {
+          // تخطي 2FA والمتابعة كتسجيل دخول عادي
+          await this.quickSignService.markQuickSignAsUsed(token);
+          await this.ipVerificationService.updateLastKnownIP(verification.userId, ipAddress);
+          const user = await this.prisma.user.findUnique({
+            where: { id: verification.userId },
+            select: {
+              id: true,
+              email: true,
+              role: true,
+              profileCompleted: true,
+              twoFactorEnabled: true,
+              profile: { select: { name: true, username: true, avatar: true } },
+            },
+          });
+          const { tokens } = await this.tokenService.generateTokenPair(
+            user.id,
+            user.email,
+            { userId: user.id, userAgent, ipAddress },
+          );
+          setAccessTokenCookie(res, tokens.accessToken);
+          setRefreshTokenCookie(res, tokens.refreshToken);
+          const csrfToken = generateCsrfToken();
+          setCsrfTokenCookie(res, csrfToken);
+          await this.securityLogService.createLog({
+            userId: user.id,
+            action: 'LOGIN_SUCCESS',
+            status: 'SUCCESS',
+            description: 'تسجيل دخول ناجح عبر QuickSign (جهاز موثوق)',
+            ipAddress,
+            deviceType: result.device.type || 'desktop',
+            browser: result.browser.name || 'Unknown',
+            os: result.os.name || 'Unknown',
+            userAgent,
+          });
+          return res.redirect(`${frontendUrl}/app`);
+        }
+      }
+
       // إنشاء جلسة معلقة وإرجاع طلب التحقق من 2FA
       const pendingSessionId = await this.pendingTwoFactorService.create(
         verification.userId,
@@ -313,7 +364,7 @@ export class QuickSignController {
       
       // Redirect لصفحة 2FA
       const redirectUrl = `${frontendUrl}/auth/verify-2fa?sessionId=${pendingSessionId}`;
-      console.log('🔄 Redirecting to verify-2fa:', redirectUrl);
+      if (!isProduction) console.log('🔄 Redirecting to verify-2fa:', redirectUrl);
       return res.redirect(redirectUrl);
     }
 
@@ -353,12 +404,14 @@ export class QuickSignController {
     );
 
     // � Debug: Log token generation
-    console.log('🔐 QuickSign login - tokens generated:', {
-      userId: user.id,
-      sessionId,
-      accessTokenLength: tokens.accessToken?.length,
-      refreshTokenLength: tokens.refreshToken?.length,
-    });
+    if (!isProduction) {
+      console.log('🔐 QuickSign login - tokens generated:', {
+        userId: user.id,
+        sessionId,
+        accessTokenLength: tokens.accessToken?.length,
+        refreshTokenLength: tokens.refreshToken?.length,
+      });
+    }
 
     // Security log
     await this.securityLogService.createLog({
@@ -407,8 +460,7 @@ export class QuickSignController {
 
     // Redirect مع code فقط - نفس نظام OAuth
     const callbackUrl = `${frontendUrl}/auth/callback?code=${code}`;
-    
-    console.log('🔄 Redirecting to:', callbackUrl);
+    if (!isProduction) console.log('🔄 Redirecting to:', callbackUrl);
     res.redirect(callbackUrl);
   }
 
@@ -596,15 +648,15 @@ export class QuickSignController {
       dto.quickSignToken,
     );
 
-    // Debug: log verification result to help diagnose invalid/expired tokens
-    try {
-      // eslint-disable-next-line no-console
-      console.log('[QUICKSIGN] completeProfile verification:', {
-        tokenPreview: dto.quickSignToken?.substring?.(0, 20) + '...',
-        verification,
-      });
-    } catch (err) {
-      // ignore logging errors
+    if (!isProduction) {
+      try {
+        console.log('[QUICKSIGN] completeProfile verification:', {
+          tokenPreview: dto.quickSignToken?.substring?.(0, 20) + '...',
+          verification,
+        });
+      } catch {
+        // ignore logging errors
+      }
     }
 
     if (!verification.valid) {

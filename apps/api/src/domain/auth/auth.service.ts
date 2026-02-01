@@ -81,7 +81,7 @@ export class AuthService {
       { expiresIn: '30m' },
     );
 
-    // 3. إنشاء Refresh Token (30 يوم)
+    // 3. إنشاء Refresh Token (14 يوم)
     const refreshToken = this.generateSecureRefreshToken();
 
     // 4. حساب أوقات الانتهاء

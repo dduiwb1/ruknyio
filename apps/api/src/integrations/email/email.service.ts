@@ -19,7 +19,8 @@ export class EmailService {
       this.configService.get('SMTP_USER');
     const smtpPassword =
       this.configService.get('MAIL_PASSWORD') ||
-      this.configService.get('SMTP_PASSWORD');
+      this.configService.get('SMTP_PASSWORD') ||
+      this.configService.get('SMTP_PASS');
 
     if (smtpHost && smtpUser && smtpPassword) {
       this.emailEnabled = true;

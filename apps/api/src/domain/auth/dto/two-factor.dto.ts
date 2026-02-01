@@ -4,6 +4,7 @@ import {
   Length,
   Matches,
   IsOptional,
+  IsBoolean,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -71,6 +72,15 @@ export class Verify2FALoginDto {
   @IsString()
   @IsOptional()
   pendingSessionId?: string;
+
+  @ApiProperty({
+    description: 'تذكر هذا الجهاز (تخطي 2FA في المرات القادمة على نفس الجهاز)',
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  rememberDevice?: boolean;
 }
 
 // ========== إلغاء تفعيل 2FA ==========

@@ -602,14 +602,13 @@ export function CreateFormWizard() {
         }));
       }
       
-      const result = await createForm(formData);
-      
-      if (result) {
-        // Clear saved draft on successful creation
-        localStorage.removeItem(FORM_DRAFT_KEY);
-        toast.success('تم إنشاء النموذج بنجاح! 🎉');
-        router.push('/app/forms');
-      }
+      await createForm(formData);
+
+      // Clear saved draft on successful creation
+      localStorage.removeItem(FORM_DRAFT_KEY);
+      toast.success('تم إنشاء النموذج بنجاح! 🎉');
+      // Use replace so user doesn't navigate back to submitted form state
+      router.replace('/app/forms');
     } catch (error: any) {
       toast.error(error.message || 'فشل في إنشاء النموذج');
     } finally {

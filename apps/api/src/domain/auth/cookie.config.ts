@@ -2,15 +2,14 @@ import { Response, Request } from 'express';
 
 /**
  * 🔒 Secure Cookie Configuration
- * 
- * ⚠️ نظام الأمان المُحسّن (كلا التوكنين في httpOnly Cookies):
- * - Access Token في httpOnly Cookie (10-15 دقيقة)
- * - Refresh Token في httpOnly Cookie (30 يوم)
- * 
+ *
+ * نظام الأمان (كلا التوكنين في httpOnly Cookies):
+ * - Access Token في httpOnly Cookie (30 دقيقة)
+ * - Refresh Token في httpOnly Cookie (14 يوم)
+ *
  * الحماية:
  * - httpOnly: يمنع XSS من قراءة التوكنات
- * - SameSite=Strict للـ Access Token: حماية CSRF
- * - SameSite=Lax للـ Refresh Token: دعم OAuth redirects
+ * - SameSite=Lax لجميع الكوكيز: دعم OAuth/QuickSign مع حماية CSRF عبر Origin/Referer
  * - CSRF Token إضافي للعمليات الحساسة
  */
 
@@ -47,6 +46,8 @@ export const COOKIE_NAMES = {
   ACCESS_TOKEN: cookieSecure ? '__Secure-access_token' : 'access_token',
   REFRESH_TOKEN: cookieSecure ? '__Secure-refresh_token' : 'refresh_token',
   CSRF_TOKEN: cookieSecure ? '__Secure-csrf_token' : 'csrf_token',
+  /** تذكر هذا الجهاز (2FA) - يُستخدم للتحقق من الجهاز الموثوق */
+  TRUSTED_DEVICE: cookieSecure ? '__Secure-trusted_device_id' : 'trusted_device_id',
 } as const;
 
 // إعدادات الأمان للكوكيز
@@ -77,6 +78,12 @@ interface CookieOptions {
 const getSameSite = (): 'strict' | 'lax' | 'none' => {
   return 'lax'; // آمن مع OAuth + حماية CSRF إضافية
 };
+
+/** نفس صيغة Domain المستخدمة في Set-Cookie (بنقطة في البداية) لضمان مسح الكوكي. */
+function getCookieDomainForClear(): string | undefined {
+  if (!cookieDomain) return undefined;
+  return cookieDomain.startsWith('.') ? cookieDomain : `.${cookieDomain}`;
+}
 
 /**
  * 🔒 إعدادات Access Token Cookie
@@ -134,6 +141,17 @@ export const CSRF_TOKEN_OPTIONS: Omit<CookieOptions, 'httpOnly'> & { httpOnly: f
   ...(cookieDomain && { domain: cookieDomain }),
 };
 
+/** تذكر هذا الجهاز: صلاحية 30 يوم */
+const TRUSTED_DEVICE_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
+export const TRUSTED_DEVICE_OPTIONS: CookieOptions = {
+  httpOnly: true,
+  secure: cookieSecure,
+  sameSite: 'lax',
+  path: '/',
+  maxAge: TRUSTED_DEVICE_MAX_AGE,
+  ...(cookieDomain && { domain: cookieDomain }),
+};
+
 /**
  * 🔒 بناء سطر Set-Cookie يدوياً لضمان HttpOnly و Max-Age الصحيحين
  * (تجنب سلوك Express أحياناً مع domain الذي يضع Expires بعيد)
@@ -143,8 +161,9 @@ function buildSetCookieHeader(
   value: string,
   opts: CookieOptions,
 ): string {
+  // اسم الكوكي يُرمّز؛ القيمة (JWT/hex) لا تحتاج ترميزاً وتجنباً لمشاكل parsing نتركها كما هي
   const parts = [
-    `${encodeURIComponent(name)}=${encodeURIComponent(value)}`,
+    `${encodeURIComponent(name)}=${value}`,
     `Path=${opts.path}`,
     `Max-Age=${Math.floor(opts.maxAge / 1000)}`, // بالثواني
     opts.httpOnly ? 'HttpOnly' : '',
@@ -195,29 +214,68 @@ export function setCsrfTokenCookie(res: Response, csrfToken: string): void {
 }
 
 /**
+ * 🔒 إعداد كوكي "تذكر هذا الجهاز" (تحسين تجربة 2FA)
+ */
+export function setTrustedDeviceCookie(res: Response, deviceId: string): void {
+  const header = buildSetCookieHeader(
+    COOKIE_NAMES.TRUSTED_DEVICE,
+    deviceId,
+    TRUSTED_DEVICE_OPTIONS,
+  );
+  res.append('Set-Cookie', header);
+}
+
+/**
+ * 🔒 قراءة معرف الجهاز الموثوق من الطلب
+ */
+export function getTrustedDeviceId(req: Request): string | null {
+  const name = COOKIE_NAMES.TRUSTED_DEVICE;
+  const raw = req.headers.cookie;
+  if (!raw) return null;
+  const match = new RegExp(`(?:^|;)\\s*${encodeURIComponent(name)}=([^;]*)`).exec(raw);
+  return match ? decodeURIComponent(match[1].trim()) : null;
+}
+
+/**
+ * 🔒 مسح كوكي الجهاز الموثوق
+ */
+export function clearTrustedDeviceCookie(res: Response): void {
+  const domainOpt = getCookieDomainForClear();
+  res.clearCookie(COOKIE_NAMES.TRUSTED_DEVICE, {
+    httpOnly: true,
+    secure: cookieSecure,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0,
+    ...(domainOpt && { domain: domainOpt }),
+  });
+}
+
+/**
  * 🔒 مسح جميع Auth Cookies
  */
 export function clearAuthCookies(res: Response): void {
+  const domainOpt = getCookieDomainForClear();
   res.clearCookie(COOKIE_NAMES.ACCESS_TOKEN, {
     httpOnly: true,
     secure: cookieSecure,
     sameSite: 'lax',
     path: '/',
-    ...(cookieDomain && { domain: cookieDomain }),
+    ...(domainOpt && { domain: domainOpt }),
   });
   res.clearCookie(COOKIE_NAMES.REFRESH_TOKEN, {
     httpOnly: true,
     secure: cookieSecure,
     sameSite: getSameSite(),
     path: '/',
-    ...(cookieDomain && { domain: cookieDomain }),
+    ...(domainOpt && { domain: domainOpt }),
   });
   res.clearCookie(COOKIE_NAMES.CSRF_TOKEN, {
     httpOnly: false,
     secure: cookieSecure,
     sameSite: 'lax',
     path: '/',
-    ...(cookieDomain && { domain: cookieDomain }),
+    ...(domainOpt && { domain: domainOpt }),
   });
 }
 
@@ -225,12 +283,13 @@ export function clearAuthCookies(res: Response): void {
  * 🔒 مسح Refresh Token Cookie فقط
  */
 export function clearRefreshTokenCookie(res: Response): void {
+  const domainOpt = getCookieDomainForClear();
   res.clearCookie(COOKIE_NAMES.REFRESH_TOKEN, {
     httpOnly: true,
     secure: cookieSecure,
     sameSite: getSameSite(),
     path: '/',
-    ...(cookieDomain && { domain: cookieDomain }),
+    ...(domainOpt && { domain: domainOpt }),
   });
 }
 
@@ -362,13 +421,17 @@ export function validateCsrfOrigin(req: Request): { valid: boolean; reason?: str
     return { valid: false, reason: `Invalid origin: ${origin}` };
   }
 
-  // 🔒 Fallback إلى Referer
+  // 🔒 Fallback إلى Referer (مع حماية من referer غير صالح)
   if (referer) {
-    const refererOrigin = new URL(referer).origin;
-    if (ALLOWED_ORIGINS.includes(refererOrigin)) {
-      return { valid: true };
+    try {
+      const refererOrigin = new URL(referer).origin;
+      if (ALLOWED_ORIGINS.includes(refererOrigin)) {
+        return { valid: true };
+      }
+      return { valid: false, reason: `Invalid referer: ${referer}` };
+    } catch {
+      return { valid: false, reason: 'Invalid referer format' };
     }
-    return { valid: false, reason: `Invalid referer: ${referer}` };
   }
 
   // 🔒 لا يوجد Origin أو Referer - نرفض في Production

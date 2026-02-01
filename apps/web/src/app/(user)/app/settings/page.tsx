@@ -58,7 +58,6 @@ const TwoFactorAuth = lazy(() => import('@/components/(app)/settings/TwoFactorAu
 const SessionsManager = lazy(() => import('@/components/(app)/settings/SessionsManager').then(m => ({ default: m.SessionsManager })));
 const TrustedDevices = lazy(() => import('@/components/(app)/settings/TrustedDevices').then(m => ({ default: m.TrustedDevices })));
 const SecurityLogs = lazy(() => import('@/components/(app)/settings/SecurityLogs').then(m => ({ default: m.SecurityLogs })));
-const IPBlocklist = lazy(() => import('@/components/(app)/settings/IPBlocklist').then(m => ({ default: m.IPBlocklist })));
 const IPProtectionSettings = lazy(() => import('@/components/(app)/settings/IPProtectionSettings').then(m => ({ default: m.IPProtectionSettings })));
 const IntegrationsOverview = lazy(() => import('@/components/(app)/settings/IntegrationsOverview').then(m => ({ default: m.IntegrationsOverview })));
 const SocialIntegrations = lazy(() => import('@/components/(app)/settings/SocialIntegrations').then(m => ({ default: m.SocialIntegrations })));
@@ -124,15 +123,6 @@ const allSettings: SettingItem[] = [
     category: 'security',
     color: 'from-primary to-primary-hover',
     iconBgSolid: 'bg-primary'
-  },
-  {
-    id: 'blocklist',
-    label: 'قائمة الحظر',
-    description: 'حظر عناوين IP المشبوهة',
-    icon: Ban,
-    category: 'security',
-    color: 'from-destructive to-destructive-filled',
-    iconBgSolid: 'bg-destructive'
   },
   {
     id: 'ip-protection',
@@ -422,8 +412,6 @@ function SettingsContent() {
         return <TrustedDevices />;
       case 'logs':
         return <SecurityLogs />;
-      case 'blocklist':
-        return <IPBlocklist />;
       case 'ip-protection':
         return <IPProtectionSettings />;
       default:

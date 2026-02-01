@@ -184,6 +184,8 @@ model Session {
   @@index([previousRefreshTokenHash])
   @@index([isRevoked])
   @@index([lastActivity])
+  @@index([expiresAt])
+  @@index([revokedAt])
   @@map("sessions")
 }
 
@@ -1073,6 +1075,7 @@ model quicksign_links {
   @@index([email])
   @@index([expiresAt])
   @@index([token])
+  @@index([usedAt])
 }
 
 model reviews {

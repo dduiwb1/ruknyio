@@ -358,6 +358,70 @@ export class SecurityDetectorService {
   }
 
   /**
+   * تذكر هذا الجهاز (2FA): إنشاء أو تحديث جهاز موثوق مع صلاحية 30 يوم
+   * يُستدعى بعد نجاح التحقق من 2FA عند اختيار "تذكر هذا الجهاز"
+   */
+  async rememberDeviceFor2FA(
+    userId: string,
+    deviceInfo: {
+      browser?: string;
+      os?: string;
+      deviceType?: string;
+      ipAddress?: string;
+      userAgent?: string;
+    },
+  ): Promise<string> {
+    const deviceHash = this.createDeviceHash(deviceInfo);
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 يوم
+
+    const existing = await this.prisma.trusted_devices.findUnique({
+      where: { userId_deviceHash: { userId, deviceHash } },
+      select: { id: true },
+    });
+
+    if (existing) {
+      await this.prisma.trusted_devices.update({
+        where: { id: existing.id },
+        data: { lastUsed: now, expiresAt },
+      });
+      return existing.id;
+    }
+
+    const id = randomUUID();
+    await this.prisma.trusted_devices.create({
+      data: {
+        id,
+        userId,
+        deviceHash,
+        deviceName: this.getDeviceName(deviceInfo),
+        browser: deviceInfo.browser,
+        os: deviceInfo.os,
+        deviceType: deviceInfo.deviceType || 'desktop',
+        ipAddress: deviceInfo.ipAddress,
+        expiresAt,
+      },
+    });
+    return id;
+  }
+
+  /**
+   * التحقق من جهاز موثوق بالمعرف (للتخطي الآمن لـ 2FA)
+   */
+  async findTrustedDeviceById(deviceId: string, userId: string): Promise<{ id: string } | null> {
+    const device = await this.prisma.trusted_devices.findFirst({
+      where: {
+        id: deviceId,
+        userId,
+        trusted: true,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
+      select: { id: true },
+    });
+    return device;
+  }
+
+  /**
    * Get user's trusted devices
    */
   async getTrustedDevices(userId: string) {

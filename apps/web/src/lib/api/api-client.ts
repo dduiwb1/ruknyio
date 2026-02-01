@@ -18,7 +18,8 @@ import {
   updateLastRefreshTime,
   getRefreshState,
   setRefreshState,
-  resetRefreshState 
+  resetRefreshState,
+  scheduleSilentRefresh,
 } from './client';
 
 interface SecureFetchOptions extends RequestInit {
@@ -86,12 +87,15 @@ async function refreshAccessToken(): Promise<boolean> {
       }
 
       const data = await response.json();
-      // Tokens are in httpOnly cookies; body has success + csrf_token only
+      // Tokens are in httpOnly cookies; body has success + csrf_token + expires_in
       if (data.success && data.csrf_token) {
         setCsrfToken(data.csrf_token);
         updateLastRefreshTime();
         setRefreshState(false, false);
         sharedRefreshPromise = null;
+        if (typeof data.expires_in === 'number') {
+          scheduleSilentRefresh(data.expires_in);
+        }
         return true;
       }
 

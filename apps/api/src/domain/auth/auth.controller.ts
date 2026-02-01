@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, Get, UseGuards, Req, Res, Delete, Param, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, Get, UseGuards, Req, Res, Delete, Param, Query, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { TokenService } from './token.service';
@@ -11,6 +11,7 @@ import { Request, Response } from 'express';
 import { OAuthCodeService } from './oauth-code.service';
 import { RedisOAuthCodeService } from './redis-oauth-code.service';
 import { WebSocketTokenService } from './websocket-token.service';
+import { SecurityLogService } from '../../infrastructure/security/log.service';
 import { Throttle } from '@nestjs/throttler';
 import { 
   setAccessTokenCookie,
@@ -40,6 +41,7 @@ export class AuthController {
     private tokenService: TokenService,
     private oauthCodeService: RedisOAuthCodeService, // Use Redis implementation
     private webSocketTokenService: WebSocketTokenService,
+    private securityLogService: SecurityLogService,
   ) {}
 
   @Get('me')
@@ -52,6 +54,28 @@ export class AuthController {
     return user;
   }
 
+  /**
+   * 🔒 سجل النشاط للمستخدم (استغلال SecurityLog الموجود)
+   */
+  @Get('activity')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get current user activity log (security log)' })
+  @ApiResponse({ status: 200, description: 'Activity log retrieved' })
+  async getActivity(
+    @CurrentUser() user: any,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('action') action?: string,
+  ) {
+    return this.securityLogService.getUserLogs({
+      userId: user.id,
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 20,
+      action: action as any,
+    });
+  }
+
   @Get('ws-token')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
@@ -61,21 +85,6 @@ export class AuthController {
   async getWebSocketToken(@CurrentUser() user: any) {
     const token = this.webSocketTokenService.generateToken(user.id);
     return { token, expiresIn: 300 }; // 5 minutes
-  }
-
-  // Debug endpoint to inspect cookies received by server
-  @Get('debug')
-  @ApiOperation({ summary: 'Debug - return cookies seen by server' })
-  async debugCookies(@Req() req: Request) {
-    try {
-      // Return both raw header and parsed cookies
-      return {
-        cookies: req.cookies || {},
-        cookieHeader: req.headers?.cookie || null,
-      };
-    } catch (err) {
-      return { error: String(err) };
-    }
   }
 
   /**
@@ -271,8 +280,11 @@ export class AuthController {
       needsProfileCompletion: result.needsProfileCompletion,
     });
 
-    // Redirect with code only
-    const base = process.env.FRONTEND_URL || 'http://localhost:3000';
+    // Redirect with code only — في التطوير استخدم FRONTEND_URL_DEV إن وُجد
+    const base =
+      process.env.NODE_ENV === 'development' && process.env.FRONTEND_URL_DEV
+        ? process.env.FRONTEND_URL_DEV
+        : process.env.FRONTEND_URL || 'http://localhost:3000';
     const redirectUrl = `${base}/auth/callback?code=${code}`;
     res.redirect(redirectUrl);
   }
@@ -344,8 +356,11 @@ export class AuthController {
       needsProfileCompletion: result.needsProfileCompletion,
     });
 
-    // Redirect with code only
-    const base = process.env.FRONTEND_URL || 'http://localhost:3000';
+    // Redirect with code only — في التطوير استخدم FRONTEND_URL_DEV إن وُجد
+    const base =
+      process.env.NODE_ENV === 'development' && process.env.FRONTEND_URL_DEV
+        ? process.env.FRONTEND_URL_DEV
+        : process.env.FRONTEND_URL || 'http://localhost:3000';
     const redirectUrl = `${base}/auth/callback?code=${code}`;
     res.redirect(redirectUrl);
   }

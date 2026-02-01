@@ -6,6 +6,8 @@ import * as crypto from 'crypto';
 import { UAParser } from 'ua-parser-js';
 import { updateSessionActivityThrottled } from './utils/session-activity.util';
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 /**
  * 🔒 Token Service
  *
@@ -46,6 +48,9 @@ export class TokenService {
   private readonly REFRESH_TOKEN_EXPIRY_DAYS = 14; // 14 يوم - ✅ موحد مع AuthService
   private readonly MAX_ROTATION_COUNT = 100; // الحد الأقصى للتدوير قبل إجبار إعادة تسجيل الدخول
   private readonly GRACE_PERIOD_MS = 30000; // 30 ثانية سماح لاستخدام token قديم (race condition)
+  /** تقييد عدد الجلسات النشطة لكل مستخدم (أمان بدون تعقيد كبير) */
+  private readonly MAX_ACTIVE_SESSIONS =
+    this.configService.get<number>('MAX_ACTIVE_SESSIONS') ?? 5;
 
   constructor(
     private jwtService: JwtService,
@@ -68,6 +73,36 @@ export class TokenService {
   }
 
   /**
+   * 🔒 تقييد عدد الجلسات النشطة: إبطال أقدم الجلسات إذا تجاوز العدد المسموح
+   */
+  private async enforceMaxActiveSessions(userId: string): Promise<void> {
+    const now = new Date();
+    const active = await this.prisma.session.findMany({
+      where: {
+        userId,
+        isRevoked: false,
+        OR: [
+          { refreshExpiresAt: null },
+          { refreshExpiresAt: { gt: now } },
+        ],
+      },
+      orderBy: { lastActivity: 'asc' },
+      select: { id: true },
+    });
+    const toRevoke = active.length - this.MAX_ACTIVE_SESSIONS + 1;
+    if (toRevoke <= 0) return;
+    const ids = active.slice(0, toRevoke).map((s) => s.id);
+    await this.prisma.session.updateMany({
+      where: { id: { in: ids } },
+      data: {
+        isRevoked: true,
+        revokedAt: now,
+        revokedReason: 'تجاوز الحد الأقصى للجلسات النشطة',
+      },
+    });
+  }
+
+  /**
    * 🔒 إنشاء زوج من التوكنز (Access + Refresh)
    *
    * Access Token يحتوي على:
@@ -81,6 +116,8 @@ export class TokenService {
     email: string,
     sessionInfo?: SessionInfo,
   ): Promise<{ tokens: TokenPair; sessionId: string }> {
+    await this.enforceMaxActiveSessions(userId);
+
     // إنشاء Session ID
     const sessionId = crypto.randomUUID();
 
@@ -177,9 +214,11 @@ export class TokenService {
 
     // 2. إذا لم نجد الجلسة بـ hash الحالي، نبحث عن سرقة محتملة أو فترة سماح
     if (!session) {
-      console.log(
-        '[TokenService] Session not found with current refresh token hash',
-      );
+      if (!isProduction) {
+        console.log(
+          '[TokenService] Session not found with current refresh token hash',
+        );
+      }
 
       // 🔍 Reuse Detection: هل هذا token قديم تم تدويره؟
       const tokenTheftCheck = await this.detectTokenTheft(
@@ -190,9 +229,11 @@ export class TokenService {
       // ✅ فترة السماح - إعادة استخدام Token خلال 30 ثانية من التدوير
       // 🔒 نعيد نفس الـ session الحالي بدلاً من إنشاء tokens جديدة (تجنب race condition)
       if (tokenTheftCheck.isGracePeriod && tokenTheftCheck.session) {
-        console.log(
-          '[TokenService] ✅ Grace period hit - fetching current session tokens',
-        );
+        if (!isProduction) {
+          console.log(
+            '[TokenService] ✅ Grace period hit - fetching current session tokens',
+          );
+        }
         const gracePeriodSession = tokenTheftCheck.session;
 
         // 🔒 نحتاج جلب الـ session الحالي مع الـ refresh token hash الجديد
@@ -244,9 +285,11 @@ export class TokenService {
       }
 
       if (tokenTheftCheck.isTheft) {
-        console.log(
-          '[TokenService] 🚨 TOKEN THEFT DETECTED - revoking all sessions',
-        );
+        if (!isProduction) {
+          console.log(
+            '[TokenService] 🚨 TOKEN THEFT DETECTED - revoking all sessions',
+          );
+        }
         // 🚨 سرقة محتملة! token قديم يُستخدم بعد التدوير
         await this.revokeAllUserSessions(
           tokenTheftCheck.userId,
@@ -269,9 +312,11 @@ export class TokenService {
       }
 
       // Token مجهول تماماً - ليس سرقة، فقط غير صالح
-      console.log(
-        '[TokenService] ❌ Invalid refresh token - not found in database',
-      );
+      if (!isProduction) {
+        console.log(
+          '[TokenService] ❌ Invalid refresh token - not found in database',
+        );
+      }
       throw new UnauthorizedException(
         'جلسة غير صالحة. يرجى تسجيل الدخول مرة أخرى',
       );
@@ -279,10 +324,12 @@ export class TokenService {
 
     // 3. التحقق من حالة الجلسة
     if (session.isRevoked) {
-      console.log(
-        '[TokenService] ❌ Session is revoked:',
-        session.revokedReason || 'No reason provided',
-      );
+      if (!isProduction) {
+        console.log(
+          '[TokenService] ❌ Session is revoked:',
+          session.revokedReason || 'No reason provided',
+        );
+      }
       // الجلسة مُبطلة - قد يكون:
       // - المستخدم سجل خروج
       // - تم اكتشاف سرقة سابقة
@@ -296,11 +343,13 @@ export class TokenService {
 
     // 4. التحقق من انتهاء صلاحية Refresh Token
     if (session.refreshExpiresAt && session.refreshExpiresAt < new Date()) {
-      console.log('[TokenService] ❌ Refresh token expired:', {
-        expiresAt: session.refreshExpiresAt,
-        now: new Date(),
-        userId: session.userId,
-      });
+      if (!isProduction) {
+        console.log('[TokenService] ❌ Refresh token expired:', {
+          expiresAt: session.refreshExpiresAt,
+          now: new Date(),
+          userId: session.userId,
+        });
+      }
       await this.revokeSession(session.id, 'Refresh token expired naturally');
       throw new UnauthorizedException(
         'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى',
@@ -309,17 +358,21 @@ export class TokenService {
 
     // 5. التحقق من حد التدوير
     if (session.rotationCount >= this.MAX_ROTATION_COUNT) {
-      console.log(
-        '[TokenService] ❌ Max rotation count exceeded:',
-        session.rotationCount,
-      );
+      if (!isProduction) {
+        console.log(
+          '[TokenService] ❌ Max rotation count exceeded:',
+          session.rotationCount,
+        );
+      }
       await this.revokeSession(session.id, 'Max rotation count exceeded');
       throw new UnauthorizedException(
         'تجاوزت الجلسة الحد الأقصى للتجديد. يرجى تسجيل الدخول مرة أخرى',
       );
     }
 
-    console.log('[TokenService] ✅ Rotating tokens for session:', session.id);
+    if (!isProduction) {
+      console.log('[TokenService] ✅ Rotating tokens for session:', session.id);
+    }
 
     // 6. إنشاء توكنز جديدة
     const newAccessPayload: TokenPayload = {
@@ -413,9 +466,11 @@ export class TokenService {
 
           if (timeSinceRotation < this.GRACE_PERIOD_MS) {
             // ✅ ضمن فترة السماح - ليست سرقة، فقط race condition
-            console.log(
-              `[TokenService] Grace period hit: ${timeSinceRotation}ms since rotation`,
-            );
+            if (!isProduction) {
+              console.log(
+                `[TokenService] Grace period hit: ${timeSinceRotation}ms since rotation`,
+              );
+            }
             return {
               isTheft: false,
               isGracePeriod: true,
