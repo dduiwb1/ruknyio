@@ -1785,14 +1785,12 @@ export default function FormResponsesPage() {
     setIsExportingToSheets(true);
     try {
       if (!sheetsStatus?.connected) {
-        // Connect first - create new spreadsheet
-        const result = await createNewGoogleSheet(formId);
-        if (result) {
-          // Refresh status after connection
-          const status = await getGoogleSheetsStatus(formId);
-          setSheetsStatus(status);
-          // Also update Drive status since they share the same OAuth
-          setDriveStatus({ connected: true });
+        // Connect first - redirect to OAuth
+        const result = await connectGoogleSheets(formId);
+        if (result && 'authUrl' in result && result.authUrl) {
+          // Redirect user to Google OAuth
+          window.location.href = result.authUrl as string;
+          return; // Stop execution - user will be redirected
         }
       } else {
         // Export to existing sheet

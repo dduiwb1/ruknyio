@@ -17,7 +17,7 @@ export interface UseGoogleSheetsReturn {
   status: GoogleSheetsStatus | null;
   isLoading: boolean;
   error: string | null;
-  connect: (formId: string) => Promise<{ spreadsheetUrl?: string } | null>;
+  connect: (formId: string) => Promise<{ authUrl?: string; spreadsheetUrl?: string } | null>;
   getStatus: (formId: string) => Promise<GoogleSheetsStatus | null>;
   exportSubmissions: (formId: string) => Promise<{ spreadsheetUrl?: string } | null>;
   toggleAutoSync: (formId: string, enabled: boolean) => Promise<boolean>;
@@ -31,7 +31,7 @@ export function useGoogleSheets(): UseGoogleSheetsReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const connect = useCallback(async (formId: string): Promise<{ spreadsheetUrl?: string } | null> => {
+  const connect = useCallback(async (formId: string): Promise<{ authUrl?: string; spreadsheetUrl?: string } | null> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -42,6 +42,11 @@ export function useGoogleSheets(): UseGoogleSheetsReturn {
       
       if (response.ok) {
         const data = await response.json();
+        // If we get authUrl, return it for OAuth redirect
+        if (data?.authUrl) {
+          return { authUrl: data.authUrl };
+        }
+        // Otherwise, set status if already connected
         setStatus({
           connected: true,
           spreadsheetUrl: data?.spreadsheetUrl,

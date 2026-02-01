@@ -35,8 +35,12 @@ export class EmailService {
           user: smtpUser,
           pass: smtpPassword,
         },
-        connectionTimeout: 10000,
-        socketTimeout: 10000,
+        connectionTimeout: 30000,
+        socketTimeout: 30000,
+        greetingTimeout: 15000,
+        pool: true,
+        maxConnections: 5,
+        maxMessages: 100,
       } as nodemailer.TransportOptions);
       
       console.log(`✅ Email service enabled - Host: ${smtpHost}:${port} (Secure: ${secure})`);
