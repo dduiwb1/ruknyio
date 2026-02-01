@@ -52,7 +52,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       // 🔒 استخراج من Authorization header فقط
       jwtFromRequest: bearerExtractor,
-      ignoreExpiration: false,
+      // ✅ قبول JWT منتهي الصلاحية ثم التحقق من الجلسة في validate()
+      // عند انتهاء expiresAt (30 دقيقة) نمدد الجلسة إذا refreshExpiresAt ما زال صالحاً
+      // بدلاً من إرجاع 401 وتسجيل الخروج مباشرة
+      ignoreExpiration: true,
       secretOrKey: configService.get<string>('JWT_SECRET'),
       passReqToCallback: true, // Enable request in validate
     });
@@ -114,17 +117,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       const refreshStillValid =
         session.refreshExpiresAt && session.refreshExpiresAt > now;
       if (refreshStillValid) {
-        // تمديد الجلسة بدلاً من تسجيل الخروج
+        // تمديد الجلسة بدلاً من تسجيل الخروج (await لضمان حفظ التمديد قبل متابعة الطلب)
         const newExpiresAt = new Date(now.getTime() + 30 * 60 * 1000);
-        this.prisma
-          .session.update({
-            where: { id: session.id },
-            data: {
-              expiresAt: newExpiresAt,
-              lastActivity: now,
-            },
-          })
-          .catch(() => {});
+        await this.prisma.session.update({
+          where: { id: session.id },
+          data: {
+            expiresAt: newExpiresAt,
+            lastActivity: now,
+          },
+        });
         // متابعة التحقق دون رمي 401
       } else {
         throw new UnauthorizedException(
