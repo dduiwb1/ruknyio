@@ -35,12 +35,10 @@ export class FormsCommandsService {
 
   /**
    * Create a new form
+   * Images are processed outside the transaction to keep it short; email is sent asynchronously.
    */
   async create(userId: string, createFormDto: CreateFormDto) {
-    // Generate unique slug (auto-append suffix if taken)
     const uniqueSlug = await this.generateUniqueSlug(createFormDto.slug);
-
-    // Validate linked entities
     await this.validateLinkedEntities(userId, createFormDto);
 
     const {
@@ -52,25 +50,22 @@ export class FormsCommandsService {
       ...formData
     } = createFormDto;
     const isMultiStep = formData.isMultiStep || (steps && steps.length > 0);
+    const formId = SecureIds.form();
+
+    // Process images outside transaction to avoid long-running transaction
+    const coverImageKey = coverImage
+      ? await this.processCoverImage(coverImage, userId, formId)
+      : undefined;
+    const bannerImageKeys = bannerImages?.length
+      ? await this.processBannerImages(bannerImages, userId, formId)
+      : [];
 
     const form = await this.prisma.$transaction(async (tx) => {
-      const formId = SecureIds.form();
-
-      // Process images
-      const coverImageKey = coverImage
-        ? await this.processCoverImage(coverImage, userId, formId)
-        : undefined;
-
-      const bannerImageKeys = bannerImages?.length
-        ? await this.processBannerImages(bannerImages, userId, formId)
-        : [];
-
-      // Create form
-      const createdForm = await tx.form.create({
+      await tx.form.create({
         data: {
           id: formId,
           ...formData,
-          slug: uniqueSlug, // Use the generated unique slug
+          slug: uniqueSlug,
           coverImage: coverImageKey || (bannerImageKeys[0] ?? undefined),
           bannerImages: bannerImageKeys,
           bannerDisplayMode: bannerDisplayMode || 'single',
@@ -80,7 +75,6 @@ export class FormsCommandsService {
         },
       });
 
-      // Create steps and fields
       await this.createFormFieldsAndSteps(
         tx,
         formId,
@@ -95,12 +89,12 @@ export class FormsCommandsService {
       });
     });
 
-    // Send notification email
-    await this.sendFormCreatedEmail(form);
+    // Send notification email asynchronously (do not block response)
+    void this.sendFormCreatedEmail(form).catch((e) =>
+      console.error('Form created email failed:', e),
+    );
 
-    // Invalidate cache
     await this.invalidateUserCache(form?.userId);
-
     return form;
   }
 
@@ -295,28 +289,24 @@ export class FormsCommandsService {
         });
 
         if (step.fields?.length) {
-          for (const field of step.fields) {
-            await tx.formField.create({
-              data: {
-                id: SecureIds.field(),
-                formId,
-                stepId,
-                ...this.mapFieldData(field),
-              },
-            });
-          }
+          await tx.formField.createMany({
+            data: step.fields.map((field: any) => ({
+              id: SecureIds.field(),
+              formId,
+              stepId,
+              ...this.mapFieldData(field),
+            })),
+          });
         }
       }
     } else if (fields?.length) {
-      for (const field of fields) {
-        await tx.formField.create({
-          data: {
-            id: SecureIds.field(),
-            formId,
-            ...this.mapFieldData(field),
-          },
-        });
-      }
+      await tx.formField.createMany({
+        data: fields.map((field: any) => ({
+          id: SecureIds.field(),
+          formId,
+          ...this.mapFieldData(field),
+        })),
+      });
     }
   }
 

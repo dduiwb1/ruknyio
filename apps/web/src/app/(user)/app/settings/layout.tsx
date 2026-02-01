@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import {
   Shield,
   Link2,
@@ -12,6 +12,7 @@ import {
   Calendar,
   User,
   ChevronLeft,
+  ChevronRight,
   Search,
   Settings,
   ShieldCheck,
@@ -33,10 +34,9 @@ import {
   ArrowRight,
   MonitorSmartphone,
   HelpCircle,
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SettingsSidebar as AccountSidebar, SettingsSidebarSkeleton as AccountSidebarSkeleton } from "@/components/(app)/settings/SettingsSidebar";
-
 // ═══════════════════════════════════════════════════════════════════════════
 // Types
 // ═══════════════════════════════════════════════════════════════════════════
@@ -337,6 +337,8 @@ export default function SettingsLayout({
   children: React.ReactNode;
 }) {
   const [mounted, setMounted] = useState(false);
+  const [showInfoSheet, setShowInfoSheet] = useState(false);
+  const infoSheetDragControls = useDragControls();
 
   useEffect(() => {
     setMounted(true);
@@ -344,35 +346,131 @@ export default function SettingsLayout({
 
   return (
     <div
-      className="flex h-[calc(100svh-theme(spacing.4))] flex-1 min-w-0 bg-background gap-2 overflow-hidden m-2 md:ms-0"
+      className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 bg-card m-2 md:ms-0 rounded-2xl border border-border/50 overflow-hidden"
       dir="rtl"
     >
-      {/* Settings Sidebar - Desktop only */}
-      <div className="hidden lg:block">
-        <SettingsSidebar />
-      </div>
+      <div className="relative flex flex-1 flex-col min-w-0 overflow-hidden">
+        {/* Mobile: Simple Header + بطاقة المعلومات تنبثق من هنا (مستوحى من f/[slug]) */}
+        <header className="sticky top-0 z-30 mx-3 mt-2 lg:mx-0 lg:mt-0 lg:relative lg:z-auto lg:hidden">
+          <div className="bg-card/90 backdrop-blur-md rounded-2xl border border-border/60 px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <Link
+                href="/app"
+                className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors flex-shrink-0"
+                aria-label="العودة"
+              >
+                <ArrowRight className="w-4 h-4 text-muted-foreground" />
+              </Link>
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Settings className="w-4 h-4 text-primary" />
+                </div>
+                <h1 className="text-sm font-semibold text-foreground truncate">الإعدادات</h1>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowInfoSheet(!showInfoSheet)}
+              className={cn(
+                "w-9 h-9 flex items-center justify-center rounded-xl transition-colors flex-shrink-0",
+                showInfoSheet ? "bg-primary/15 text-primary" : "hover:bg-muted text-muted-foreground hover:text-foreground"
+              )}
+              aria-label="معلومات الإعدادات"
+              aria-expanded={showInfoSheet}
+            >
+              <Info className="w-4 h-4" />
+            </button>
+          </div>
 
-      {/* Main Content Container */}
-      <div className="relative flex-1 flex flex-col min-w-0 rounded-xl border border-border/40 bg-card overflow-hidden">
-        
-        {/* Mobile Header */}
-        <header className="flex items-center gap-3 p-3 border-b border-border/30 lg:hidden">
-          <Link
-            href="/app"
-            className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors"
-          >
+          {/* بطاقة المعلومات — تنبثق من الهيدر (للجوال فقط) */}
+          <AnimatePresence>
+            {showInfoSheet && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px] lg:hidden"
+                  onClick={() => setShowInfoSheet(false)}
+                  aria-hidden
+                />
+                <motion.div
+                  drag="y"
+                  dragControls={infoSheetDragControls}
+                  dragConstraints={{ top: 0, bottom: 0 }}
+                  dragElastic={{ top: 0, bottom: 0.25 }}
+                  dragMomentum={false}
+                  onDragEnd={(_, { offset, velocity }) => {
+                    if (offset.y > 50 || velocity.y > 200) setShowInfoSheet(false);
+                  }}
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ type: "spring", damping: 32, stiffness: 320 }}
+                  className="absolute top-full left-0 right-0 mt-2 z-50 rounded-2xl overflow-hidden bg-card shadow-xl border border-border/80 lg:hidden"
+                >
+                  <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-border/50">
+                    <button
+                      type="button"
+                      onClick={() => setShowInfoSheet(false)}
+                      className="w-9 h-9 rounded-full flex items-center justify-center bg-muted border border-border text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors flex-shrink-0"
+                      aria-label="إغلاق"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                    <span className="px-4 py-1.5 rounded-full bg-primary/15 text-primary text-sm font-medium">
+                      معلومات الإعدادات
+                    </span>
+                  </div>
+                  <div className="mx-4 my-4 rounded-2xl overflow-hidden bg-muted/30 border border-border/50">
+                    <div className="p-4 space-y-3">
+                      <p className="text-sm text-foreground leading-relaxed">
+                        إدارة حسابك، الأمان، التخزين والتكاملات من مكان واحد.
+                      </p>
+                      <ul className="space-y-2 text-xs text-muted-foreground">
+                        {settingsSections.slice(0, 5).map((section) => {
+                          const Icon = section.icon;
+                          return (
+                            <li key={section.id} className="flex items-center gap-2">
+                              <div className={cn("w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0", section.iconBg)}>
+                                <Icon className={cn("w-3.5 h-3.5", section.iconColor)} />
+                              </div>
+                              <span className="text-foreground/90">{section.label}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  </div>
+                  <div
+                    className="py-2 flex justify-center cursor-grab active:cursor-grabbing touch-none border-t border-border/50"
+                    onPointerDown={(e) => infoSheetDragControls.start(e)}
+                    aria-hidden
+                  >
+                    <div className="w-8 h-1 rounded-full bg-muted-foreground/30" />
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        </header>
+
+        {/* Desktop: شريط علوي بسيط (بدون بطاقة معلومات) */}
+        <header className="hidden lg:flex items-center gap-3 p-3 border-b border-border/30">
+          <Link href="/app" className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors">
             <ArrowRight className="w-4 h-4 text-muted-foreground" />
           </Link>
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
               <Settings className="w-3.5 h-3.5 text-primary" />
             </div>
-            <h1 className="text-sm font-medium">الإعدادات</h1>
+            <h1 className="text-sm font-medium text-foreground">الإعدادات</h1>
           </div>
         </header>
 
         {/* Scrollable Content Area */}
-        <div className="relative flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="relative flex-1 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {children}
         </div>
       </div>

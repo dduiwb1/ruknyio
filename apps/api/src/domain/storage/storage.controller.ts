@@ -9,10 +9,13 @@ import {
   Request,
   UseInterceptors,
   UploadedFile,
+  Headers,
   HttpCode,
   HttpStatus,
   BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
@@ -22,6 +25,7 @@ import {
   ApiResponse,
   ApiParam,
   ApiQuery,
+  ApiHeader,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../core/common/guards/auth/jwt-auth.guard';
 import { StorageService } from './storage.service';
@@ -30,7 +34,10 @@ import { FileCategory } from '@prisma/client';
 @ApiTags('Storage')
 @Controller('storage')
 export class StorageController {
-  constructor(private readonly storageService: StorageService) {}
+  constructor(
+    private readonly storageService: StorageService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Get('usage')
   @UseGuards(JwtAuthGuard)
@@ -47,11 +54,12 @@ export class StorageController {
   @Get('files')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get list of user files' })
+  @ApiOperation({ summary: 'Get list of user files (or deleted-only for trash)' })
   @ApiQuery({ name: 'category', required: false, enum: FileCategory })
   @ApiQuery({ name: 'entityId', required: false })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'deletedOnly', required: false, type: Boolean, description: 'سلة المهملات' })
   @ApiResponse({ status: 200, description: 'Files retrieved successfully' })
   async getUserFiles(
     @Request() req,
@@ -59,12 +67,14 @@ export class StorageController {
     @Query('entityId') entityId?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('deletedOnly') deletedOnly?: string,
   ) {
     return this.storageService.getUserFiles(req.user.id, {
       category,
       entityId,
       page: page ? parseInt(page) : undefined,
       limit: limit ? parseInt(limit) : undefined,
+      deletedOnly: deletedOnly === 'true' || deletedOnly === '1',
     });
   }
 
@@ -188,12 +198,24 @@ export class StorageController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Delete a specific file' })
+  @ApiOperation({ summary: 'حذف ناعم: الملف يبقى 30 يوم ثم يُحذف نهائياً' })
   @ApiParam({ name: 'fileId', description: 'File ID' })
   @ApiResponse({ status: 200, description: 'File deleted successfully' })
   async deleteFile(@Request() req, @Param('fileId') fileId: string) {
     await this.storageService.deleteFile(req.user.id, fileId);
-    return { message: 'File deleted successfully' };
+    return { message: 'تم نقل الملف إلى سلة المهملات (يُحذف نهائياً بعد 30 يوم)' };
+  }
+
+  @Post('files/:fileId/restore')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'استرداد ملف من سلة المهملات' })
+  @ApiParam({ name: 'fileId', description: 'File ID' })
+  @ApiResponse({ status: 200, description: 'File restored successfully' })
+  async restoreFile(@Request() req, @Param('fileId') fileId: string) {
+    await this.storageService.restoreFile(req.user.id, fileId);
+    return { message: 'تم استرداد الملف بنجاح' };
   }
 
   @Delete('entities/:entityId')
@@ -208,5 +230,26 @@ export class StorageController {
   async deleteEntityFiles(@Request() req, @Param('entityId') entityId: string) {
     await this.storageService.deleteFilesByEntity(req.user.id, entityId);
     return { message: 'Files deleted successfully' };
+  }
+
+  /**
+   * استدعاء من Cron خارجي (مزود الاستضافة) إذا Nest Cron لا يعمل (مثلاً حاويات تنام).
+   * يتطلب رأس X-Cron-Secret مطابقاً لـ CRON_SECRET في البيئة.
+   */
+  @Post('cron/purge-expired')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Purge expired deleted files (for external cron)',
+    description: 'Requires X-Cron-Secret header. Use when in-process cron is unreliable.',
+  })
+  @ApiHeader({ name: 'X-Cron-Secret', required: true })
+  @ApiResponse({ status: 200, description: 'Purge completed' })
+  @ApiResponse({ status: 401, description: 'Invalid or missing X-Cron-Secret' })
+  async cronPurgeExpired(@Headers('x-cron-secret') secret: string) {
+    const expected = this.configService.get<string>('CRON_SECRET');
+    if (!expected || secret !== expected) {
+      throw new UnauthorizedException('Invalid or missing X-Cron-Secret');
+    }
+    return this.storageService.purgeExpiredDeletedFiles();
   }
 }

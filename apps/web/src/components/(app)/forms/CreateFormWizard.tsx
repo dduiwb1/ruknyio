@@ -99,7 +99,7 @@ const DraggableFieldItem = memo(function DraggableFieldItem({
         layout: { duration: 0.2, ease: 'easeOut' },
       }}
       className={cn(
-        "group relative bg-white dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700",
+        "group relative bg-card rounded-xl border border-border",
         "shadow-sm hover:shadow-md transition-shadow duration-200"
       )}
       whileDrag={{
@@ -111,7 +111,7 @@ const DraggableFieldItem = memo(function DraggableFieldItem({
       <div className="flex items-center gap-2 sm:gap-3 p-3">
         {/* Drag Handle - Only this triggers drag */}
         <div 
-          className="flex flex-col items-center justify-center p-2 -m-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors select-none"
+          className="flex flex-col items-center justify-center p-2 -m-1 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors select-none"
           onPointerDown={(e) => {
             e.preventDefault();
             dragControls.start(e);
@@ -122,26 +122,26 @@ const DraggableFieldItem = memo(function DraggableFieldItem({
         </div>
 
         {/* Order Number */}
-        <div className="w-6 h-6 rounded-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[11px] font-bold flex items-center justify-center flex-shrink-0">
+        <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-[11px] font-bold flex items-center justify-center flex-shrink-0">
           {index + 1}
         </div>
 
         {/* Field Icon */}
-        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-muted text-muted-foreground">
           {getFieldIcon(field.type as FieldType)}
         </div>
 
         {/* Field Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-sm text-gray-900 dark:text-white truncate">{field.label}</span>
+            <span className="font-medium text-sm text-foreground truncate">{field.label}</span>
             {field.required && (
-              <span className="text-[10px] px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded hidden sm:inline">
+              <span className="text-[10px] px-1.5 py-0.5 bg-destructive/10 text-destructive rounded hidden sm:inline">
                 مطلوب
               </span>
             )}
           </div>
-          <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:inline">
+          <span className="text-xs text-muted-foreground hidden sm:inline">
             {FIELD_TYPE_LABELS[field.type as FieldType]}
           </span>
         </div>
@@ -153,18 +153,18 @@ const DraggableFieldItem = memo(function DraggableFieldItem({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onEdit(field.id); }}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-muted rounded-lg transition-colors"
               title="تعديل"
             >
-              <Edit2 className="w-4 h-4 text-gray-500" />
+              <Edit2 className="w-4 h-4 text-muted-foreground" />
             </button>
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onDuplicate(field.id); }}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-muted rounded-lg transition-colors"
               title="نسخ"
             >
-              <Copy className="w-4 h-4 text-gray-500" />
+              <Copy className="w-4 h-4 text-muted-foreground" />
             </button>
             <button
               type="button"
@@ -182,10 +182,10 @@ const DraggableFieldItem = memo(function DraggableFieldItem({
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  className="p-2 hover:bg-muted rounded-lg transition-colors"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <MoreVertical className="w-5 h-5 text-gray-500" />
+                  <MoreVertical className="w-5 h-5 text-muted-foreground" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-[120px] rounded-xl">
@@ -229,6 +229,7 @@ export function CreateFormWizard() {
   
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitPhase, setSubmitPhase] = useState<'idle' | 'preparing' | 'submitting' | 'redirecting'>('idle');
   
   // Auto-save indicator
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -528,16 +529,16 @@ export function CreateFormWizard() {
   // Submit form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (currentStep !== TOTAL_STEPS) return;
-    
+
     setIsSubmitting(true);
-    
+    setSubmitPhase('preparing');
+
     try {
-      // Convert banner files to base64
+      // Convert banner files to base64 (user sees "جاري تجهيز المحتوى...")
       let coverImageData: string | undefined;
       let bannerImagesData: string[] = [];
-      
+
       for (const banner of banners) {
         if (typeof banner === 'string') {
           bannerImagesData.push(banner);
@@ -546,8 +547,7 @@ export function CreateFormWizard() {
           bannerImagesData.push(base64);
         }
       }
-      
-      // Use first banner as cover image for backwards compatibility
+
       if (bannerImagesData.length > 0) {
         coverImageData = bannerImagesData[0];
       }
@@ -570,7 +570,6 @@ export function CreateFormWizard() {
         bannerDisplayMode: bannerImagesData.length > 0 ? bannerDisplayMode : undefined,
       };
 
-      // Add fields or steps based on form type
       if (isMultiStep) {
         formData.steps = formSteps.map(step => ({
           title: step.title,
@@ -601,18 +600,27 @@ export function CreateFormWizard() {
           maxValue: f.maxValue,
         }));
       }
-      
-      await createForm(formData);
 
-      // Clear saved draft on successful creation
+      setSubmitPhase('submitting');
+      const created = await createForm(formData);
+
+      if (!created?.id) {
+        toast.error('تم إنشاء النموذج لكن لم نتمكن من نقلك لصفحة التعديل.');
+        return;
+      }
+
       localStorage.removeItem(FORM_DRAFT_KEY);
-      toast.success('تم إنشاء النموذج بنجاح! 🎉');
-      // Use replace so user doesn't navigate back to submitted form state
-      router.replace('/app/forms');
+      toast.success('تم إنشاء النموذج بنجاح، جاري التحويل...');
+      setSubmitPhase('redirecting');
+
+      await new Promise((r) => setTimeout(r, 600));
+
+      router.replace(`/app/forms/${created.id}/edit`);
     } catch (error: any) {
       toast.error(error.message || 'فشل في إنشاء النموذج');
     } finally {
       setIsSubmitting(false);
+      setSubmitPhase('idle');
     }
   };
 
@@ -655,11 +663,11 @@ export function CreateFormWizard() {
       className="flex flex-col  items-center text-sm text-slate-800 dark:text-slate-200"
     >
       {/* Step Header */}
-      <p className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-medium px-3 py-1 rounded-full">
+      <p className="text-xs bg-muted text-muted-foreground font-medium px-3 py-1 rounded-full">
         الخطوة 2 من 5
       </p>
-      <h2 className="text-2xl font-bold py-3 text-center text-gray-900 dark:text-white">معلومات النموذج</h2>
-      <p className="text-gray-500 dark:text-gray-400 pb-6 text-center text-sm">
+      <h2 className="text-2xl font-bold py-3 text-center text-foreground">معلومات النموذج</h2>
+      <p className="text-muted-foreground pb-6 text-center text-sm">
         أخبرنا عن نموذجك الجديد
       </p>
 
@@ -797,10 +805,10 @@ export function CreateFormWizard() {
         className="flex flex-col items-center text-sm text-slate-800 dark:text-slate-200"
       >
         {/* Step Header */}
-        <p className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-medium px-3 py-1 rounded-full">
+        <p className="text-xs bg-muted text-muted-foreground font-medium px-3 py-1 rounded-full">
           الخطوة 3 من 5
         </p>
-        <h2 className="text-2xl font-bold py-3 text-center text-gray-900 dark:text-white">حقول النموذج</h2>
+        <h2 className="text-2xl font-bold py-3 text-center text-foreground">حقول النموذج</h2>
         <p className="text-gray-500 dark:text-gray-400 pb-4 text-center text-sm">
           {selectedTemplateId ? 'راجع الحقول أو عدّلها حسب احتياجاتك' : 'أضف الحقول التي تريد جمع بياناتها'}
         </p>
@@ -902,10 +910,10 @@ export function CreateFormWizard() {
       className="flex flex-col items-center text-sm text-slate-800 dark:text-slate-200"
     >
       {/* Step Header */}
-      <p className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-medium px-3 py-1 rounded-full">
+      <p className="text-xs bg-muted text-muted-foreground font-medium px-3 py-1 rounded-full">
         الخطوة 4 من 5
       </p>
-      <h2 className="text-2xl font-bold py-3 text-center text-gray-900 dark:text-white">إعدادات النموذج</h2>
+      <h2 className="text-2xl font-bold py-3 text-center text-foreground">إعدادات النموذج</h2>
       <p className="text-gray-500 dark:text-gray-400 pb-6 text-center text-sm">
         خصص سلوك النموذج
       </p>
@@ -1003,10 +1011,10 @@ export function CreateFormWizard() {
       className="flex flex-col items-center text-sm text-slate-800 dark:text-slate-200"
     >
       {/* Step Header */}
-      <p className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-medium px-3 py-1 rounded-full">
+      <p className="text-xs bg-muted text-muted-foreground font-medium px-3 py-1 rounded-full">
         الخطوة 5 من 5
       </p>
-      <h2 className="text-2xl font-bold py-3 text-center text-gray-900 dark:text-white">معاينة النموذج</h2>
+      <h2 className="text-2xl font-bold py-3 text-center text-foreground">معاينة النموذج</h2>
       <p className="text-gray-500 dark:text-gray-400 pb-6 text-center text-sm">
         راجع النموذج قبل الإنشاء
       </p>
@@ -1179,10 +1187,37 @@ export function CreateFormWizard() {
           isBackVisible={currentStep > 1}
           continueLabel="التالي"
           backLabel="السابق"
-          finishLabel={isSubmitting ? "جاري الإنشاء..." : "إنشاء النموذج"}
+          finishLabel={
+            submitPhase === 'preparing'
+              ? 'جاري تجهيز المحتوى...'
+              : submitPhase === 'submitting'
+                ? 'جاري إنشاء النموذج...'
+                : submitPhase === 'redirecting'
+                  ? 'جاري التحويل...'
+                  : 'إنشاء النموذج'
+          }
           disabled={isSubmitting}
         />
       </div>
+
+      {/* Loading overlay during submit */}
+      {isSubmitting && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+          aria-hidden
+        >
+          <div className="flex flex-col items-center gap-3 rounded-2xl bg-card border border-border p-6 shadow-lg">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="text-sm font-medium text-foreground">
+              {submitPhase === 'preparing'
+                ? 'جاري تجهيز المحتوى...'
+                : submitPhase === 'submitting'
+                  ? 'جاري إنشاء النموذج...'
+                  : 'جاري التحويل...'}
+            </p>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

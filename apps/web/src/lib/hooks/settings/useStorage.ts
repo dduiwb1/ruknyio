@@ -10,6 +10,10 @@ export interface StorageUsage {
   available: number;
   percentage: number;
   files: number;
+  /** حجم الملفات في سلة المهملات (تُحسب ضمن used حتى الحذف النهائي) */
+  trashUsed?: number;
+  /** استخدام التخزين حسب النوع (الفئة → الحجم بالبايت) */
+  categoryBreakdown?: Record<string, number>;
 }
 
 export interface UserFile {
@@ -22,6 +26,8 @@ export interface UserFile {
   entityId?: string;
   url: string;
   createdAt: string;
+  /** تاريخ الحذف الناعم (سلة المهملات) — يُحذف نهائياً بعد 30 يوم */
+  deletedAt?: string | null;
 }
 
 export type FileCategory = 
@@ -121,13 +127,14 @@ export function useStorage() {
   }, []);
 
   /**
-   * Get list of user files
+   * Get list of user files (active by default; use deletedOnly: true for trash)
    */
   const getFiles = useCallback(async (options?: {
     category?: FileCategory;
     entityId?: string;
     page?: number;
     limit?: number;
+    deletedOnly?: boolean;
   }): Promise<FilesResponse | null> => {
     setIsLoading(true);
     setError(null);
@@ -138,6 +145,7 @@ export function useStorage() {
       if (options?.entityId) params.append('entityId', options.entityId);
       if (options?.page) params.append('page', options.page.toString());
       if (options?.limit) params.append('limit', options.limit.toString());
+      if (options?.deletedOnly) params.append('deletedOnly', 'true');
 
       const queryString = params.toString();
       const url = `/storage/files${queryString ? `?${queryString}` : ''}`;
@@ -151,6 +159,26 @@ export function useStorage() {
       setIsLoading(false);
     }
   }, []);
+
+  /**
+   * Restore a file from trash (undo soft delete)
+   */
+  const restoreFile = useCallback(async (fileId: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await getApiClient().post(`/storage/files/${fileId}/restore`, {});
+      getStorageUsage();
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'فشل في استرداد الملف';
+      setError(message);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [getStorageUsage]);
 
   /**
    * Upload avatar
@@ -333,6 +361,7 @@ export function useStorage() {
     // Methods
     getStorageUsage,
     getFiles,
+    restoreFile,
     uploadAvatar,
     uploadCover,
     uploadFormCover,

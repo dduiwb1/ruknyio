@@ -1210,11 +1210,13 @@ model UserFile {
   category  FileCategory
   entityId  String?
   createdAt DateTime     @default(now())
+  deletedAt DateTime?    // حذف ناعم: الملف يبقى 30 يوم ثم يُحذف نهائياً
   user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([category])
   @@index([entityId])
+  @@index([deletedAt])
   @@map("user_files")
 }
 

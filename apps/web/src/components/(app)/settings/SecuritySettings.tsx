@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Shield,
@@ -15,10 +15,9 @@ import { TwoFactorAuth } from './TwoFactorAuth';
 import { SessionsManager } from './SessionsManager';
 import { TrustedDevices } from './TrustedDevices';
 import { SecurityLogs } from './SecurityLogs';
-import { IPBlocklist } from './IPBlocklist';
 import { useSecuritySettings } from '@/lib/hooks/settings/useSecuritySettings';
 
-type SecurityTab = '2fa' | 'sessions' | 'devices' | 'logs' | 'blocklist';
+type SecurityTab = '2fa' | 'sessions' | 'devices' | 'logs' ;
 
 interface TabConfig {
   id: SecurityTab;
@@ -56,13 +55,6 @@ const tabs: TabConfig[] = [
     description: 'عرض سجل النشاط الأمني',
     icon: ScrollText,
     color: 'warning'
-  },
-  {
-    id: 'blocklist',
-    label: 'قائمة الحظر',
-    description: 'إدارة عناوين IP المحظورة',
-    icon: Ban,
-    color: 'destructive'
   }
 ];
 
@@ -134,8 +126,6 @@ export function SecuritySettings() {
         return <TrustedDevices />;
       case 'logs':
         return <SecurityLogs />;
-      case 'blocklist':
-        return <IPBlocklist />;
       default:
         return null;
     }

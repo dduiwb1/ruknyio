@@ -46,7 +46,8 @@ export class StorageService {
   ) {}
 
   /**
-   * Get user's storage usage and limit
+   * Get user's storage usage and limit.
+   * trashUsed = مجموع أحجام الملفات في سلة المهملات (تُحسب ضمن used حتى الحذف النهائي).
    */
   async getStorageUsage(userId: string): Promise<{
     used: number;
@@ -54,6 +55,8 @@ export class StorageService {
     available: number;
     percentage: number;
     files: number;
+    trashUsed: number;
+    categoryBreakdown: Record<string, number>;
   }> {
     const profile = await this.prisma.profile.findUnique({
       where: { userId },
@@ -61,7 +64,7 @@ export class StorageService {
     });
 
     const fileCount = await this.prisma.userFile.count({
-      where: { userId },
+      where: { userId, deletedAt: null },
     });
 
     const used = Number(profile?.storageUsed || 0);
@@ -69,12 +72,30 @@ export class StorageService {
     const available = Math.max(0, limit - used);
     const percentage = limit > 0 ? Math.round((used / limit) * 100) : 0;
 
+    const trashAgg = await this.prisma.userFile.aggregate({
+      where: { userId, deletedAt: { not: null } },
+      _sum: { fileSize: true },
+    });
+    const trashUsed = Number(trashAgg._sum.fileSize || 0);
+
+    const byCategory = await this.prisma.userFile.groupBy({
+      by: ['category'],
+      where: { userId, deletedAt: null },
+      _sum: { fileSize: true },
+    });
+    const categoryBreakdown: Record<string, number> = {};
+    for (const row of byCategory) {
+      categoryBreakdown[row.category] = Number(row._sum.fileSize || 0);
+    }
+
     return {
       used,
       limit,
       available,
       percentage,
       files: fileCount,
+      trashUsed,
+      categoryBreakdown,
     };
   }
 
@@ -598,7 +619,7 @@ export class StorageService {
     category: FileCategory,
   ): Promise<void> {
     const files = await this.prisma.userFile.findMany({
-      where: { userId, category },
+      where: { userId, category, deletedAt: null },
     });
 
     for (const file of files) {
@@ -615,7 +636,7 @@ export class StorageService {
     category: FileCategory,
   ): Promise<void> {
     const files = await this.prisma.userFile.findMany({
-      where: { userId, entityId, category },
+      where: { userId, entityId, category, deletedAt: null },
     });
 
     for (const file of files) {
@@ -623,8 +644,11 @@ export class StorageService {
     }
   }
 
+  /** مدة الاحتفاظ بالمحذوفات قبل الحذف النهائي (بالأيام) */
+  private readonly DELETED_RETENTION_DAYS = 30;
+
   /**
-   * Delete a specific file
+   * حذف ناعم: تعيين deletedAt فقط، الملف يبقى في S3 حتى انتهاء المدة ثم يُحذف نهائياً
    */
   async deleteFile(userId: string, fileId: string): Promise<void> {
     const file = await this.prisma.userFile.findFirst({
@@ -632,24 +656,55 @@ export class StorageService {
     });
 
     if (!file) return;
+    if (file.deletedAt) return; // already soft-deleted
 
-    // Delete from S3
-    await this.s3Service.deleteObject(this.bucket, file.key);
-
-    // Update storage usage
-    await this.prisma.profile.update({
-      where: { userId },
-      data: {
-        storageUsed: { decrement: file.fileSize },
-      },
+    await this.prisma.userFile.update({
+      where: { id: fileId },
+      data: { deletedAt: new Date() },
     });
 
-    // Delete record
+    this.logger.log(`Soft-deleted file ${file.key} for user ${userId}`);
+  }
+
+  /**
+   * استرداد ملف من سلة المهملات (إلغاء الحذف الناعم)
+   */
+  async restoreFile(userId: string, fileId: string): Promise<void> {
+    const file = await this.prisma.userFile.findFirst({
+      where: { id: fileId, userId },
+    });
+
+    if (!file) return;
+    if (!file.deletedAt) return;
+
+    await this.prisma.userFile.update({
+      where: { id: fileId },
+      data: { deletedAt: null },
+    });
+
+    this.logger.log(`Restored file ${file.key} for user ${userId}`);
+  }
+
+  /**
+   * حذف نهائي لملف (من S3 وقاعدة البيانات وتحديث storageUsed)
+   * يُستخدم داخلياً بعد انتهاء مدة الاحتفاظ أو عند حذف الحساب.
+   */
+  async permanentDeleteFile(userId: string, fileId: string): Promise<void> {
+    const file = await this.prisma.userFile.findFirst({
+      where: { id: fileId, userId },
+    });
+
+    if (!file) return;
+
+    await this.s3Service.deleteObject(this.bucket, file.key);
+    await this.prisma.profile.update({
+      where: { userId },
+      data: { storageUsed: { decrement: file.fileSize } },
+    });
     await this.prisma.userFile.delete({
       where: { id: fileId },
     });
-
-    this.logger.log(`Deleted file ${file.key} for user ${userId}`);
+    this.logger.log(`Permanently deleted file ${file.key} for user ${userId}`);
   }
 
   /**
@@ -674,7 +729,7 @@ export class StorageService {
   }
 
   /**
-   * Get list of user files
+   * Get list of user files (active only by default; use deletedOnly for trash)
    */
   async getUserFiles(
     userId: string,
@@ -683,6 +738,7 @@ export class StorageService {
       entityId?: string;
       page?: number;
       limit?: number;
+      deletedOnly?: boolean;
     },
   ): Promise<{
     files: any[];
@@ -697,6 +753,11 @@ export class StorageService {
     const where: any = { userId };
     if (options?.category) where.category = options.category;
     if (options?.entityId) where.entityId = options.entityId;
+    if (options?.deletedOnly) {
+      where.deletedAt = { not: null };
+    } else {
+      where.deletedAt = null;
+    }
 
     const [files, total] = await Promise.all([
       this.prisma.userFile.findMany({
@@ -708,12 +769,12 @@ export class StorageService {
       this.prisma.userFile.count({ where }),
     ]);
 
-    // Convert keys to presigned URLs
     const filesWithUrls = await Promise.all(
       files.map(async (file) => ({
         ...file,
         fileSize: Number(file.fileSize),
         url: await this.getPresignedUrl(file.key),
+        deletedAt: file.deletedAt?.toISOString() ?? null,
       })),
     );
 
@@ -726,15 +787,72 @@ export class StorageService {
   }
 
   /**
-   * Delete files by entity (when deleting form, event, product)
+   * Delete files by entity (when deleting form, event, product) — soft delete
    */
   async deleteFilesByEntity(userId: string, entityId: string): Promise<void> {
     const files = await this.prisma.userFile.findMany({
-      where: { userId, entityId },
+      where: { userId, entityId, deletedAt: null },
     });
 
     for (const file of files) {
       await this.deleteFile(userId, file.id);
     }
+  }
+
+  /**
+   * حذف نهائي لجميع الملفات التي انتهت مدة الاحتفاظ (deletedAt + 30 يوم)
+   * يُستدعى من Cron أو Scheduler يومياً.
+   */
+  async purgeExpiredDeletedFiles(): Promise<{ purged: number }> {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - this.DELETED_RETENTION_DAYS);
+
+    const expired = await this.prisma.userFile.findMany({
+      where: { deletedAt: { not: null, lt: cutoff } },
+    });
+
+    for (const file of expired) {
+      await this.permanentDeleteFile(file.userId, file.id);
+    }
+
+    this.logger.log(`Purged ${expired.length} expired deleted files`);
+    return { purged: expired.length };
+  }
+
+  /**
+   * إعادة احتساب storageUsed لمستخدم واحد من مجموع أحجام UserFile (النشطة فقط، غير المحذوفة).
+   * يُصلح أي فرق ناتج عن increment/decrement أو مسارات قديمة.
+   */
+  async recalculateStorageUsed(userId: string): Promise<{ used: number }> {
+    const agg = await this.prisma.userFile.aggregate({
+      where: { userId, deletedAt: null },
+      _sum: { fileSize: true },
+    });
+    const used = Number(agg._sum.fileSize || 0);
+
+    await this.prisma.profile.update({
+      where: { userId },
+      data: { storageUsed: BigInt(used) },
+    });
+
+    this.logger.debug(`Recalculated storage for user ${userId}: ${used} bytes`);
+    return { used };
+  }
+
+  /**
+   * إعادة احتساب storageUsed لجميع المستخدمين الذين لديهم ملفات.
+   * يُستدعى من Cron يومي لتصحيح أي انحراف.
+   */
+  async recalculateStorageUsedForAllUsers(): Promise<{ usersUpdated: number }> {
+    const userIds = await this.prisma.userFile
+      .findMany({ select: { userId: true }, distinct: ['userId'] })
+      .then((rows) => [...new Set(rows.map((r) => r.userId))]);
+
+    for (const userId of userIds) {
+      await this.recalculateStorageUsed(userId);
+    }
+
+    this.logger.log(`Recalculated storage for ${userIds.length} user(s)`);
+    return { usersUpdated: userIds.length };
   }
 }

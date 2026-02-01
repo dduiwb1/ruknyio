@@ -66,7 +66,7 @@ const NotificationIntegrations = lazy(() => import('@/components/(app)/settings/
 const StorageIntegrations = lazy(() => import('@/components/(app)/settings/StorageIntegrations').then(m => ({ default: m.StorageIntegrations })));
 // Types
 type SettingTab = 
-  | '2fa' | 'sessions' | 'devices' | 'logs' | 'blocklist' | 'ip-protection'
+  | '2fa' | 'sessions' | 'devices' | 'logs' | 'ip-protection'
   | 'overview' | 'social' | 'analytics' | 'notifications' | 'storage'
   | 'store-general' | 'products' | 'orders'
   | 'forms-general' | 'templates' | 'submissions'
