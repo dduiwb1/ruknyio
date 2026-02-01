@@ -218,6 +218,18 @@ export class StorageController {
     return { message: 'تم استرداد الملف بنجاح' };
   }
 
+  @Delete('files/:fileId/permanent')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'حذف نهائي لملف (بدون انتظار 30 يوم)' })
+  @ApiParam({ name: 'fileId', description: 'File ID' })
+  @ApiResponse({ status: 200, description: 'File permanently deleted' })
+  async permanentDeleteFile(@Request() req, @Param('fileId') fileId: string) {
+    await this.storageService.permanentDeleteFile(req.user.id, fileId);
+    return { message: 'تم الحذف النهائي للملف' };
+  }
+
   @Delete('entities/:entityId')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, FileText, Trash2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { CreateFormWizard } from '@/components/(app)/forms';
+import { CreateFormWizard, type FormDraftRestore } from '@/components/(app)/forms';
 
 // LocalStorage key for form draft persistence (must match CreateFormWizard)
 const FORM_DRAFT_KEY = 'rukny_form_draft';
@@ -14,30 +14,25 @@ const FORM_DRAFT_KEY = 'rukny_form_draft';
 function CreateFormContent() {
   const searchParams = useSearchParams();
   const [showDraftDialog, setShowDraftDialog] = useState(false);
-  const [hasDraft, setHasDraft] = useState(false);
   const [draftCleared, setDraftCleared] = useState(false);
+  const [draftToRestore, setDraftToRestore] = useState<FormDraftRestore | null>(null);
 
   useEffect(() => {
-    // Check if we should clear draft (coming from a "new form" action)
     const isNew = searchParams.get('new') === 'true';
-    
+
     if (isNew) {
-      // Clear any existing draft when explicitly creating new form
       localStorage.removeItem(FORM_DRAFT_KEY);
       setDraftCleared(true);
-      // Clean up the URL
+      setDraftToRestore(null);
       window.history.replaceState({}, '', '/app/forms/create');
       return;
     }
 
-    // Check if there's an existing draft
     const savedDraft = localStorage.getItem(FORM_DRAFT_KEY);
     if (savedDraft) {
       try {
         const draft = JSON.parse(savedDraft);
-        // Only show dialog if there's meaningful progress (past step 1 or has title)
         if (draft.currentStep > 1 || draft.title) {
-          setHasDraft(true);
           setShowDraftDialog(true);
         }
       } catch {
@@ -47,12 +42,21 @@ function CreateFormContent() {
   }, [searchParams]);
 
   const handleContinueDraft = () => {
+    const savedDraft = localStorage.getItem(FORM_DRAFT_KEY);
+    if (savedDraft) {
+      try {
+        setDraftToRestore(JSON.parse(savedDraft) as FormDraftRestore);
+      } catch {
+        localStorage.removeItem(FORM_DRAFT_KEY);
+      }
+    }
     setShowDraftDialog(false);
   };
 
   const handleStartFresh = () => {
     localStorage.removeItem(FORM_DRAFT_KEY);
     setDraftCleared(true);
+    setDraftToRestore(null);
     setShowDraftDialog(false);
   };
 
@@ -122,8 +126,11 @@ function CreateFormContent() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            {/* Key forces remount when draft is cleared to reset all state */}
-            <CreateFormWizard key={draftCleared ? 'fresh' : 'default'} />
+            {/* Key: fresh when cleared, restored when user chose continue draft, else default (empty, no auto-restore) */}
+            <CreateFormWizard
+              key={draftCleared ? 'fresh' : draftToRestore ? 'restored' : 'default'}
+              initialDraft={draftToRestore ?? undefined}
+            />
           </motion.div>
 
         </div>

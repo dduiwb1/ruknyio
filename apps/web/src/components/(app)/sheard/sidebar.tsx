@@ -183,7 +183,7 @@ export function Sidebar({ className }: SidebarProps) {
       items: [
         { href: "/app/forms", label: "جميع النماذج", icon: FileText },
         { href: "/app/forms/responses", label: "الردود", icon: MessageSquare },
-        { href: "/app/forms/create", label: "إنشاء نموذج", icon: Plus },
+        { href: "/app/forms/create?new=true", label: "إنشاء نموذج", icon: Plus },
       ],
     },
     {

@@ -331,6 +331,26 @@ export function useStorage() {
   }, [getStorageUsage]);
 
   /**
+   * Permanent delete a file (removes from storage and DB immediately, no 30-day wait)
+   */
+  const permanentDeleteFile = useCallback(async (fileId: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await getApiClient().delete(`/storage/files/${fileId}/permanent`);
+      getStorageUsage();
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'فشل في الحذف النهائي';
+      setError(message);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [getStorageUsage]);
+
+  /**
    * Delete all files for an entity
    */
   const deleteEntityFiles = useCallback(async (entityId: string): Promise<boolean> => {
@@ -368,6 +388,7 @@ export function useStorage() {
     uploadEventCover,
     uploadProductImage,
     deleteFile,
+    permanentDeleteFile,
     deleteEntityFiles,
     
     // Helpers

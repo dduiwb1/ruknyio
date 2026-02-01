@@ -219,17 +219,40 @@ const DraggableFieldItem = memo(function DraggableFieldItem({
   );
 });
 
+// Draft shape for optional restore (only when user explicitly chooses "متابعة المسودة")
+export type FormDraftRestore = {
+  currentStep?: number;
+  selectedTemplateId?: string | null;
+  templateLanguage?: TemplateLanguage;
+  title?: string;
+  slug?: string;
+  description?: string;
+  formType?: FormType;
+  status?: FormStatus;
+  isMultiStep?: boolean;
+  fields?: FormFieldInput[];
+  formSteps?: FormStepInput[];
+  allowMultipleSubmissions?: boolean;
+  requiresAuthentication?: boolean;
+  showProgressBar?: boolean;
+  showQuestionNumbers?: boolean;
+  notifyOnSubmission?: boolean;
+  notificationEmail?: string;
+};
+
 // ============================================
 // Main Component
 // ============================================
 
-export function CreateFormWizard() {
+export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRestore | null } = {}) {
   const router = useRouter();
   const { createForm, isLoading } = useForms();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitPhase, setSubmitPhase] = useState<'idle' | 'preparing' | 'submitting' | 'redirecting'>('idle');
+  const [showLongWaitMessage, setShowLongWaitMessage] = useState(false);
+  const longWaitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Auto-save indicator
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -276,39 +299,30 @@ export function CreateFormWizard() {
     return result;
   }, []);
 
-  // Load saved draft from localStorage on mount
+  // Restore state only when user explicitly chose "متابعة المسودة" (initialDraft from page)
   useEffect(() => {
-    const savedDraft = localStorage.getItem(FORM_DRAFT_KEY);
-    if (savedDraft) {
-      try {
-        const draft = JSON.parse(savedDraft);
-        // Restore state from draft
-        if (draft.currentStep) setCurrentStep(draft.currentStep);
-        if (draft.selectedTemplateId !== undefined) setSelectedTemplateId(draft.selectedTemplateId);
-        if (draft.templateLanguage) setTemplateLanguage(draft.templateLanguage);
-        if (draft.title) setTitle(draft.title);
-        if (draft.slug) setSlug(draft.slug);
-        if (draft.description) setDescription(draft.description);
-        if (draft.formType) setFormType(draft.formType);
-        if (draft.status) setStatus(draft.status);
-        if (draft.isMultiStep !== undefined) setIsMultiStep(draft.isMultiStep);
-        if (draft.fields) setFields(draft.fields);
-        if (draft.formSteps) setFormSteps(draft.formSteps);
-        if (draft.allowMultipleSubmissions !== undefined) setAllowMultipleSubmissions(draft.allowMultipleSubmissions);
-        if (draft.requiresAuthentication !== undefined) setRequiresAuthentication(draft.requiresAuthentication);
-        if (draft.showProgressBar !== undefined) setShowProgressBar(draft.showProgressBar);
-        if (draft.showQuestionNumbers !== undefined) setShowQuestionNumbers(draft.showQuestionNumbers);
-        if (draft.notifyOnSubmission !== undefined) setNotifyOnSubmission(draft.notifyOnSubmission);
-        if (draft.notificationEmail) setNotificationEmail(draft.notificationEmail);
-      } catch (e) {
-        console.error('Failed to parse form draft:', e);
-        localStorage.removeItem(FORM_DRAFT_KEY);
-      }
+    if (initialDraft) {
+      if (initialDraft.currentStep) setCurrentStep(initialDraft.currentStep);
+      if (initialDraft.selectedTemplateId !== undefined) setSelectedTemplateId(initialDraft.selectedTemplateId);
+      if (initialDraft.templateLanguage) setTemplateLanguage(initialDraft.templateLanguage);
+      if (initialDraft.title) setTitle(initialDraft.title);
+      if (initialDraft.slug) setSlug(initialDraft.slug);
+      if (initialDraft.description !== undefined) setDescription(initialDraft.description);
+      if (initialDraft.formType) setFormType(initialDraft.formType);
+      if (initialDraft.status) setStatus(initialDraft.status);
+      if (initialDraft.isMultiStep !== undefined) setIsMultiStep(initialDraft.isMultiStep);
+      if (initialDraft.fields?.length) setFields(initialDraft.fields);
+      if (initialDraft.formSteps?.length) setFormSteps(initialDraft.formSteps);
+      if (initialDraft.allowMultipleSubmissions !== undefined) setAllowMultipleSubmissions(initialDraft.allowMultipleSubmissions);
+      if (initialDraft.requiresAuthentication !== undefined) setRequiresAuthentication(initialDraft.requiresAuthentication);
+      if (initialDraft.showProgressBar !== undefined) setShowProgressBar(initialDraft.showProgressBar);
+      if (initialDraft.showQuestionNumbers !== undefined) setShowQuestionNumbers(initialDraft.showQuestionNumbers);
+      if (initialDraft.notifyOnSubmission !== undefined) setNotifyOnSubmission(initialDraft.notifyOnSubmission);
+      if (initialDraft.notificationEmail !== undefined) setNotificationEmail(initialDraft.notificationEmail);
     } else if (!slug) {
-      // Only generate slug if no draft was loaded
       setSlug(generateSlug());
     }
-  }, []);
+  }, [initialDraft]);
 
   // Save draft to localStorage whenever form state changes
   useEffect(() => {
@@ -533,6 +547,11 @@ export function CreateFormWizard() {
 
     setIsSubmitting(true);
     setSubmitPhase('preparing');
+    setShowLongWaitMessage(false);
+    longWaitTimeoutRef.current = setTimeout(() => {
+      setShowLongWaitMessage(true);
+      toast.info('الطلب يستغرق وقتاً. إن كان النموذج قد أُنشئ ستجده في قائمة النماذج.', { duration: 10000 });
+    }, 75_000);
 
     try {
       // Convert banner files to base64 (user sees "جاري تجهيز المحتوى...")
@@ -619,8 +638,13 @@ export function CreateFormWizard() {
     } catch (error: any) {
       toast.error(error.message || 'فشل في إنشاء النموذج');
     } finally {
+      if (longWaitTimeoutRef.current) {
+        clearTimeout(longWaitTimeoutRef.current);
+        longWaitTimeoutRef.current = null;
+      }
       setIsSubmitting(false);
       setSubmitPhase('idle');
+      setShowLongWaitMessage(false);
     }
   };
 
@@ -1206,15 +1230,24 @@ export function CreateFormWizard() {
           className="fixed inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-sm"
           aria-hidden
         >
-          <div className="flex flex-col items-center gap-3 rounded-2xl bg-card border border-border p-6 shadow-lg">
+          <div className="flex flex-col items-center gap-4 rounded-2xl bg-card border border-border p-6 shadow-lg max-w-sm mx-4">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="text-sm font-medium text-foreground">
+            <p className="text-sm font-medium text-foreground text-center">
               {submitPhase === 'preparing'
                 ? 'جاري تجهيز المحتوى...'
                 : submitPhase === 'submitting'
                   ? 'جاري إنشاء النموذج...'
                   : 'جاري التحويل...'}
             </p>
+            {showLongWaitMessage && (
+              <button
+                type="button"
+                onClick={() => router.replace('/app/forms')}
+                className="text-sm text-primary underline hover:no-underline font-medium"
+              >
+                انتقل إلى قائمة النماذج
+              </button>
+            )}
           </div>
         </div>
       )}

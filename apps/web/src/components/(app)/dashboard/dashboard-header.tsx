@@ -38,7 +38,7 @@ const dateOptions = [
 
 const quickAddOptions = [
   { icon: Package, label: "منتج جديد", href: "/app/store/products/new", color: "bg-emerald-500" },
-  { icon: FileText, label: "نموذج جديد", href: "/app/forms/create", color: "bg-sky-500" },
+  { icon: FileText, label: "نموذج جديد", href: "/app/forms/create?new=true", color: "bg-sky-500" },
   { icon: Tag, label: "كوبون جديد", href: "/app/coupons/new", color: "bg-amber-500" },
   { icon: Megaphone, label: "فعالية جديدة", href: "/app/events/create", color: "bg-violet-500" },
 ];

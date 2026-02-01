@@ -37,6 +37,7 @@ export function StorageIntegrations() {
     getFiles,
     deleteFile,
     restoreFile,
+    permanentDeleteFile,
   } = useStorage();
   
   const [files, setFiles] = useState<UserFile[]>([]);
@@ -47,6 +48,7 @@ export function StorageIntegrations() {
   const [fileView, setFileView] = useState<'active' | 'trash'>('active');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [permanentDeletingId, setPermanentDeletingId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<FileCategory | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortBy>('date');
@@ -117,6 +119,21 @@ export function StorageIntegrations() {
     }
     
     setRestoringId(null);
+  };
+
+  const handlePermanentDelete = async (fileId: string, fileName: string) => {
+    if (!confirm(`حذف "${fileName}" نهائياً؟ لا يمكن التراجع عن هذا الإجراء.`)) return;
+    setPermanentDeletingId(fileId);
+    const success = await permanentDeleteFile(fileId);
+    if (success) {
+      toast.success('تم الحذف النهائي للملف');
+      setTrashFiles(trashFiles.filter(f => f.id !== fileId));
+      setTotalTrash(prev => prev - 1);
+      getStorageUsage();
+    } else {
+      toast.error('فشل في الحذف النهائي');
+    }
+    setPermanentDeletingId(null);
   };
 
   /** عدد الأيام المتبقية قبل الحذف النهائي (من تاريخ deletedAt + 30 يوم) */
@@ -224,9 +241,9 @@ export function StorageIntegrations() {
   // Loading State
   if (isLoading && !usage) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-        <p className="text-muted-foreground text-xs mt-3">جاري تحميل معلومات التخزين...</p>
+      <div className="flex flex-col items-center justify-center py-16">
+        <Loader2 className="w-10 h-10 animate-spin text-muted-foreground" />
+        <p className="text-muted-foreground text-sm mt-4">جاري تحميل معلومات التخزين...</p>
       </div>
     );
   }
@@ -234,15 +251,15 @@ export function StorageIntegrations() {
   // Error State
   if (error) {
     return (
-      <div className="text-center py-12">
-        <div className="w-12 h-12 bg-destructive/10 rounded-lg flex items-center justify-center mx-auto mb-3">
-          <AlertTriangle className="w-6 h-6 text-destructive" />
+      <div className="text-center py-16">
+        <div className="w-14 h-14 bg-destructive/10 rounded-xl flex items-center justify-center mx-auto mb-4">
+          <AlertTriangle className="w-8 h-8 text-destructive" />
         </div>
-        <p className="text-foreground font-medium text-sm mb-1">فشل في التحميل</p>
-        <p className="text-muted-foreground text-xs mb-4">{error}</p>
+        <p className="text-foreground font-semibold text-base mb-1">فشل في التحميل</p>
+        <p className="text-muted-foreground text-sm mb-5">{error}</p>
         <button
           onClick={() => getStorageUsage()}
-          className="px-4 py-2 bg-primary text-primary-foreground text-xs font-medium rounded-lg hover:bg-primary/90 transition-colors"
+          className="px-5 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-xl hover:bg-primary/90 transition-colors"
         >
           إعادة المحاولة
         </button>
@@ -251,44 +268,44 @@ export function StorageIntegrations() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Storage Card */}
-      <div className="bg-card rounded-xl border border-border p-4">
+      <div className="bg-card rounded-2xl border border-border p-5 sm:p-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-violet-500/10 flex items-center justify-center">
-              <HardDrive className="w-4 h-4 text-violet-600" />
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center">
+              <HardDrive className="w-6 h-6 text-violet-600" />
             </div>
             <div>
-              <h3 className="font-semibold text-sm text-foreground">مساحة التخزين</h3>
-              <p className="text-xs text-muted-foreground">إدارة الملفات المرفوعة</p>
+              <h3 className="font-semibold text-base text-foreground">مساحة التخزين</h3>
+              <p className="text-sm text-muted-foreground">إدارة الملفات المرفوعة</p>
             </div>
           </div>
           
           <button
             onClick={() => getStorageUsage()}
-            className="p-2 hover:bg-muted rounded-lg transition-colors"
+            className="p-2.5 hover:bg-muted rounded-xl transition-colors"
           >
-            <RefreshCw className={cn("w-4 h-4 text-muted-foreground", isLoading && "animate-spin")} />
+            <RefreshCw className={cn("w-5 h-5 text-muted-foreground", isLoading && "animate-spin")} />
           </button>
         </div>
 
         {/* Progress */}
-        <div className="mb-4">
+        <div className="mb-5">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               {usage ? formatBytes(usage.used) : '0'} / {usage ? formatBytes(usage.limit) : '5 GB'}
             </span>
             <span className={cn(
-              "text-xs font-medium px-1.5 py-0.5 rounded",
+              "text-sm font-medium px-2 py-1 rounded-lg",
               isCritical ? "bg-destructive/10 text-destructive" : isWarning ? "bg-amber-500/10 text-amber-600" : "bg-primary/10 text-primary"
             )}>
               {percentage}%
             </span>
           </div>
           
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
+          <div className="h-3 bg-muted rounded-full overflow-hidden">
             <div
               style={{ width: `${percentage}%` }}
               className={cn("h-full rounded-full transition-all duration-500", getProgressColor())}
@@ -297,48 +314,48 @@ export function StorageIntegrations() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="text-center p-2.5 bg-muted/50 rounded-lg">
-            <p className="text-base font-semibold text-foreground">{usage ? formatBytes(usage.used) : '0'}</p>
-            <p className="text-[10px] text-muted-foreground">مستخدم</p>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="text-center p-4 bg-muted/50 rounded-xl">
+            <p className="text-lg font-semibold text-foreground">{usage ? formatBytes(usage.used) : '0'}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">مستخدم</p>
             {usage?.trashUsed != null && usage.trashUsed > 0 && (
-              <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
                 منها {formatBytes(usage.trashUsed)} في سلة المهملات
               </p>
             )}
           </div>
-          <div className="text-center p-2.5 bg-primary/5 rounded-lg">
-            <p className="text-base font-semibold text-primary">{usage ? formatBytes(usage.available) : '0'}</p>
-            <p className="text-[10px] text-muted-foreground">متبقي</p>
+          <div className="text-center p-4 bg-primary/5 rounded-xl">
+            <p className="text-lg font-semibold text-primary">{usage ? formatBytes(usage.available) : '0'}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">متبقي</p>
           </div>
-          <div className="text-center p-2.5 bg-muted/50 rounded-lg">
-            <p className="text-base font-semibold text-foreground">{usage?.files || 0}</p>
-            <p className="text-[10px] text-muted-foreground">ملف</p>
+          <div className="text-center p-4 bg-muted/50 rounded-xl">
+            <p className="text-lg font-semibold text-foreground">{usage?.files || 0}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">ملف</p>
           </div>
         </div>
 
         {/* استخدام التخزين حسب النوع */}
         {usage?.categoryBreakdown && Object.keys(usage.categoryBreakdown).length > 0 && (
-          <div className="mt-3 pt-3 border-t border-border">
-            <p className="text-[10px] text-muted-foreground mb-2">استخدام التخزين حسب النوع</p>
-            <div className="space-y-1.5">
+          <div className="mt-4 pt-4 border-t border-border">
+            <p className="text-sm text-muted-foreground mb-3">استخدام التخزين حسب النوع</p>
+            <div className="space-y-2">
               {Object.entries(usage.categoryBreakdown)
                 .filter(([, size]) => size > 0)
                 .sort(([, a], [, b]) => b - a)
                 .map(([cat, size]) => {
                   const pct = usage?.used ? Math.round((size / usage.used) * 100) : 0;
                   return (
-                    <div key={cat} className="flex items-center gap-2">
-                      <span className="text-[10px] text-muted-foreground w-20 truncate">
+                    <div key={cat} className="flex items-center gap-3">
+                      <span className="text-sm text-muted-foreground w-24 truncate">
                         {getCategoryLabel(cat as FileCategory)}
                       </span>
-                      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                         <div
                           className="h-full bg-primary rounded-full"
                           style={{ width: `${Math.min(100, pct)}%` }}
                         />
                       </div>
-                      <span className="text-[10px] text-foreground w-14 text-left">
+                      <span className="text-sm text-foreground w-16 text-left">
                         {formatBytes(size)}
                       </span>
                     </div>
@@ -351,11 +368,11 @@ export function StorageIntegrations() {
         {/* Warning */}
         {isWarning && (
           <div className={cn(
-            "mt-3 p-3 rounded-lg flex items-center gap-2",
+            "mt-4 p-4 rounded-xl flex items-center gap-3",
             isCritical ? "bg-destructive/10 text-destructive" : "bg-amber-500/10 text-amber-600"
           )}>
-            <AlertTriangle className="w-4 h-4 shrink-0" />
-            <p className="text-xs">
+            <AlertTriangle className="w-5 h-5 shrink-0" />
+            <p className="text-sm">
               {isCritical ? 'المساحة على وشك النفاد! قم بحذف بعض الملفات.' : 'المساحة تقترب من الحد الأقصى'}
             </p>
           </div>
@@ -363,21 +380,21 @@ export function StorageIntegrations() {
       </div>
 
       {/* Files Section */}
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden">
         <button
           onClick={() => setShowFiles(!showFiles)}
-          className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+          className="w-full px-5 py-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-cyan-500/10 flex items-center justify-center">
-              <FileImage className="w-4 h-4 text-cyan-600" />
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center">
+              <FileImage className="w-6 h-6 text-cyan-600" />
             </div>
-            <span className="font-semibold text-sm text-foreground">
+            <span className="font-semibold text-base text-foreground">
               الملفات ({totalFiles}) {totalTrash > 0 && `• سلة المهملات (${totalTrash})`}
             </span>
           </div>
           <ChevronDown className={cn(
-            "w-4 h-4 text-muted-foreground transition-transform",
+            "w-5 h-5 text-muted-foreground transition-transform",
             showFiles && "rotate-180"
           )} />
         </button>
@@ -385,29 +402,29 @@ export function StorageIntegrations() {
         {showFiles && (
           <div>
             {/* Tabs: الملفات | سلة المهملات */}
-            <div className="px-4 pt-2 border-t border-border flex gap-1">
+            <div className="px-5 pt-3 border-t border-border flex gap-2">
               <button
                 onClick={() => { setFileView('active'); setSelectedIds(new Set()); }}
                 className={cn(
-                  "px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors",
+                  "px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors",
                   fileView === 'active'
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 )}
               >
-                <FileImage className="w-3.5 h-3.5" />
+                <FileImage className="w-4 h-4" />
                 الملفات ({totalFiles})
               </button>
               <button
                 onClick={() => { setFileView('trash'); setSelectedIds(new Set()); }}
                 className={cn(
-                  "px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors",
+                  "px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors",
                   fileView === 'trash'
                     ? "bg-amber-500/20 text-amber-700 dark:text-amber-400"
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 )}
               >
-                <Trash className="w-3.5 h-3.5" />
+                <Trash className="w-4 h-4" />
                 سلة المهملات ({totalTrash})
               </button>
             </div>
@@ -415,13 +432,13 @@ export function StorageIntegrations() {
             {fileView === 'active' && (
               <>
                 {/* Category Filter */}
-                <div className="px-4 py-2 flex gap-1.5 overflow-x-auto">
+                <div className="px-5 py-3 flex gap-2 overflow-x-auto">
                   {categories.map((cat) => (
                     <button
                       key={cat.id}
                       onClick={() => handleCategoryChange(cat.id)}
                       className={cn(
-                        "px-2.5 py-1.5 rounded-lg text-[10px] font-medium whitespace-nowrap transition-colors",
+                        "px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors",
                         selectedCategory === cat.id
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -433,18 +450,18 @@ export function StorageIntegrations() {
                 </div>
 
                 {/* Search + Sort + Multi-delete */}
-                <div className="px-4 py-2 border-t border-border flex flex-wrap items-center gap-2">
-                  <div className="relative flex-1 min-w-[120px]">
-                    <Search className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <div className="px-5 py-3 border-t border-border flex flex-wrap items-center gap-3">
+                  <div className="relative flex-1 min-w-[140px]">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
                       type="text"
                       placeholder="بحث بالاسم..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pr-8 pl-2 py-1.5 text-xs bg-muted border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+                      className="w-full pr-10 pl-3 py-2.5 text-sm bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-2">
                     <select
                       value={`${sortBy}-${sortOrder}`}
                       onChange={(e) => {
@@ -452,7 +469,7 @@ export function StorageIntegrations() {
                         setSortBy(s);
                         setSortOrder(o);
                       }}
-                      className="text-[10px] bg-muted border border-border rounded-lg px-2 py-1.5 focus:outline-none"
+                      className="text-sm bg-muted border border-border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
                     >
                       <option value="date-desc">الأحدث</option>
                       <option value="date-asc">الأقدم</option>
@@ -461,16 +478,16 @@ export function StorageIntegrations() {
                       <option value="size-desc">الأكبر</option>
                       <option value="size-asc">الأصغر</option>
                     </select>
-                    <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground" />
+                    <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
                   </div>
                   {filteredAndSortedFiles.length > 0 && (
                     <>
-                      <label className="flex items-center gap-1.5 text-[10px] text-muted-foreground cursor-pointer">
+                      <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
                         <input
                           type="checkbox"
                           checked={selectedIds.size === filteredAndSortedFiles.length}
                           onChange={toggleSelectAll}
-                          className="rounded border-border"
+                          className="rounded border-border w-4 h-4"
                         />
                         تحديد الكل
                       </label>
@@ -478,7 +495,7 @@ export function StorageIntegrations() {
                         <button
                           onClick={handleDeleteSelected}
                           disabled={!!deletingId}
-                          className="px-2 py-1.5 text-[10px] font-medium rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50"
+                          className="px-3 py-2 text-sm font-medium rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50"
                         >
                           حذف المحدد ({selectedIds.size})
                         </button>
@@ -488,13 +505,13 @@ export function StorageIntegrations() {
                 </div>
 
                 {/* Active Files List */}
-                <div className="max-h-64 overflow-y-auto">
+                <div className="max-h-80 overflow-y-auto">
                   {filteredAndSortedFiles.length === 0 ? (
-                    <div className="py-8 text-center">
-                      <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center mx-auto mb-2">
-                        <FileImage className="w-5 h-5 text-muted-foreground/50" />
+                    <div className="py-12 text-center">
+                      <div className="w-14 h-14 bg-muted rounded-xl flex items-center justify-center mx-auto mb-3">
+                        <FileImage className="w-7 h-7 text-muted-foreground/50" />
                       </div>
-                      <p className="text-muted-foreground text-xs">
+                      <p className="text-muted-foreground text-sm">
                         {files.length === 0 ? 'لا توجد ملفات' : 'لا توجد نتائج للبحث'}
                       </p>
                     </div>
@@ -507,61 +524,61 @@ export function StorageIntegrations() {
                           <div
                             key={file.id}
                             className={cn(
-                              "px-4 py-2.5 flex items-center justify-between gap-2 hover:bg-muted/50 transition-colors",
+                              "px-5 py-3 flex items-center justify-between gap-3 hover:bg-muted/50 transition-colors",
                               selected && "bg-primary/5"
                             )}
                           >
-                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
                               <input
                                 type="checkbox"
                                 checked={selected}
                                 onChange={() => toggleSelect(file.id)}
                                 onClick={(e) => e.stopPropagation()}
-                                className="rounded border-border shrink-0"
+                                className="rounded border-border shrink-0 w-4 h-4"
                               />
                               <button
                                 type="button"
                                 onClick={() => (isImageFile(file) ? setPreviewFile(file) : null)}
-                                className="flex items-center gap-2.5 min-w-0 flex-1 text-right"
+                                className="flex items-center gap-3 min-w-0 flex-1 text-right"
                               >
-                                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                                  <Icon className="w-4 h-4 text-muted-foreground" />
+                                <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                                  <Icon className="w-5 h-5 text-muted-foreground" />
                                 </div>
                                 <div className="min-w-0">
-                                  <p className="text-xs font-medium text-foreground truncate">{file.fileName}</p>
-                                  <p className="text-[10px] text-muted-foreground">
+                                  <p className="text-sm font-medium text-foreground truncate">{file.fileName}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
                                     {getCategoryLabel(file.category)} • {formatBytes(file.fileSize)}
                                   </p>
                                 </div>
                               </button>
                             </div>
-                            <div className="flex items-center gap-0.5 shrink-0">
+                            <div className="flex items-center gap-1 shrink-0">
                               <button
                                 onClick={() => handleDownload(file)}
-                                className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
                                 title="تنزيل"
                               >
-                                <Download className="w-4 h-4" />
+                                <Download className="w-5 h-5" />
                               </button>
                               {isImageFile(file) && (
                                 <button
                                   onClick={() => setPreviewFile(file)}
-                                  className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                  className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
                                   title="معاينة"
                                 >
-                                  <Image className="w-4 h-4" />
+                                  <Image className="w-5 h-5" />
                                 </button>
                               )}
                               <button
                                 onClick={() => handleDelete(file.id, file.fileName)}
                                 disabled={deletingId === file.id}
-                                className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors disabled:opacity-50"
+                                className="p-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors disabled:opacity-50"
                                 title="نقل إلى سلة المهملات"
                               >
                                 {deletingId === file.id ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  <Loader2 className="w-5 h-5 animate-spin" />
                                 ) : (
-                                  <Trash2 className="w-4 h-4" />
+                                  <Trash2 className="w-5 h-5" />
                                 )}
                               </button>
                             </div>
@@ -575,16 +592,16 @@ export function StorageIntegrations() {
             )}
 
             {fileView === 'trash' && (
-              <div className="max-h-64 overflow-y-auto">
-                <p className="px-4 py-2 text-[10px] text-muted-foreground border-b border-border">
-                  الملفات هنا تُحذف نهائياً بعد 30 يوماً. يمكنك استردادها قبل انتهاء المدة.
+              <div className="max-h-80 overflow-y-auto">
+                <p className="px-5 py-3 text-sm text-muted-foreground border-b border-border">
+                  الملفات هنا تُحذف نهائياً بعد 30 يوماً. يمكنك استردادها أو حذفها نهائياً الآن.
                 </p>
                 {trashFiles.length === 0 ? (
-                  <div className="py-8 text-center">
-                    <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center mx-auto mb-2">
-                      <Trash className="w-5 h-5 text-muted-foreground/50" />
+                  <div className="py-12 text-center">
+                    <div className="w-14 h-14 bg-muted rounded-xl flex items-center justify-center mx-auto mb-3">
+                      <Trash className="w-7 h-7 text-muted-foreground/50" />
                     </div>
-                    <p className="text-muted-foreground text-xs">سلة المهملات فارغة</p>
+                    <p className="text-muted-foreground text-sm">سلة المهملات فارغة</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-border">
@@ -594,44 +611,59 @@ export function StorageIntegrations() {
                       return (
                         <div
                           key={file.id}
-                          className="px-4 py-2.5 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                          className="px-5 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
                         >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="w-8 h-8 rounded-lg bg-muted/80 flex items-center justify-center shrink-0">
-                              <Icon className="w-4 h-4 text-muted-foreground" />
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-10 h-10 rounded-xl bg-muted/80 flex items-center justify-center shrink-0">
+                              <Icon className="w-5 h-5 text-muted-foreground" />
                             </div>
                             <div className="min-w-0">
-                              <p className="text-xs font-medium text-foreground truncate">{file.fileName}</p>
-                              <p className="text-[10px] text-muted-foreground">
+                              <p className="text-sm font-medium text-foreground truncate">{file.fileName}</p>
+                              <p className="text-xs text-muted-foreground">
                                 {getCategoryLabel(file.category)} • {formatBytes(file.fileSize)}
                                 {daysLeft !== null && (
                                   <span className="text-amber-600 dark:text-amber-400">
-                                    {' '}• يُحذف نهائياً بعد {daysLeft} يوم
+                                    {' '}• يُحذف تلقائياً بعد {daysLeft} يوم
                                   </span>
                                 )}
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-0.5">
+                          <div className="flex items-center gap-1">
                             <button
                               onClick={() => handleDownload(file)}
-                              className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                              className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                               title="تنزيل"
                             >
-                              <Download className="w-4 h-4" />
+                              <Download className="w-5 h-5" />
                             </button>
                             <button
                               onClick={() => handleRestore(file.id, file.fileName)}
                               disabled={restoringId === file.id}
-                              className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1"
+                              className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5"
                               title="استرداد الملف"
                             >
                               {restoringId === file.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <Loader2 className="w-5 h-5 animate-spin" />
                               ) : (
                                 <>
-                                  <RotateCcw className="w-4 h-4" />
-                                  <span className="text-[10px]">استرداد</span>
+                                  <RotateCcw className="w-5 h-5" />
+                                  <span className="text-xs hidden sm:inline">استرداد</span>
+                                </>
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handlePermanentDelete(file.id, file.fileName)}
+                              disabled={permanentDeletingId === file.id}
+                              className="p-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                              title="حذف نهائي (بدون انتظار 30 يوم)"
+                            >
+                              {permanentDeletingId === file.id ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                              ) : (
+                                <>
+                                  <Trash className="w-5 h-5" />
+                                  <span className="text-xs hidden sm:inline">حذف نهائي</span>
                                 </>
                               )}
                             </button>
