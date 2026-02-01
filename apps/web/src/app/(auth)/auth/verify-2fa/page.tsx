@@ -17,6 +17,7 @@ import {
   Smartphone
 } from 'lucide-react';
 import { setCsrfToken, resetRefreshState, scheduleSilentRefresh } from '@/lib/api/client';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // OTP Input Component
 function OTPInput({ 
@@ -318,12 +319,10 @@ function Verify2FAContent() {
 
       {/* تذكر هذا الجهاز */}
       {!useBackupCode && (
-        <label className="flex items-center gap-2 mb-5 cursor-pointer text-sm text-zinc-600 dark:text-zinc-400">
-          <input
-            type="checkbox"
+        <label className="flex items-center gap-3 mb-5 cursor-pointer text-sm text-zinc-600 dark:text-zinc-400">
+          <Checkbox
             checked={rememberDevice}
-            onChange={(e) => setRememberDevice(e.target.checked)}
-            className="rounded border-zinc-300 dark:border-zinc-600 text-blue-600 focus:ring-blue-500"
+            onCheckedChange={(checked) => setRememberDevice(checked)}
           />
           <span>تذكر هذا الجهاز (تخطي 2FA في المرات القادمة)</span>
         </label>

@@ -16,11 +16,20 @@ import {
   ChevronDown,
   Globe,
   Clock,
+  Check,
+  CheckSquare,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSecuritySettings, SecurityLog } from '@/lib/hooks/settings/useSecuritySettings';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const ACTION_LABELS: Record<string, string> = {
   'LOGIN_SUCCESS': 'تسجيل دخول',
@@ -62,7 +71,6 @@ export function SecurityLogs() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedLogs, setSelectedLogs] = useState<string[]>([]);
   const [filterAction, setFilterAction] = useState<string>('');
-  const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
@@ -174,78 +182,76 @@ export function SecurityLogs() {
         </div>
 
         {/* Filter & Actions Bar */}
-        <div className="px-4 pb-4 flex items-center gap-2">
+        <div className="px-4 pb-4 flex flex-wrap items-center gap-2">
           {/* Filter Dropdown */}
-          <div className="relative flex-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={cn(
+                  "flex items-center gap-2 h-11 px-4 rounded-full text-sm font-medium transition-all border",
+                  filterAction 
+                    ? "bg-foreground text-background border-foreground" 
+                    : "bg-card text-foreground border-border/50 hover:border-border"
+                )}
+              >
+                <Filter className="w-4 h-4" />
+                <span className="truncate">{filterAction ? ACTION_LABELS[filterAction] || filterAction : 'فلتر'}</span>
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="min-w-[160px] rounded-2xl">
+              {[
+                { value: '', label: 'جميع الأحداث' },
+                { value: 'LOGIN_SUCCESS', label: 'تسجيل دخول' },
+                { value: 'LOGIN_FAILED', label: 'دخول فاشل' },
+                { value: 'PROFILE_UPDATE', label: 'تحديث الملف' },
+                { value: 'TWO_FA_ENABLED', label: 'تفعيل 2FA' },
+              ].map((option) => (
+                <DropdownMenuItem
+                  key={option.value}
+                  onClick={() => {
+                    setFilterAction(option.value);
+                    setPage(1);
+                  }}
+                  className={cn("text-sm cursor-pointer flex items-center justify-between", filterAction === option.value && "bg-muted font-medium")}
+                >
+                  <span>{option.label}</span>
+                  {filterAction === option.value && <Check className="w-4 h-4" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Select All Button */}
+          {logs.length > 0 && (
             <button
-              onClick={() => setShowFilterMenu(!showFilterMenu)}
+              onClick={toggleSelectAll}
               className={cn(
-                "w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-sm transition-colors",
-                filterAction 
-                  ? "bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300" 
-                  : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
+                "flex items-center gap-2 h-11 px-4 rounded-full text-sm font-medium transition-all border",
+                selectedLogs.length === logs.length
+                  ? "bg-foreground text-background border-foreground"
+                  : "bg-card text-foreground border-border/50 hover:border-border"
               )}
             >
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4" />
-                <span className="truncate">{filterAction ? ACTION_LABELS[filterAction] || filterAction : 'الكل'}</span>
-              </div>
-              <ChevronDown className={cn("w-4 h-4 transition-transform shrink-0", showFilterMenu && "rotate-180")} />
-            </button>
-
-            <AnimatePresence>
-              {showFilterMenu && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  className="absolute inset-x-0 mt-2 bg-white dark:bg-zinc-900 rounded-xl shadow-lg border border-zinc-200 dark:border-zinc-700 overflow-hidden z-50"
-                >
-                  {[
-                    { value: '', label: 'جميع الأحداث' },
-                    { value: 'LOGIN_SUCCESS', label: 'تسجيل دخول' },
-                    { value: 'LOGIN_FAILED', label: 'دخول فاشل' },
-                    { value: 'PROFILE_UPDATE', label: 'تحديث الملف' },
-                    { value: 'TWO_FA_ENABLED', label: 'تفعيل 2FA' },
-                  ].map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => {
-                        setFilterAction(option.value);
-                        setPage(1);
-                        setShowFilterMenu(false);
-                      }}
-                      className={cn(
-                        "w-full px-4 py-3 text-right text-sm flex items-center justify-between",
-                        filterAction === option.value 
-                          ? "bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300" 
-                          : "text-zinc-700 dark:text-zinc-300 active:bg-zinc-100 dark:active:bg-zinc-800"
-                      )}
-                    >
-                      <span>{option.label}</span>
-                      {filterAction === option.value && <CheckCircle className="w-4 h-4" />}
-                    </button>
-                  ))}
-                </motion.div>
+              {selectedLogs.length === logs.length ? (
+                <X className="w-4 h-4" />
+              ) : (
+                <CheckSquare className="w-4 h-4" />
               )}
-            </AnimatePresence>
-          </div>
+              {selectedLogs.length > 0 ? `محدد (${selectedLogs.length})` : 'تحديد الكل'}
+            </button>
+          )}
 
           {/* Delete Selected */}
-          <AnimatePresence>
-            {selectedLogs.length > 0 && (
-              <motion.button
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                onClick={handleDeleteSelected}
-                className="flex items-center gap-2 px-3 py-2.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl text-sm shrink-0"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>{selectedLogs.length}</span>
-              </motion.button>
-            )}
-          </AnimatePresence>
+          {selectedLogs.length > 0 && (
+            <button
+              onClick={handleDeleteSelected}
+              className="flex items-center gap-2 h-11 px-4 rounded-full text-sm font-medium bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              حذف ({selectedLogs.length})
+            </button>
+          )}
         </div>
       </motion.div>
 
@@ -288,14 +294,14 @@ export function SecurityLogs() {
                     <button
                       onClick={() => toggleSelectLog(log.id)}
                       className={cn(
-                        "w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors",
+                        "w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all",
                         selectedLogs.includes(log.id)
-                          ? "bg-violet-500 border-violet-500"
-                          : "border-zinc-300 dark:border-zinc-600"
+                          ? "bg-primary border-primary text-primary-foreground"
+                          : "border-border hover:border-primary/50"
                       )}
                     >
                       {selectedLogs.includes(log.id) && (
-                        <CheckCircle className="w-3 h-3 text-white" />
+                        <Check className="w-3 h-3" />
                       )}
                     </button>
 

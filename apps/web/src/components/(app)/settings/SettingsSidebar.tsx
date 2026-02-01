@@ -166,29 +166,29 @@ function SettingsSidebarContent({ onItemClick }: { onItemClick?: () => void }) {
 
   return (
     <>
-      <div className="p-3">
-        <div className="flex items-center gap-2 mb-3">
-          <Link href="/app" className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors" onClick={onItemClick}>
+      <div className="p-4 ">
+        <div className="flex items-center gap-3 mb-4">
+          <Link href="/app" className="p-2 rounded-xl hover:bg-muted/60 transition-colors" onClick={onItemClick}>
             <ArrowRight className="size-4 text-muted-foreground" />
           </Link>
-          <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Settings className="w-3.5 h-3.5 text-primary" />
+          <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Settings className="w-4 h-4 text-primary" />
           </div>
-          <span className="text-sm font-medium text-foreground">الإعدادات</span>
+          <span className="text-sm font-semibold text-foreground">الإعدادات</span>
         </div>
         <div className="relative">
-          <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="بحث..."
+            placeholder="بحث في الإعدادات..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pr-8 pl-3 py-1.5 rounded-lg bg-muted/50 border-0 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
+            className="w-full pr-10 pl-4 py-2.5 rounded-xl bg-muted/40 border border-border/30 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
           />
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {filteredSections.map((section) => {
           const isOpen = openSection === section.id;
           const SectionIcon = section.icon;
@@ -198,19 +198,19 @@ function SettingsSidebarContent({ onItemClick }: { onItemClick?: () => void }) {
                 type="button"
                 onClick={() => toggleSection(section.id)}
                 className={cn(
-                  'flex w-full items-center gap-2 rounded-lg p-2 text-right transition-colors',
-                  isOpen ? 'bg-muted/50 text-foreground' : 'text-muted-foreground hover:bg-muted/30 hover:text-foreground'
+                  'flex w-full items-center gap-2.5 rounded-xl p-2.5 text-right transition-all duration-200',
+                  isOpen ? 'bg-muted/60 text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted/40 hover:text-foreground'
                 )}
                 whileTap={{ scale: 0.98 }}
               >
                 <motion.div animate={{ rotate: isOpen ? -90 : 0 }} transition={{ duration: 0.2 }}>
-                  <ChevronLeft className="size-3 text-muted-foreground" />
+                  <ChevronLeft className="size-3.5 text-muted-foreground" />
                 </motion.div>
-                <div className={cn('w-6 h-6 rounded-md flex items-center justify-center', section.iconBg)}>
-                  <SectionIcon className={cn('size-3.5', section.iconColor)} />
+                <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center', section.iconBg)}>
+                  <SectionIcon className={cn('size-4', section.iconColor)} />
                 </div>
                 <span className="text-xs font-medium flex-1">{section.label}</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted/70 text-muted-foreground">{section.items.length}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground font-medium">{section.items.length}</span>
               </motion.button>
 
               <AnimatePresence initial={false}>
@@ -219,10 +219,10 @@ function SettingsSidebarContent({ onItemClick }: { onItemClick?: () => void }) {
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
                     className="overflow-hidden"
                   >
-                    <div className="py-1 pr-6 space-y-0.5">
+                    <div className="py-1.5 pr-7 space-y-1">
                       {section.items.map((item, index) => {
                         const Icon = item.icon;
                         const isActive = isItemActive(item.href);
@@ -232,16 +232,16 @@ function SettingsSidebarContent({ onItemClick }: { onItemClick?: () => void }) {
                               href={item.href}
                               onClick={onItemClick}
                               className={cn(
-                                'flex items-center gap-2 rounded-lg px-2.5 py-1.5 transition-colors',
-                                isActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                                'flex items-center gap-2.5 rounded-xl px-3 py-2 transition-all duration-200',
+                                isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                               )}
                             >
-                              <Icon className="size-3.5 shrink-0" />
-                              <span className="text-xs flex-1">{item.label}</span>
+                              <Icon className="size-4 shrink-0" />
+                              <span className="text-xs font-medium flex-1">{item.label}</span>
                               {item.badge && (
                                 <span
                                   className={cn(
-                                    'px-1.5 py-0.5 text-[9px] font-medium rounded-full',
+                                    'px-2 py-0.5 text-[9px] font-semibold rounded-full',
                                     isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-primary/10 text-primary'
                                   )}
                                 >
@@ -268,16 +268,16 @@ function SettingsSidebarContent({ onItemClick }: { onItemClick?: () => void }) {
         )}
       </nav>
 
-      <div className="p-2 border-t border-border/30">
+      <div className="p-3 border-t border-border/40">
         <Link href="/app/help" onClick={onItemClick}>
-          <div className="p-2.5 rounded-lg bg-info/5 border border-info/10 hover:bg-info/10 transition-colors">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-md bg-info/10 flex items-center justify-center shrink-0">
-                <HelpCircle className="w-3 h-3 text-info" />
+          <div className="p-3 rounded-xl bg-gradient-to-br from-info/5 to-info/10 border border-info/20 hover:from-info/10 hover:to-info/15 transition-all duration-200 group">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-info/15 flex items-center justify-center shrink-0 group-hover:bg-info/20 transition-colors">
+                <HelpCircle className="w-4 h-4 text-info" />
               </div>
               <div>
-                <p className="text-[11px] font-medium text-foreground">تحتاج مساعدة؟</p>
-                <p className="text-[10px] text-muted-foreground">الدعم الفني</p>
+                <p className="text-xs font-semibold text-foreground">تحتاج مساعدة؟</p>
+                <p className="text-[11px] text-muted-foreground">الدعم الفني متاح 24/7</p>
               </div>
             </div>
           </div>
@@ -293,7 +293,7 @@ function SettingsSidebarContent({ onItemClick }: { onItemClick?: () => void }) {
 
 export function SettingsSidebarDesktop() {
   return (
-    <aside className="hidden lg:flex flex-col shrink-0 w-[240px] mr-2 h-[calc(100svh-theme(spacing.4))] rounded-xl border border-border/40 bg-card">
+    <aside className="hidden lg:flex flex-col shrink-0 w-[260px] mr-2 h-full rounded-2xl border border-border/50 bg-card shadow-sm">
       <SettingsSidebarContent />
     </aside>
   );
@@ -334,7 +334,7 @@ export function SettingsSidebarSlider() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="fixed top-0 left-0 bottom-0 z-50 w-[280px] max-w-[85vw] flex flex-col rounded-l-2xl border-l border-t border-b border-border bg-card shadow-xl lg:hidden"
+              className="fixed top-0 left-0 bottom-0 z-50 w-[300px] max-w-[85vw] flex flex-col rounded-l-2xl border-l border-t border-b border-border/50 bg-card shadow-2xl lg:hidden"
               dir="rtl"
             >
               <div className="flex items-center justify-between p-3 border-b border-border/40">

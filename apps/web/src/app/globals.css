@@ -66,27 +66,27 @@
   
   /* Brand Colors - Primary (Blue) */
   --primary: #5E81F4;              /* Brand color for tabs, highlights, links */
-  --primary-filled: #4A6BC7;       /* Filled buttons */
-  --primary-hover: #3D5AA8;        /* Hover/Pressed state */
-  --primary-tint: #8FA6F7;         /* Light backgrounds */
+  --primary-filled: #4B6FD9;       /* Filled buttons - slightly darker */
+  --primary-hover: #3D5CC0;        /* Hover/Pressed state */
+  --primary-tint: #EEF2FE;         /* Light backgrounds */
   --primary-foreground: #FFFFFF;
   
   /* Info Color (Cyan) */
   --info: #40E1FA;
-  --info-filled: #2BB5C9;
+  --info-filled: #2ECCE5;
   --info-foreground: #FFFFFF;
   
   /* Semantic Colors */
   --success: #7CE7AC;
-  --success-filled: #50966F;
+  --success-filled: #5FD492;
   --success-foreground: #FFFFFF;
   
   --warning: #F4BE5E;
-  --warning-filled: #9E7B3D;
-  --warning-foreground: #FFFFFF;
+  --warning-filled: #E5A93D;
+  --warning-foreground: #1F2937;
   
   --destructive: #FF808B;
-  --destructive-filled: #A5535A;
+  --destructive-filled: #F25D6A;
   --destructive-foreground: #FFFFFF;
   
   /* Background & Surface */
@@ -103,11 +103,11 @@
   /* Secondary & Muted */
   --secondary: #F3F4F6;
   --secondary-foreground: #1F2937;
-  --muted: #F9FAFB;
+  --muted: #F3F4F6;
   --muted-foreground: #6B7280;
   
   /* Accent */
-  --accent: #8FA6F7;
+  --accent: #EEF2FE;
   --accent-foreground: #1F2937;
   
   /* Borders & Inputs */
@@ -125,9 +125,9 @@
   /* Sidebar */
   --sidebar: #FFFFFF;
   --sidebar-foreground: #1F2937;
-  --sidebar-primary: #4A6BC7;
+  --sidebar-primary: #5E81F4;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #8FA6F7;
+  --sidebar-accent: #EEF2FE;
   --sidebar-accent-foreground: #1F2937;
   --sidebar-border: #E5E7EB;
   --sidebar-ring: #5E81F4;
@@ -136,27 +136,27 @@
 .dark {
   /* Brand Colors - Primary (Blue) */
   --primary: #7A9AF7;              /* Lighter for dark mode */
-  --primary-filled: #5E81F4;
-  --primary-hover: #4A6BC7;
-  --primary-tint: #3D5AA8;
+  --primary-filled: #6B8BF5;
+  --primary-hover: #5A7AE8;
+  --primary-tint: #2A3A5C;
   --primary-foreground: #FFFFFF;
   
   /* Info Color (Cyan) */
   --info: #5CE8FC;
   --info-filled: #40E1FA;
-  --info-foreground: #FFFFFF;
+  --info-foreground: #0F172A;
   
   /* Semantic Colors */
-  --success: #7CE7AC;
-  --success-filled: #50966F;
-  --success-foreground: #FFFFFF;
+  --success: #8AEDB8;
+  --success-filled: #7CE7AC;
+  --success-foreground: #0F172A;
   
-  --warning: #F4BE5E;
-  --warning-filled: #9E7B3D;
-  --warning-foreground: #FFFFFF;
+  --warning: #F7CA7A;
+  --warning-filled: #F4BE5E;
+  --warning-foreground: #0F172A;
   
-  --destructive: #FF808B;
-  --destructive-filled: #A5535A;
+  --destructive: #FF9AA3;
+  --destructive-filled: #FF808B;
   --destructive-foreground: #FFFFFF;
   
   /* Background & Surface */
@@ -177,7 +177,7 @@
   --muted-foreground: #94A3B8;
   
   /* Accent */
-  --accent: #7A9AF7;
+  --accent: #2A3A5C;
   --accent-foreground: #F1F5F9;
   
   /* Borders & Inputs */
@@ -188,16 +188,16 @@
   /* Charts - Using brand colors */
   --chart-1: #7A9AF7;              /* Primary Blue */
   --chart-2: #5CE8FC;              /* Info Cyan */
-  --chart-3: #7CE7AC;              /* Success Green */
-  --chart-4: #F4BE5E;              /* Warning Yellow */
-  --chart-5: #FF808B;              /* Destructive Red */
+  --chart-3: #8AEDB8;              /* Success Green */
+  --chart-4: #F7CA7A;              /* Warning Yellow */
+  --chart-5: #FF9AA3;              /* Destructive Red */
   
   /* Sidebar */
   --sidebar: #1E293B;
   --sidebar-foreground: #F1F5F9;
-  --sidebar-primary: #5E81F4;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #7A9AF7;
+  --sidebar-primary: #7A9AF7;
+  --sidebar-primary-foreground: #0F172A;
+  --sidebar-accent: #2A3A5C;
   --sidebar-accent-foreground: #F1F5F9;
   --sidebar-border: rgba(255, 255, 255, 0.1);
   --sidebar-ring: #7A9AF7;

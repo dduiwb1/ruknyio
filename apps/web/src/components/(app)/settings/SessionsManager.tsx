@@ -10,13 +10,21 @@ import {
   Trash2,
   LogOut,
   Loader2,
-  AlertTriangle,
   CheckCircle,
   MapPin,
-  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSecuritySettings, Session } from '@/lib/hooks/settings/useSecuritySettings';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
@@ -74,7 +82,7 @@ export function SessionsManager() {
 
   return (
     <>
-      <div className="bg-card rounded-xl border border-border overflow-hidden">
+      <div className="bg-card rounded-4xl border border-border overflow-hidden">
         {/* Header */}
         <div className="p-4 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -90,7 +98,7 @@ export function SessionsManager() {
           {otherSessionsCount > 0 && (
             <button
               onClick={() => setShowConfirmModal(true)}
-              className="flex items-center gap-2 px-3 py-2 bg-destructive/10 text-destructive rounded-lg text-xs font-medium hover:bg-destructive/20 transition-colors"
+              className="flex items-center gap-2 h-10 px-4 rounded-full bg-destructive/10 text-destructive border border-destructive/20 text-xs font-medium hover:bg-destructive/20 transition-colors"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">إنهاء الكل</span>
@@ -187,64 +195,34 @@ export function SessionsManager() {
         </div>
       </div>
 
-      {/* Confirm Modal */}
-      {showConfirmModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-          onClick={() => setShowConfirmModal(false)}
-        >
-          <div
-            className="w-full max-w-sm bg-card rounded-xl overflow-hidden border border-border"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="p-4 border-b border-border flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-destructive/10 rounded-lg flex items-center justify-center">
-                  <AlertTriangle className="w-4 h-4 text-destructive" />
-                </div>
-                <span className="font-semibold text-sm text-foreground">تأكيد الإنهاء</span>
-              </div>
-              <button
-                onClick={() => setShowConfirmModal(false)}
-                className="p-1.5 hover:bg-muted rounded-lg transition-colors"
-              >
-                <X className="w-4 h-4 text-muted-foreground" />
-              </button>
-            </div>
-
-            <div className="p-4">
-              <div className="mb-4 p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
-                <p className="text-foreground/80 text-xs leading-relaxed">
-                  سيتم إنهاء <span className="font-bold text-destructive">{otherSessionsCount}</span> جلسة أخرى. ستحتاج لتسجيل الدخول مجدداً على تلك الأجهزة.
-                </p>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowConfirmModal(false)}
-                  className="flex-1 py-2.5 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 transition-colors text-xs"
-                >
-                  إلغاء
-                </button>
-                <button
-                  onClick={handleDeleteAll}
-                  disabled={deletingAll}
-                  className="flex-1 py-2.5 bg-destructive text-destructive-foreground rounded-lg font-medium hover:bg-destructive/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-xs"
-                >
-                  {deletingAll ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <>
-                      <LogOut className="w-3.5 h-3.5" />
-                      تأكيد الإنهاء
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Confirm Modal using AlertDialog */}
+      <AlertDialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
+        <AlertDialogContent dir="rtl" className="max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right">
+              هل أنت متأكد؟
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-right">
+              سيتم إنهاء <span className="font-semibold text-foreground">{otherSessionsCount}</span> جلسة أخرى. 
+              ستحتاج لتسجيل الدخول مجدداً على تلك الأجهزة.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row gap-3 sm:flex-row sm:justify-end">
+            <AlertDialogCancel className="mt-0">إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAll}
+              disabled={deletingAll}
+              className="bg-foreground text-background hover:bg-foreground/90"
+            >
+              {deletingAll ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                'متابعة'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

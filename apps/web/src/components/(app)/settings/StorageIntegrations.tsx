@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   HardDrive, 
   FileImage, 
@@ -19,14 +20,45 @@ import {
   Search,
   ArrowUpDown,
   Download,
-  X
+  X,
+  CheckSquare,
+  Check as CheckIcon
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useStorage, formatBytes, getCategoryLabel, FileCategory, UserFile } from '@/lib/hooks/settings/useStorage';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+} from '@/components/ui/dialog';
 
 type SortBy = 'date' | 'name' | 'size';
 type SortOrder = 'asc' | 'desc';
+
+// Confirmation dialog state type
+interface ConfirmState {
+  open: boolean;
+  type: 'delete' | 'permanentDelete' | 'bulkDelete';
+  fileId?: string;
+  fileName?: string;
+  count?: number;
+}
 
 export function StorageIntegrations() {
   const { 
@@ -51,10 +83,12 @@ export function StorageIntegrations() {
   const [permanentDeletingId, setPermanentDeletingId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<FileCategory | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
   const [sortBy, setSortBy] = useState<SortBy>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [previewFile, setPreviewFile] = useState<UserFile | null>(null);
+  const [confirmState, setConfirmState] = useState<ConfirmState>({ open: false, type: 'delete' });
 
   useEffect(() => {
     getStorageUsage();
@@ -87,22 +121,76 @@ export function StorageIntegrations() {
     loadFiles(category === 'ALL' ? undefined : category);
   };
 
-  const handleDelete = async (fileId: string, fileName: string) => {
-    if (!confirm(`نقل "${fileName}" إلى سلة المهملات؟ سيُحذف نهائياً بعد 30 يوماً.`)) return;
-    
-    setDeletingId(fileId);
-    const success = await deleteFile(fileId);
-    
-    if (success) {
-      toast.success('تم نقل الملف إلى سلة المهملات (يُحذف نهائياً بعد 30 يوم)');
-      setFiles(files.filter(f => f.id !== fileId));
-      setTotalFiles(prev => prev - 1);
+  // Open confirmation dialog for single file delete
+  const openDeleteConfirm = (fileId: string, fileName: string) => {
+    setConfirmState({ open: true, type: 'delete', fileId, fileName });
+  };
+
+  // Open confirmation dialog for permanent delete
+  const openPermanentDeleteConfirm = (fileId: string, fileName: string) => {
+    setConfirmState({ open: true, type: 'permanentDelete', fileId, fileName });
+  };
+
+  // Open confirmation dialog for bulk delete
+  const openBulkDeleteConfirm = () => {
+    if (selectedIds.size === 0) return;
+    setConfirmState({ open: true, type: 'bulkDelete', count: selectedIds.size });
+  };
+
+  // Close confirmation dialog
+  const closeConfirm = () => {
+    setConfirmState({ open: false, type: 'delete' });
+  };
+
+  // Execute delete action after confirmation
+  const executeDelete = async () => {
+    const { type, fileId, fileName } = confirmState;
+    closeConfirm();
+
+    if (type === 'delete' && fileId) {
+      setDeletingId(fileId);
+      const success = await deleteFile(fileId);
+      
+      if (success) {
+        toast.success('تم نقل الملف إلى سلة المهملات');
+        setFiles(files.filter(f => f.id !== fileId));
+        setTotalFiles(prev => prev - 1);
+        loadTrash();
+      } else {
+        toast.error('فشل في حذف الملف');
+      }
+      setDeletingId(null);
+    } else if (type === 'permanentDelete' && fileId) {
+      setPermanentDeletingId(fileId);
+      const success = await permanentDeleteFile(fileId);
+      if (success) {
+        toast.success('تم الحذف النهائي للملف');
+        setTrashFiles(trashFiles.filter(f => f.id !== fileId));
+        setTotalTrash(prev => prev - 1);
+        getStorageUsage();
+      } else {
+        toast.error('فشل في الحذف النهائي');
+      }
+      setPermanentDeletingId(null);
+    } else if (type === 'bulkDelete') {
+      let ok = 0;
+      for (const id of selectedIds) {
+        const success = await deleteFile(id);
+        if (success) {
+          ok++;
+          setFiles((prev) => prev.filter((f) => f.id !== id));
+          setTotalFiles((p) => p - 1);
+        }
+      }
+      setSelectedIds(new Set());
       loadTrash();
-    } else {
-      toast.error('فشل في حذف الملف');
+      getStorageUsage();
+      toast.success(`تم نقل ${ok} ملف إلى سلة المهملات`);
     }
-    
-    setDeletingId(null);
+  };
+
+  const handleDelete = (fileId: string, fileName: string) => {
+    openDeleteConfirm(fileId, fileName);
   };
 
   const handleRestore = async (fileId: string, fileName: string) => {
@@ -121,19 +209,8 @@ export function StorageIntegrations() {
     setRestoringId(null);
   };
 
-  const handlePermanentDelete = async (fileId: string, fileName: string) => {
-    if (!confirm(`حذف "${fileName}" نهائياً؟ لا يمكن التراجع عن هذا الإجراء.`)) return;
-    setPermanentDeletingId(fileId);
-    const success = await permanentDeleteFile(fileId);
-    if (success) {
-      toast.success('تم الحذف النهائي للملف');
-      setTrashFiles(trashFiles.filter(f => f.id !== fileId));
-      setTotalTrash(prev => prev - 1);
-      getStorageUsage();
-    } else {
-      toast.error('فشل في الحذف النهائي');
-    }
-    setPermanentDeletingId(null);
+  const handlePermanentDelete = (fileId: string, fileName: string) => {
+    openPermanentDeleteConfirm(fileId, fileName);
   };
 
   /** عدد الأيام المتبقية قبل الحذف النهائي (من تاريخ deletedAt + 30 يوم) */
@@ -178,22 +255,8 @@ export function StorageIntegrations() {
     else setSelectedIds(new Set(filteredAndSortedFiles.map((f) => f.id)));
   };
 
-  const handleDeleteSelected = async () => {
-    if (selectedIds.size === 0) return;
-    if (!confirm(`نقل ${selectedIds.size} ملف إلى سلة المهملات؟`)) return;
-    let ok = 0;
-    for (const id of selectedIds) {
-      const success = await deleteFile(id);
-      if (success) {
-        ok++;
-        setFiles((prev) => prev.filter((f) => f.id !== id));
-        setTotalFiles((p) => p - 1);
-      }
-    }
-    setSelectedIds(new Set());
-    loadTrash();
-    getStorageUsage();
-    toast.success(`تم نقل ${ok} ملف إلى سلة المهملات`);
+  const handleDeleteSelected = () => {
+    openBulkDeleteConfirm();
   };
 
   const handleDownload = (file: UserFile) => {
@@ -242,8 +305,8 @@ export function StorageIntegrations() {
   if (isLoading && !usage) {
     return (
       <div className="flex flex-col items-center justify-center py-16">
-        <Loader2 className="w-10 h-10 animate-spin text-muted-foreground" />
-        <p className="text-muted-foreground text-sm mt-4">جاري تحميل معلومات التخزين...</p>
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        <p className="text-muted-foreground text-xs sm:text-sm mt-4">جاري تحميل معلومات التخزين...</p>
       </div>
     );
   }
@@ -252,14 +315,14 @@ export function StorageIntegrations() {
   if (error) {
     return (
       <div className="text-center py-16">
-        <div className="w-14 h-14 bg-destructive/10 rounded-xl flex items-center justify-center mx-auto mb-4">
-          <AlertTriangle className="w-8 h-8 text-destructive" />
+        <div className="w-12 h-12 bg-destructive/10 rounded-lg flex items-center justify-center mx-auto mb-4">
+          <AlertTriangle className="w-6 h-6 text-destructive" />
         </div>
-        <p className="text-foreground font-semibold text-base mb-1">فشل في التحميل</p>
-        <p className="text-muted-foreground text-sm mb-5">{error}</p>
+        <p className="text-foreground font-semibold text-sm sm:text-base mb-1">فشل في التحميل</p>
+        <p className="text-muted-foreground text-xs sm:text-sm mb-5">{error}</p>
         <button
           onClick={() => getStorageUsage()}
-          className="px-5 py-2.5 bg-primary text-primary-foreground text-sm font-medium rounded-xl hover:bg-primary/90 transition-colors"
+          className="px-4 py-2 bg-primary text-primary-foreground text-xs sm:text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
         >
           إعادة المحاولة
         </button>
@@ -268,37 +331,39 @@ export function StorageIntegrations() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Storage Card */}
-      <div className="bg-card rounded-2xl border border-border p-5 sm:p-6">
+      <div className="bg-card rounded-4xl border border-border/50 p-4 sm:p-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center">
-              <HardDrive className="w-6 h-6 text-violet-600" />
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <HardDrive className="w-5 h-5 text-primary" />
             </div>
-            <div>
-              <h3 className="font-semibold text-base text-foreground">مساحة التخزين</h3>
-              <p className="text-sm text-muted-foreground">إدارة الملفات المرفوعة</p>
+            <div className="min-w-0">
+              <h3 className="font-semibold text-sm sm:text-base text-foreground">مساحة التخزين</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground">إدارة الملفات المرفوعة</p>
             </div>
           </div>
           
           <button
             onClick={() => getStorageUsage()}
-            className="p-2.5 hover:bg-muted rounded-xl transition-colors"
+            disabled={isLoading}
+            className="p-2 hover:bg-muted/50 rounded-lg transition-colors disabled:opacity-50"
+            aria-label="تحديث"
           >
-            <RefreshCw className={cn("w-5 h-5 text-muted-foreground", isLoading && "animate-spin")} />
+            <RefreshCw className={cn("w-4 h-4 text-muted-foreground", isLoading && "animate-spin")} />
           </button>
         </div>
 
         {/* Progress */}
-        <div className="mb-5">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2.5">
+            <span className="text-xs sm:text-sm text-muted-foreground">
               {usage ? formatBytes(usage.used) : '0'} / {usage ? formatBytes(usage.limit) : '5 GB'}
             </span>
             <span className={cn(
-              "text-sm font-medium px-2 py-1 rounded-lg",
+              "text-xs font-semibold px-2.5 py-1 rounded-md",
               isCritical ? "bg-destructive/10 text-destructive" : isWarning ? "bg-amber-500/10 text-amber-600" : "bg-primary/10 text-primary"
             )}>
               {percentage}%
@@ -314,65 +379,35 @@ export function StorageIntegrations() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="text-center p-4 bg-muted/50 rounded-xl">
-            <p className="text-lg font-semibold text-foreground">{usage ? formatBytes(usage.used) : '0'}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">مستخدم</p>
+        <div className="grid grid-cols-3  gap-2 sm:gap-3">
+          <div className="text-center p-3 sm:p-4 bg-muted/40 rounded-2xl">
+            <p className="text-sm sm:text-base font-semibold text-foreground">{usage ? formatBytes(usage.used) : '0'}</p>
+            <p className="text-[11px] sm:text-xs text-muted-foreground mt-1">مستخدم</p>
             {usage?.trashUsed != null && usage.trashUsed > 0 && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                منها {formatBytes(usage.trashUsed)} في سلة المهملات
+              <p className="text-[10px] sm:text-xs text-amber-600 dark:text-amber-400 mt-1.5">
+                منها {formatBytes(usage.trashUsed)}
               </p>
             )}
           </div>
-          <div className="text-center p-4 bg-primary/5 rounded-xl">
-            <p className="text-lg font-semibold text-primary">{usage ? formatBytes(usage.available) : '0'}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">متبقي</p>
+          <div className="text-center p-3  sm:p-4 bg-primary/5 rounded-2xl">
+            <p className="text-sm sm:text-base font-semibold text-primary">{usage ? formatBytes(usage.available) : '0'}</p>
+            <p className="text-[11px] sm:text-xs text-muted-foreground mt-1">متبقي</p>
           </div>
-          <div className="text-center p-4 bg-muted/50 rounded-xl">
-            <p className="text-lg font-semibold text-foreground">{usage?.files || 0}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">ملف</p>
+          <div className="text-center p-3 sm:p-4 bg-muted/40 rounded-2xl">
+            <p className="text-sm sm:text-base font-semibold text-foreground">{usage?.files || 0}</p>
+            <p className="text-[11px] sm:text-xs text-muted-foreground mt-1">ملف</p>
           </div>
         </div>
 
-        {/* استخدام التخزين حسب النوع */}
-        {usage?.categoryBreakdown && Object.keys(usage.categoryBreakdown).length > 0 && (
-          <div className="mt-4 pt-4 border-t border-border">
-            <p className="text-sm text-muted-foreground mb-3">استخدام التخزين حسب النوع</p>
-            <div className="space-y-2">
-              {Object.entries(usage.categoryBreakdown)
-                .filter(([, size]) => size > 0)
-                .sort(([, a], [, b]) => b - a)
-                .map(([cat, size]) => {
-                  const pct = usage?.used ? Math.round((size / usage.used) * 100) : 0;
-                  return (
-                    <div key={cat} className="flex items-center gap-3">
-                      <span className="text-sm text-muted-foreground w-24 truncate">
-                        {getCategoryLabel(cat as FileCategory)}
-                      </span>
-                      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary rounded-full"
-                          style={{ width: `${Math.min(100, pct)}%` }}
-                        />
-                      </div>
-                      <span className="text-sm text-foreground w-16 text-left">
-                        {formatBytes(size)}
-                      </span>
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
-        )}
 
         {/* Warning */}
         {isWarning && (
           <div className={cn(
-            "mt-4 p-4 rounded-xl flex items-center gap-3",
+            "mt-6 p-3 sm:p-4 rounded-lg flex items-start gap-3",
             isCritical ? "bg-destructive/10 text-destructive" : "bg-amber-500/10 text-amber-600"
           )}>
-            <AlertTriangle className="w-5 h-5 shrink-0" />
-            <p className="text-sm">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <p className="text-xs sm:text-sm">
               {isCritical ? 'المساحة على وشك النفاد! قم بحذف بعض الملفات.' : 'المساحة تقترب من الحد الأقصى'}
             </p>
           </div>
@@ -380,16 +415,16 @@ export function StorageIntegrations() {
       </div>
 
       {/* Files Section */}
-      <div className="bg-card rounded-2xl border border-border overflow-hidden">
+      <div className="bg-card rounded-4xl border border-border/50 overflow-hidden">
         <button
           onClick={() => setShowFiles(!showFiles)}
-          className="w-full px-5 py-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+          className="w-full px-4 sm:px-6 py-4 flex items-center justify-between hover:bg-muted/30 transition-colors"
         >
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center">
-              <FileImage className="w-6 h-6 text-cyan-600" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <FileImage className="w-5 h-5 text-primary" />
             </div>
-            <span className="font-semibold text-base text-foreground">
+            <span className="font-semibold text-sm sm:text-base text-foreground">
               الملفات ({totalFiles}) {totalTrash > 0 && `• سلة المهملات (${totalTrash})`}
             </span>
           </div>
@@ -402,46 +437,48 @@ export function StorageIntegrations() {
         {showFiles && (
           <div>
             {/* Tabs: الملفات | سلة المهملات */}
-            <div className="px-5 pt-3 border-t border-border flex gap-2">
-              <button
-                onClick={() => { setFileView('active'); setSelectedIds(new Set()); }}
-                className={cn(
-                  "px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors",
-                  fileView === 'active'
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                )}
-              >
-                <FileImage className="w-4 h-4" />
-                الملفات ({totalFiles})
-              </button>
-              <button
-                onClick={() => { setFileView('trash'); setSelectedIds(new Set()); }}
-                className={cn(
-                  "px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors",
-                  fileView === 'trash'
-                    ? "bg-amber-500/20 text-amber-700 dark:text-amber-400"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                )}
-              >
-                <Trash className="w-4 h-4" />
-                سلة المهملات ({totalTrash})
-              </button>
+            <div className="px-4 sm:px-6 pt-4 border-t border-border/50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { setFileView('active'); setSelectedIds(new Set()); }}
+                  className={cn(
+                    "h-10 px-4 rounded-full text-sm font-medium flex items-center gap-2 transition-all border",
+                    fileView === 'active'
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card text-foreground border-border/50 hover:border-border"
+                  )}
+                >
+                  <FileImage className="w-4 h-4" />
+                  الملفات ({totalFiles})
+                </button>
+                <button
+                  onClick={() => { setFileView('trash'); setSelectedIds(new Set()); }}
+                  className={cn(
+                    "h-10 px-4 rounded-full text-sm font-medium flex items-center gap-2 transition-all border",
+                    fileView === 'trash'
+                      ? "bg-foreground text-background border-foreground"
+                      : "bg-card text-foreground border-border/50 hover:border-border"
+                  )}
+                >
+                  <Trash className="w-4 h-4" />
+                  سلة المهملات ({totalTrash})
+                </button>
+              </div>
             </div>
 
             {fileView === 'active' && (
               <>
                 {/* Category Filter */}
-                <div className="px-5 py-3 flex gap-2 overflow-x-auto">
+                <div className="px-4 sm:px-6 py-3 flex gap-2 overflow-x-auto">
                   {categories.map((cat) => (
                     <button
                       key={cat.id}
                       onClick={() => handleCategoryChange(cat.id)}
                       className={cn(
-                        "px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors",
+                        "h-10 px-4 rounded-full text-sm font-medium whitespace-nowrap transition-all border",
                         selectedCategory === cat.id
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                          ? "bg-foreground text-background border-foreground"
+                          : "bg-card text-foreground border-border/50 hover:border-border"
                       )}
                     >
                       {cat.label}
@@ -450,57 +487,126 @@ export function StorageIntegrations() {
                 </div>
 
                 {/* Search + Sort + Multi-delete */}
-                <div className="px-5 py-3 border-t border-border flex flex-wrap items-center gap-3">
-                  <div className="relative flex-1 min-w-[140px]">
-                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <input
-                      type="text"
-                      placeholder="بحث بالاسم..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pr-10 pl-3 py-2.5 text-sm bg-muted border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={`${sortBy}-${sortOrder}`}
-                      onChange={(e) => {
-                        const [s, o] = e.target.value.split('-') as [SortBy, SortOrder];
-                        setSortBy(s);
-                        setSortOrder(o);
-                      }}
-                      className="text-sm bg-muted border border-border rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="date-desc">الأحدث</option>
-                      <option value="date-asc">الأقدم</option>
-                      <option value="name-asc">الاسم أ–ي</option>
-                      <option value="name-desc">الاسم ي–أ</option>
-                      <option value="size-desc">الأكبر</option>
-                      <option value="size-asc">الأصغر</option>
-                    </select>
-                    <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                  {filteredAndSortedFiles.length > 0 && (
-                    <>
-                      <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                <div className="px-4 sm:px-6 py-3 border-t border-border/50 flex flex-wrap items-center gap-2">
+                  {/* Search Button / Input */}
+                  <AnimatePresence mode="wait">
+                    {searchQuery || showSearch ? (
+                      <motion.div
+                        key="search-input"
+                        initial={{ width: 44, opacity: 0 }}
+                        animate={{ width: 200, opacity: 1 }}
+                        exit={{ width: 44, opacity: 0 }}
+                        className="relative"
+                      >
                         <input
-                          type="checkbox"
-                          checked={selectedIds.size === filteredAndSortedFiles.length}
-                          onChange={toggleSelectAll}
-                          className="rounded border-border w-4 h-4"
+                          type="text"
+                          autoFocus
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="بحث بالاسم..."
+                          className="w-full h-11 pr-4 pl-10 bg-card rounded-full text-sm border border-border/50 focus:border-border focus:outline-none"
+                          onBlur={() => !searchQuery && setShowSearch(false)}
                         />
-                        تحديد الكل
-                      </label>
-                      {selectedIds.size > 0 && (
                         <button
-                          onClick={handleDeleteSelected}
-                          disabled={!!deletingId}
-                          className="px-3 py-2 text-sm font-medium rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50"
+                          onClick={() => { setSearchQuery(''); setShowSearch(false); }}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                         >
-                          حذف المحدد ({selectedIds.size})
+                          <X className="w-4 h-4" />
                         </button>
+                      </motion.div>
+                    ) : (
+                      <motion.button
+                        key="search-button"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setShowSearch(true)}
+                        className="flex items-center justify-center w-11 h-11 rounded-full bg-card border border-border/50 hover:border-border transition-colors"
+                      >
+                        <Search className="w-5 h-5 text-muted-foreground" />
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Sort Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="flex items-center gap-2 h-11 px-4 bg-card rounded-full border border-border/50 hover:border-border transition-colors">
+                        <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">ترتيب</span>
+                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="min-w-[140px] rounded-2xl">
+                      <DropdownMenuItem
+                        onClick={() => { setSortBy('date'); setSortOrder('desc'); }}
+                        className={cn("text-sm cursor-pointer", sortBy === 'date' && sortOrder === 'desc' && "bg-muted font-medium")}
+                      >
+                        الأحدث
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => { setSortBy('date'); setSortOrder('asc'); }}
+                        className={cn("text-sm cursor-pointer", sortBy === 'date' && sortOrder === 'asc' && "bg-muted font-medium")}
+                      >
+                        الأقدم
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => { setSortBy('name'); setSortOrder('asc'); }}
+                        className={cn("text-sm cursor-pointer", sortBy === 'name' && sortOrder === 'asc' && "bg-muted font-medium")}
+                      >
+                        الاسم أ–ي
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => { setSortBy('name'); setSortOrder('desc'); }}
+                        className={cn("text-sm cursor-pointer", sortBy === 'name' && sortOrder === 'desc' && "bg-muted font-medium")}
+                      >
+                        الاسم ي–أ
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => { setSortBy('size'); setSortOrder('desc'); }}
+                        className={cn("text-sm cursor-pointer", sortBy === 'size' && sortOrder === 'desc' && "bg-muted font-medium")}
+                      >
+                        الأكبر
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => { setSortBy('size'); setSortOrder('asc'); }}
+                        className={cn("text-sm cursor-pointer", sortBy === 'size' && sortOrder === 'asc' && "bg-muted font-medium")}
+                      >
+                        الأصغر
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* Select All Button */}
+                  {filteredAndSortedFiles.length > 0 && (
+                    <button
+                      onClick={toggleSelectAll}
+                      className={cn(
+                        "flex items-center gap-2 h-11 px-4 rounded-full text-sm font-medium transition-all border",
+                        selectedIds.size === filteredAndSortedFiles.length
+                          ? "bg-foreground text-background border-foreground"
+                          : "bg-card text-foreground border-border/50 hover:border-border"
                       )}
-                    </>
+                    >
+                      {selectedIds.size === filteredAndSortedFiles.length ? (
+                        <X className="w-4 h-4" />
+                      ) : (
+                        <CheckSquare className="w-4 h-4" />
+                      )}
+                      {selectedIds.size > 0 ? `محدد (${selectedIds.size})` : 'تحديد الكل'}
+                    </button>
+                  )}
+
+                  {/* Delete Selected Button */}
+                  {selectedIds.size > 0 && (
+                    <button
+                      onClick={handleDeleteSelected}
+                      disabled={!!deletingId}
+                      className="flex items-center gap-2 h-11 px-4 rounded-full text-sm font-medium bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20 transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      حذف ({selectedIds.size})
+                    </button>
                   )}
                 </div>
 
@@ -508,15 +614,15 @@ export function StorageIntegrations() {
                 <div className="max-h-80 overflow-y-auto">
                   {filteredAndSortedFiles.length === 0 ? (
                     <div className="py-12 text-center">
-                      <div className="w-14 h-14 bg-muted rounded-xl flex items-center justify-center mx-auto mb-3">
-                        <FileImage className="w-7 h-7 text-muted-foreground/50" />
+                      <div className="w-12 h-12 bg-muted/60 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <FileImage className="w-5 h-5 text-muted-foreground/60" />
                       </div>
-                      <p className="text-muted-foreground text-sm">
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         {files.length === 0 ? 'لا توجد ملفات' : 'لا توجد نتائج للبحث'}
                       </p>
                     </div>
                   ) : (
-                    <div className="divide-y divide-border">
+                    <div className="divide-y divide-border/50">
                       {filteredAndSortedFiles.map((file) => {
                         const Icon = getCategoryIcon(file.category);
                         const selected = selectedIds.has(file.id);
@@ -524,29 +630,34 @@ export function StorageIntegrations() {
                           <div
                             key={file.id}
                             className={cn(
-                              "px-5 py-3 flex items-center justify-between gap-3 hover:bg-muted/50 transition-colors",
+                              "px-4 sm:px-6 py-3 flex items-center justify-between gap-2 sm:gap-3 hover:bg-muted/30 transition-colors",
                               selected && "bg-primary/5"
                             )}
                           >
-                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                              <input
-                                type="checkbox"
-                                checked={selected}
-                                onChange={() => toggleSelect(file.id)}
-                                onClick={(e) => e.stopPropagation()}
-                                className="rounded border-border shrink-0 w-4 h-4"
-                              />
+                            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); toggleSelect(file.id); }}
+                                className={cn(
+                                  "w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all",
+                                  selected 
+                                    ? "bg-primary border-primary text-primary-foreground" 
+                                    : "border-border hover:border-primary/50"
+                                )}
+                              >
+                                {selected && <CheckIcon className="w-3 h-3" />}
+                              </button>
                               <button
                                 type="button"
                                 onClick={() => (isImageFile(file) ? setPreviewFile(file) : null)}
-                                className="flex items-center gap-3 min-w-0 flex-1 text-right"
+                                className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 text-right"
                               >
-                                <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
-                                  <Icon className="w-5 h-5 text-muted-foreground" />
+                                <div className="w-9 h-9 rounded-lg bg-muted/60 flex items-center justify-center shrink-0">
+                                  <Icon className="w-4 h-4 text-muted-foreground" />
                                 </div>
                                 <div className="min-w-0">
-                                  <p className="text-sm font-medium text-foreground truncate">{file.fileName}</p>
-                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                  <p className="text-xs sm:text-sm font-medium text-foreground truncate">{file.fileName}</p>
+                                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
                                     {getCategoryLabel(file.category)} • {formatBytes(file.fileSize)}
                                   </p>
                                 </div>
@@ -555,30 +666,30 @@ export function StorageIntegrations() {
                             <div className="flex items-center gap-1 shrink-0">
                               <button
                                 onClick={() => handleDownload(file)}
-                                className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
+                                className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                                 title="تنزيل"
                               >
-                                <Download className="w-5 h-5" />
+                                <Download className="w-4 h-4" />
                               </button>
                               {isImageFile(file) && (
                                 <button
                                   onClick={() => setPreviewFile(file)}
-                                  className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
+                                  className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors hidden sm:block"
                                   title="معاينة"
                                 >
-                                  <Image className="w-5 h-5" />
+                                  <Image className="w-4 h-4" />
                                 </button>
                               )}
                               <button
                                 onClick={() => handleDelete(file.id, file.fileName)}
                                 disabled={deletingId === file.id}
-                                className="p-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors disabled:opacity-50"
+                                className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors disabled:opacity-50"
                                 title="نقل إلى سلة المهملات"
                               >
                                 {deletingId === file.id ? (
-                                  <Loader2 className="w-5 h-5 animate-spin" />
+                                  <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
-                                  <Trash2 className="w-5 h-5" />
+                                  <Trash2 className="w-4 h-4" />
                                 )}
                               </button>
                             </div>
@@ -593,37 +704,37 @@ export function StorageIntegrations() {
 
             {fileView === 'trash' && (
               <div className="max-h-80 overflow-y-auto">
-                <p className="px-5 py-3 text-sm text-muted-foreground border-b border-border">
+                <p className="px-4 sm:px-6 py-3 text-xs sm:text-sm text-muted-foreground border-b border-border/50">
                   الملفات هنا تُحذف نهائياً بعد 30 يوماً. يمكنك استردادها أو حذفها نهائياً الآن.
                 </p>
                 {trashFiles.length === 0 ? (
                   <div className="py-12 text-center">
-                    <div className="w-14 h-14 bg-muted rounded-xl flex items-center justify-center mx-auto mb-3">
-                      <Trash className="w-7 h-7 text-muted-foreground/50" />
+                    <div className="w-12 h-12 bg-muted/60 rounded-lg flex items-center justify-center mx-auto mb-3">
+                      <Trash className="w-5 h-5 text-muted-foreground/60" />
                     </div>
-                    <p className="text-muted-foreground text-sm">سلة المهملات فارغة</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">سلة المهملات فارغة</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-border">
+                  <div className="divide-y divide-border/50">
                     {trashFiles.map((file) => {
                       const Icon = getCategoryIcon(file.category);
                       const daysLeft = getDaysUntilPermanentDelete(file.deletedAt);
                       return (
                         <div
                           key={file.id}
-                          className="px-5 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                          className="px-4 sm:px-6 py-3 flex items-center justify-between gap-2 sm:gap-3 hover:bg-muted/30 transition-colors"
                         >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-10 h-10 rounded-xl bg-muted/80 flex items-center justify-center shrink-0">
-                              <Icon className="w-5 h-5 text-muted-foreground" />
+                          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                            <div className="w-9 h-9 rounded-lg bg-muted/60 flex items-center justify-center shrink-0">
+                              <Icon className="w-4 h-4 text-muted-foreground" />
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-medium text-foreground truncate">{file.fileName}</p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs sm:text-sm font-medium text-foreground truncate">{file.fileName}</p>
+                              <p className="text-[10px] sm:text-xs text-muted-foreground">
                                 {getCategoryLabel(file.category)} • {formatBytes(file.fileSize)}
                                 {daysLeft !== null && (
                                   <span className="text-amber-600 dark:text-amber-400">
-                                    {' '}• يُحذف تلقائياً بعد {daysLeft} يوم
+                                    {' '}• بعد {daysLeft}d
                                   </span>
                                 )}
                               </p>
@@ -632,39 +743,33 @@ export function StorageIntegrations() {
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => handleDownload(file)}
-                              className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                              className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                               title="تنزيل"
                             >
-                              <Download className="w-5 h-5" />
+                              <Download className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleRestore(file.id, file.fileName)}
                               disabled={restoringId === file.id}
-                              className="p-2.5 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                              className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-colors disabled:opacity-50 hidden sm:block"
                               title="استرداد الملف"
                             >
                               {restoringId === file.id ? (
-                                <Loader2 className="w-5 h-5 animate-spin" />
+                                <Loader2 className="w-4 h-4 animate-spin" />
                               ) : (
-                                <>
-                                  <RotateCcw className="w-5 h-5" />
-                                  <span className="text-xs hidden sm:inline">استرداد</span>
-                                </>
+                                <RotateCcw className="w-4 h-4" />
                               )}
                             </button>
                             <button
                               onClick={() => handlePermanentDelete(file.id, file.fileName)}
                               disabled={permanentDeletingId === file.id}
-                              className="p-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5"
-                              title="حذف نهائي (بدون انتظار 30 يوم)"
+                              className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors disabled:opacity-50"
+                              title="حذف نهائي"
                             >
                               {permanentDeletingId === file.id ? (
-                                <Loader2 className="w-5 h-5 animate-spin" />
+                                <Loader2 className="w-4 h-4 animate-spin" />
                               ) : (
-                                <>
-                                  <Trash className="w-5 h-5" />
-                                  <span className="text-xs hidden sm:inline">حذف نهائي</span>
-                                </>
+                                <Trash className="w-4 h-4" />
                               )}
                             </button>
                           </div>
@@ -679,32 +784,30 @@ export function StorageIntegrations() {
         )}
       </div>
 
-      {/* معاينة الصورة في مودال */}
-      {previewFile && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-          onClick={() => setPreviewFile(null)}
+      {/* معاينة الصورة في Dialog */}
+      <Dialog open={!!previewFile} onOpenChange={(open) => !open && setPreviewFile(null)}>
+        <DialogContent 
+          dir="rtl" 
+          className="max-w-[90vw] max-h-[90vh] p-0 bg-transparent border-none shadow-none"
+          showCloseButton={false}
         >
-          <div
-            className="relative max-w-[90vw] max-h-[90vh] flex items-center justify-center"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="relative flex items-center justify-center">
             <button
               onClick={() => setPreviewFile(null)}
-              className="absolute -top-10 left-0 p-2 rounded-lg bg-muted text-foreground hover:bg-muted/80"
+              className="absolute -top-10 left-0 p-2 rounded-lg bg-background text-foreground hover:bg-muted transition-colors border border-border"
               aria-label="إغلاق"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
-            {isImageFile(previewFile) ? (
+            {previewFile && isImageFile(previewFile) ? (
               <img
                 src={previewFile.url}
                 alt={previewFile.fileName}
-                className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-xl"
+                className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-lg"
               />
-            ) : (
-              <div className="bg-card rounded-lg p-6 text-center">
-                <File className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+            ) : previewFile && (
+              <div className="bg-card rounded-lg p-6 text-center border border-border">
+                <File className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
                 <p className="text-sm text-foreground mb-2">{previewFile.fileName}</p>
                 <p className="text-xs text-muted-foreground mb-4">{formatBytes(previewFile.fileSize)}</p>
                 <a
@@ -718,8 +821,49 @@ export function StorageIntegrations() {
               </div>
             )}
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={confirmState.open} onOpenChange={(open) => !open && closeConfirm()}>
+        <AlertDialogContent dir="rtl" className="max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right">
+              {confirmState.type === 'permanentDelete' ? 'هل أنت متأكد تماماً؟' : 'هل أنت متأكد؟'}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-right text-muted-foreground">
+              {confirmState.type === 'delete' && (
+                <>
+                  سيتم نقل <span className="font-semibold text-foreground">"{confirmState.fileName}"</span> إلى سلة المهملات.
+                  <br />
+                  <span className="text-xs">سيُحذف نهائياً بعد 30 يوماً.</span>
+                </>
+              )}
+              {confirmState.type === 'permanentDelete' && (
+                <>
+                  لا يمكن التراجع عن هذا الإجراء. سيتم حذف <span className="font-semibold text-foreground">"{confirmState.fileName}"</span> نهائياً من الخوادم.
+                </>
+              )}
+              {confirmState.type === 'bulkDelete' && (
+                <>
+                  سيتم نقل <span className="font-semibold text-foreground">{confirmState.count} ملف</span> إلى سلة المهملات.
+                  <br />
+                  <span className="text-xs">ستُحذف نهائياً بعد 30 يوماً.</span>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row gap-3 sm:flex-row sm:justify-end">
+            <AlertDialogCancel className="mt-0">إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={executeDelete}
+              className="bg-foreground text-background hover:bg-foreground/90"
+            >
+              متابعة
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

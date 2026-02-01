@@ -556,27 +556,6 @@ function SettingsContent() {
             </div>
           )}
 
-          {/* Desktop Header */}
-          {isMobile === false && currentCategoryInfo && currentSetting && (
-            <div className="mb-6 hidden lg:block animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-5">
-                <div
-                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${currentCategoryInfo.iconBg} shadow-lg`}
-                >
-                  <currentCategoryInfo.icon className={`h-6 w-6 ${currentCategoryInfo.iconColor}`} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="mb-1 flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">{currentCategoryInfo.title}</span>
-                    <ChevronLeft className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-base font-bold text-foreground">{currentSetting.label}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{currentSetting.description}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Content (detail view): hide on mobile list mode */}
           {!isListMode && (
             <div key={activeTab} className="min-w-0 flex-1 animate-in fade-in duration-150">

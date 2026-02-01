@@ -548,6 +548,7 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
     setIsSubmitting(true);
     setSubmitPhase('preparing');
     setShowLongWaitMessage(false);
+    let isRedirecting = false;
     longWaitTimeoutRef.current = setTimeout(() => {
       setShowLongWaitMessage(true);
       toast.info('الطلب يستغرق وقتاً. إن كان النموذج قد أُنشئ ستجده في قائمة النماذج.', { duration: 10000 });
@@ -625,25 +626,33 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
 
       if (!created?.id) {
         toast.error('تم إنشاء النموذج لكن لم نتمكن من نقلك لصفحة التعديل.');
+        setIsSubmitting(false);
+        setSubmitPhase('idle');
         return;
       }
 
       localStorage.removeItem(FORM_DRAFT_KEY);
       toast.success('تم إنشاء النموذج بنجاح، جاري التحويل...');
       setSubmitPhase('redirecting');
+      isRedirecting = true;
 
       await new Promise((r) => setTimeout(r, 600));
 
       router.replace(`/app/forms/${created.id}/edit`);
     } catch (error: any) {
       toast.error(error.message || 'فشل في إنشاء النموذج');
+      setIsSubmitting(false);
+      setSubmitPhase('idle');
     } finally {
       if (longWaitTimeoutRef.current) {
         clearTimeout(longWaitTimeoutRef.current);
         longWaitTimeoutRef.current = null;
       }
-      setIsSubmitting(false);
-      setSubmitPhase('idle');
+      // Only reset if not redirecting
+      if (!isRedirecting) {
+        setIsSubmitting(false);
+        setSubmitPhase('idle');
+      }
       setShowLongWaitMessage(false);
     }
   };

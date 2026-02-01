@@ -36,8 +36,8 @@ export function useGoogleSheets(): UseGoogleSheetsReturn {
       setIsLoading(true);
       setError(null);
       
-      const response = await secureFetch(buildApiPath(`/forms/${formId}/google-sheets/connect`), {
-        method: 'POST',
+      const response = await secureFetch(buildApiPath(`/integrations/google-sheets/connect/${formId}`), {
+        method: 'GET',
       });
       
       if (response.ok) {
@@ -96,7 +96,7 @@ export function useGoogleSheets(): UseGoogleSheetsReturn {
       setIsLoading(true);
       setError(null);
       
-      const response = await secureFetch(buildApiPath(`/forms/${formId}/google-sheets/export`), {
+      const response = await secureFetch(buildApiPath(`/integrations/google-sheets/export/${formId}`), {
         method: 'POST',
       });
       
@@ -118,7 +118,7 @@ export function useGoogleSheets(): UseGoogleSheetsReturn {
       setIsLoading(true);
       setError(null);
       
-      const response = await secureFetch(buildApiPath(`/forms/${formId}/google-sheets/auto-sync`), {
+      const response = await secureFetch(buildApiPath(`/integrations/google-sheets/auto-sync/${formId}`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled }),
@@ -142,7 +142,7 @@ export function useGoogleSheets(): UseGoogleSheetsReturn {
       setIsLoading(true);
       setError(null);
       
-      const response = await secureFetch(buildApiPath(`/forms/${formId}/google-sheets/create`), {
+      const response = await secureFetch(buildApiPath(`/integrations/google-sheets/new-spreadsheet/${formId}`), {
         method: 'POST',
       });
       
@@ -165,8 +165,8 @@ export function useGoogleSheets(): UseGoogleSheetsReturn {
       setIsLoading(true);
       setError(null);
       
-      const response = await secureFetch(buildApiPath(`/forms/${formId}/google-sheets/disconnect`), {
-        method: 'POST',
+      const response = await secureFetch(buildApiPath(`/integrations/google-sheets/disconnect/${formId}`), {
+        method: 'DELETE',
       });
       
       if (response.ok) {
@@ -187,8 +187,8 @@ export function useGoogleSheets(): UseGoogleSheetsReturn {
       setIsLoading(true);
       setError(null);
       
-      const response = await secureFetch(buildApiPath(`/forms/${formId}/google-sheets/reconnect`), {
-        method: 'POST',
+      const response = await secureFetch(buildApiPath(`/integrations/google-sheets/reconnect/${formId}`), {
+        method: 'GET',
       });
       
       if (response.ok) {

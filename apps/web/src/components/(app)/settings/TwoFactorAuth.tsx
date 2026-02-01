@@ -21,6 +21,12 @@ import {
 import { cn } from '@/lib/utils';
 import { useSecuritySettings } from '@/lib/hooks/settings/useSecuritySettings';
 import { useRouter } from 'next/navigation';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface TwoFactorAuthProps {
   isEnabled?: boolean;
@@ -373,302 +379,227 @@ export function TwoFactorAuth({ isEnabled: isEnabledProp, onStatusChange }: TwoF
         </div>
       </motion.div>
 
-      {/* Setup Modal - Enhanced */}
-      <AnimatePresence>
-        {showSetupModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
-            onClick={closeModal}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="w-full max-w-sm bg-white rounded-2xl overflow-hidden shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header */}
-              <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-l from-info/5 to-transparent">
-                <div className="flex items-center gap-3">
-                  {step === 'verify' && (
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setStep('qr')}
-                      className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                    >
-                      <ArrowLeft className="w-5 h-5 text-gray-500" />
-                    </motion.button>
-                  )}
-                  <div className="w-9 h-9 bg-gradient-to-br from-info to-info-filled rounded-xl flex items-center justify-center ">
-                    {step === 'qr' ? (
-                      <Scan className="w-4 h-4 text-white" />
-                    ) : (
-                      <Key className="w-4 h-4 text-white" />
-                    )}
-                  </div>
-                  <span className="font-bold text-gray-900">
-                    {step === 'qr' ? 'مسح الرمز' : 'إدخال الرمز'}
-                  </span>
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={closeModal}
-                  className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-400" />
-                </motion.button>
-              </div>
-
-              {/* Steps Indicator */}
-              <div className="px-5 pt-4">
-                <div className="flex items-center justify-center gap-2">
-                  <div className={cn(
-                    "w-8 h-1 rounded-full transition-colors",
-                    step === 'qr' ? "bg-info" : "bg-info/30"
-                  )} />
-                  <div className={cn(
-                    "w-8 h-1 rounded-full transition-colors",
-                    step === 'verify' ? "bg-info" : "bg-gray-200"
-                  )} />
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="p-5">
-                <AnimatePresence mode="wait">
-                  {step === 'qr' ? (
-                    <motion.div
-                      key="qr"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                    >
-                      <p className="text-sm text-gray-600 text-center mb-5">
-                        امسح الرمز باستخدام تطبيق المصادقة
-                      </p>
-
-                      {/* QR Code - Enhanced */}
-                      {qrCode && (
-                        <motion.div 
-                          initial={{ scale: 0.9 }}
-                          animate={{ scale: 1 }}
-                          className="flex justify-center mb-5"
-                        >
-                          <div className="p-4 bg-white border-2 border-gray-100 rounded-2xl ">
-                            <img src={qrCode} alt="QR Code" className="w-44 h-44" />
-                          </div>
-                        </motion.div>
-                      )}
-
-                      {/* Manual Entry - Enhanced */}
-                      <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl p-4 mb-5 border border-gray-100">
-                        <p className="text-xs text-gray-500 text-center mb-3 font-medium">
-                          أو أدخل الرمز يدوياً
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <code className="flex-1 bg-white px-3 py-2.5 rounded-xl text-xs font-mono text-center border border-gray-200 text-gray-900 truncate ">
-                            {secret}
-                          </code>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={copySecret}
-                            className={cn(
-                              "p-2.5 rounded-xl transition-all ",
-                              copied 
-                                ? "bg-info text-white" 
-                                : "bg-white border border-gray-200 text-gray-500 hover:bg-gray-50"
-                            )}
-                          >
-                            {copied ? (
-                              <Check className="w-4 h-4" />
-                            ) : (
-                              <Copy className="w-4 h-4" />
-                            )}
-                          </motion.button>
-                        </div>
-                      </div>
-
-                      <motion.button
-                        whileHover={{ scale: 1.01 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => setStep('verify')}
-                        className="w-full py-3 bg-gradient-to-r from-primary to-primary-hover text-white rounded-xl font-semibold hover:shadow-md transition-all text-sm"
-                      >
-                        التالي
-                      </motion.button>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="verify"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                    >
-                      <p className="text-sm text-gray-600 text-center mb-6">
-                        أدخل الرمز المكون من 6 أرقام من التطبيق
-                      </p>
-
-                      {/* OTP Input */}
-                      <div className="mb-6">
-                        <OTPInput
-                          value={verificationCode}
-                          onChange={setVerificationCode}
-                          disabled={isLoading}
-                        />
-                      </div>
-
-                      {error && (
-                        <motion.div 
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="mb-4 p-3 bg-destructive/10 rounded-xl flex items-center gap-2 text-destructive text-sm border border-destructive/20"
-                        >
-                          <AlertTriangle className="w-4 h-4 shrink-0" />
-                          <span>{error}</span>
-                        </motion.div>
-                      )}
-
-                      <motion.button
-                        whileHover={{ scale: 1.01 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={handleVerify}
-                        disabled={isLoading || verificationCode.length !== 6}
-                        className="w-full py-3 bg-gradient-to-r from-info to-info-filled text-white rounded-xl font-semibold hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
-                      >
-                        {isLoading ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <>
-                            <Shield className="w-4 h-4" />
-                            تفعيل المصادقة
-                          </>
-                        )}
-                      </motion.button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Disable Modal - Enhanced */}
-      <AnimatePresence>
-        {showDisableModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
-            onClick={closeModal}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="w-full max-w-sm bg-white rounded-2xl overflow-hidden shadow-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header */}
-              <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-l from-destructive/5 to-transparent">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-gradient-to-br from-destructive to-destructive-filled rounded-xl flex items-center justify-center">
-                    <ShieldOff className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="font-bold text-gray-900">تعطيل المصادقة</span>
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={closeModal}
-                  className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-400" />
-                </motion.button>
-              </div>
-
-              {/* Content */}
-              <div className="p-5">
-                <motion.div 
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-5 p-4 bg-gradient-to-br from-warning/20 to-warning/10 rounded-xl flex items-start gap-3 border border-warning/30"
-                >
-                  <div className="w-8 h-8 bg-warning/30 rounded-lg flex items-center justify-center shrink-0">
-                    <AlertTriangle className="w-4 h-4 text-warning-filled" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-warning-filled">تحذير</p>
-                    <p className="text-xs text-warning-filled/80 mt-0.5">
-                      تعطيل المصادقة سيجعل حسابك أقل أماناً
-                    </p>
-                  </div>
-                </motion.div>
-
-                <p className="text-sm text-gray-600 text-center mb-6">
-                  أدخل الرمز المكون من 6 أرقام للتأكيد
-                </p>
-
-                {/* OTP Input */}
-                <div className="mb-6">
-                  <OTPInput
-                    value={verificationCode}
-                    onChange={setVerificationCode}
-                    disabled={isLoading}
-                  />
-                </div>
-
-                {error && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-4 p-3 bg-destructive/10 rounded-xl flex items-center gap-2 text-destructive text-sm border border-destructive/20"
+      {/* Setup Modal using Dialog */}
+      <Dialog open={showSetupModal} onOpenChange={(open) => !open && closeModal()}>
+        <DialogContent dir="rtl" className="max-w-sm p-0 gap-0" showCloseButton={false}>
+          {/* Header */}
+          <DialogHeader className="p-4 border-b border-border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {step === 'verify' && (
+                  <button
+                    onClick={() => setStep('qr')}
+                    className="p-1.5 hover:bg-muted rounded-lg transition-colors"
                   >
-                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                    <span>{error}</span>
-                  </motion.div>
+                    <ArrowLeft className="w-5 h-5 text-muted-foreground" />
+                  </button>
                 )}
+                <DialogTitle className="text-base font-semibold">
+                  {step === 'qr' ? 'مسح الرمز' : 'إدخال الرمز'}
+                </DialogTitle>
+              </div>
+              <button
+                onClick={closeModal}
+                className="p-2 hover:bg-muted rounded-xl transition-colors"
+              >
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+          </DialogHeader>
 
-                <div className="flex gap-3">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={closeModal}
-                    className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors text-sm"
+          {/* Steps Indicator */}
+          <div className="px-5 pt-4">
+            <div className="flex items-center justify-center gap-2">
+              <div className={cn(
+                "w-8 h-1 rounded-full transition-colors",
+                step === 'qr' ? "bg-primary" : "bg-primary/30"
+              )} />
+              <div className={cn(
+                "w-8 h-1 rounded-full transition-colors",
+                step === 'verify' ? "bg-primary" : "bg-muted"
+              )} />
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-5">
+            <AnimatePresence mode="wait">
+              {step === 'qr' ? (
+                <motion.div
+                  key="qr"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                >
+                  <p className="text-sm text-muted-foreground text-center mb-5">
+                    امسح الرمز باستخدام تطبيق المصادقة
+                  </p>
+
+                  {/* QR Code */}
+                  {qrCode && (
+                    <motion.div 
+                      initial={{ scale: 0.9 }}
+                      animate={{ scale: 1 }}
+                      className="flex justify-center mb-5"
+                    >
+                      <div className="p-4 bg-background border-2 border-border rounded-2xl">
+                        <img src={qrCode} alt="QR Code" className="w-44 h-44" />
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Manual Entry */}
+                  <div className="bg-muted/50 rounded-xl p-4 mb-5 border border-border">
+                    <p className="text-xs text-muted-foreground text-center mb-3 font-medium">
+                      أو أدخل الرمز يدوياً
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 bg-background px-3 py-2.5 rounded-xl text-xs font-mono text-center border border-border text-foreground truncate">
+                        {secret}
+                      </code>
+                      <button
+                        onClick={copySecret}
+                        className={cn(
+                          "p-2.5 rounded-xl transition-all",
+                          copied 
+                            ? "bg-primary text-primary-foreground" 
+                            : "bg-background border border-border text-muted-foreground hover:bg-muted"
+                        )}
+                      >
+                        {copied ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <Copy className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setStep('verify')}
+                    className="w-full py-3 bg-foreground text-background rounded-xl font-semibold hover:bg-foreground/90 transition-all text-sm"
                   >
-                    إلغاء
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleDisable}
+                    التالي
+                  </button>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="verify"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                >
+                  <p className="text-sm text-muted-foreground text-center mb-6">
+                    أدخل الرمز المكون من 6 أرقام من التطبيق
+                  </p>
+
+                  {/* OTP Input */}
+                  <div className="mb-6">
+                    <OTPInput
+                      value={verificationCode}
+                      onChange={setVerificationCode}
+                      disabled={isLoading}
+                    />
+                  </div>
+
+                  {error && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mb-4 p-3 bg-destructive/10 rounded-xl flex items-center gap-2 text-destructive text-sm border border-destructive/20"
+                    >
+                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                      <span>{error}</span>
+                    </motion.div>
+                  )}
+
+                  <button
+                    onClick={handleVerify}
                     disabled={isLoading || verificationCode.length !== 6}
-                    className="flex-1 py-3 bg-gradient-to-r from-destructive to-destructive-filled text-white rounded-xl font-semibold  transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+                    className="w-full py-3 bg-foreground text-background rounded-xl font-semibold hover:bg-foreground/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
                   >
                     {isLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      <>
-                        <ShieldOff className="w-4 h-4" />
-                        تعطيل
-                      </>
+                      'تفعيل المصادقة'
                     )}
-                  </motion.button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Disable Modal using Dialog */}
+      <Dialog open={showDisableModal} onOpenChange={(open) => !open && closeModal()}>
+        <DialogContent dir="rtl" className="max-w-sm p-0 gap-0" showCloseButton={false}>
+          {/* Header */}
+          <DialogHeader className="p-4 border-b border-border">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-base font-semibold">
+                تعطيل المصادقة الثنائية
+              </DialogTitle>
+              <button
+                onClick={closeModal}
+                className="p-2 hover:bg-muted rounded-xl transition-colors"
+              >
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+          </DialogHeader>
+
+          {/* Content */}
+          <div className="p-5">
+            <p className="text-sm text-muted-foreground text-center mb-2">
+              هل أنت متأكد؟
+            </p>
+            <p className="text-xs text-muted-foreground text-center mb-6">
+              تعطيل المصادقة الثنائية سيجعل حسابك أقل أماناً. أدخل الرمز للتأكيد.
+            </p>
+
+            {/* OTP Input */}
+            <div className="mb-6">
+              <OTPInput
+                value={verificationCode}
+                onChange={setVerificationCode}
+                disabled={isLoading}
+              />
+            </div>
+
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-4 p-3 bg-destructive/10 rounded-xl flex items-center gap-2 text-destructive text-sm border border-destructive/20"
+              >
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </motion.div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={closeModal}
+                className="flex-1 py-3 bg-muted text-foreground rounded-xl font-medium hover:bg-muted/80 transition-colors text-sm"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={handleDisable}
+                disabled={isLoading || verificationCode.length !== 6}
+                className="flex-1 py-3 bg-foreground text-background rounded-xl font-medium hover:bg-foreground/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  'متابعة'
+                )}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -11,7 +11,7 @@ import {
   Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SettingsSidebar, settingsSections } from "@/components/(app)/settings/SettingsSidebar";
+import { SettingsSidebar, settingsSections, type SettingsSection } from "@/components/(app)/settings/SettingsSidebar";
 
 /** وصف قصير لكل قسم/تاب لعرضه في بطاقة المعلومات على الجوال */
 const tabDescriptions: Record<string, string> = {
@@ -90,11 +90,11 @@ export default function SettingsLayout({
 
   return (
     <div
-      className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 m-2 md:ms-0 rounded-2xl overflow-hidden gap-0"
+      className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 m-2 md:ms-0 overflow-hidden gap-3"
       dir="rtl"
     >
       <SettingsSidebar />
-      <div className="relative flex flex-1 flex-col min-w-0 overflow-hidden bg-card rounded-2xl border border-border/50">
+      <div className="relative flex flex-1 flex-col min-w-0 overflow-hidden bg-card rounded-2xl border border-border/50 shadow-sm">
         {/* Mobile: هيدر يتغير حسب القسم + بطاقة معلومات للقسم الحالي */}
         <header className="sticky top-0 z-30 mx-3 mt-2 lg:mx-0 lg:mt-0 lg:relative lg:z-auto lg:hidden">
           <div className="bg-card/90 backdrop-blur-md rounded-2xl border border-border/60 px-4 py-3.5 flex items-center justify-between gap-3 shadow-sm">
@@ -175,7 +175,7 @@ export default function SettingsLayout({
                       </p>
                       {sheetSectionItems.length > 0 && (
                         <ul className="space-y-2.5 text-sm text-muted-foreground">
-                          {sheetSectionItems.map((item) => {
+                          {sheetSectionItems.map((item: SettingsSection['items'][0]) => {
                             const Icon = item.icon;
                             return (
                               <li key={item.href} className="flex items-center gap-2.5">
@@ -204,21 +204,28 @@ export default function SettingsLayout({
         </header>
 
         {/* Desktop: شريط علوي بسيط */}
-        <header className="hidden lg:flex items-center gap-3 p-3 border-b border-border/30">
-          <Link href="/app" className="p-2 rounded-lg hover:bg-muted/50 transition-colors">
-            <ArrowRight className="w-4 h-4 text-muted-foreground" />
-          </Link>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
-              <Settings className="w-3.5 h-3.5 text-primary" />
+        <header className="hidden lg:flex items-center justify-between gap-4 px-4 py-3 border-b border-border/40">
+          <div className="flex items-center gap-3">
+            <Link href="/app" className="p-2 rounded-xl hover:bg-muted/60 transition-colors">
+              <ArrowRight className="w-4 h-4 text-muted-foreground" />
+            </Link>
+            <div className="flex items-center gap-3">
+              <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center", headerIconBg)}>
+                <HeaderIcon className={cn("w-4.5 h-4.5", headerIconColor)} />
+              </div>
+              <div>
+                <h1 className="text-sm font-semibold text-foreground">{headerTitle}</h1>
+                {currentSection && <p className="text-xs text-muted-foreground">{currentSection.label}</p>}
+              </div>
             </div>
-            <h1 className="text-sm font-medium text-foreground">الإعدادات</h1>
           </div>
         </header>
 
         {/* Scrollable Content Area */}
         <div className="relative flex-1 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {children}
+          {/* Bottom Blur Gradient Effect - matches dashboard */}
+          <div className="sticky bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card via-card/80 to-transparent pointer-events-none" />
         </div>
       </div>
     </div>

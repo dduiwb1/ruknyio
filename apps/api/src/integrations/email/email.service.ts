@@ -24,18 +24,22 @@ export class EmailService {
 
     if (smtpHost && smtpUser && smtpPassword) {
       this.emailEnabled = true;
+      const port = parseInt(this.configService.get('MAIL_PORT') || this.configService.get('SMTP_PORT') || '587');
+      const secure = this.configService.get('MAIL_SECURE') === 'true';
+      
       this.transporter = nodemailer.createTransport({
         host: smtpHost,
-        port:
-          this.configService.get('MAIL_PORT') ||
-          this.configService.get('SMTP_PORT', 587),
-        secure: this.configService.get('MAIL_SECURE') === 'true' || false,
+        port: port,
+        secure: secure,
         auth: {
           user: smtpUser,
           pass: smtpPassword,
         },
-      });
-      console.log('✅ Email service enabled');
+        connectionTimeout: 10000,
+        socketTimeout: 10000,
+      } as nodemailer.TransportOptions);
+      
+      console.log(`✅ Email service enabled - Host: ${smtpHost}:${port} (Secure: ${secure})`);
     } else {
       console.warn(
         '⚠️  Email service disabled - Missing MAIL_HOST, MAIL_USER, or MAIL_PASSWORD',
@@ -2239,8 +2243,29 @@ export class EmailService {
       };
 
       if (this.emailEnabled && this.transporter) {
-        await this.transporter.sendMail(mailOptions);
-        console.log(`✅ Form created notification sent to ${to}`);
+        try {
+          await this.transporter.sendMail(mailOptions);
+          console.log(`✅ Form created notification sent to ${to}`);
+        } catch (smtpError: any) {
+          console.error('❌ SMTP Error details:', {
+            code: smtpError.code,
+            message: smtpError.message,
+            command: smtpError.command,
+            response: smtpError.response,
+          });
+          
+          // Log simulated email if SMTP fails
+          console.log(`📧 [FALLBACK] Logging form notification instead of sending:`, {
+            to,
+            subject: mailOptions.subject,
+            userName,
+            formTitle: formData.formTitle,
+            formUrl,
+          });
+          
+          // Re-throw so caller knows it failed
+          throw smtpError;
+        }
       } else {
         console.log(
           `📧 [SIMULATED] Form created notification would be sent to ${to}`,
@@ -2248,6 +2273,7 @@ export class EmailService {
       }
     } catch (error) {
       console.error('❌ Failed to send form created notification:', error);
+      // Don't throw - email failure shouldn't block form creation
     }
   }
 
