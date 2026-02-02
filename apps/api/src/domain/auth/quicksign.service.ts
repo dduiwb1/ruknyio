@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../core/database/prisma/prisma.service';
+import { RedisService } from '../../core/cache/redis.service';
 import { QuickSignType } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import * as crypto from 'crypto';
@@ -15,15 +16,19 @@ import * as crypto from 'crypto';
  * - One-time use (استخدام مرة واحدة)
  * - Expiration قصيرة (15-30 دقيقة)
  * - Rate limiting على طلب الإرسال
+ * - ⚡ تخزين مؤقت في Redis للأداء
  */
 @Injectable()
 export class QuickSignService {
   // 🔒 15 دقيقة - أقصر للأمان
   private readonly QUICKSIGN_EXPIRY_MINUTES = 15;
+  private readonly CACHE_PREFIX = 'quicksign:';
+  private readonly USER_CACHE_PREFIX = 'user:exists:';
 
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private redis: RedisService,
   ) {}
 
   /**
@@ -35,17 +40,29 @@ export class QuickSignService {
 
   /**
    * 🔒 إنشاء QuickSign link جديد
+   * ⚡ محسّن للأداء - يستخدم Redis cache + DB في الخلفية
    */
   async generateQuickSign(
     email: string,
     ipAddress?: string,
     userAgent?: string,
   ): Promise<{ token: string; type: QuickSignType; expiresIn: number }> {
-    // التحقق من وجود المستخدم
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email },
-      select: { id: true, email: true, profileCompleted: true },
-    });
+    // ⚡ التحقق من cache أولاً للمستخدم
+    const cacheKey = `${this.USER_CACHE_PREFIX}${email}`;
+    const cachedUser = await this.redis.get(cacheKey);
+    let existingUser: { id: string; email: string; profileCompleted: boolean } | null = null;
+    
+    if (cachedUser) {
+      existingUser = JSON.parse(cachedUser);
+    } else {
+      // لم يوجد في الـ cache - نبحث في الـ DB
+      existingUser = await this.prisma.user.findUnique({
+        where: { email },
+        select: { id: true, email: true, profileCompleted: true },
+      });
+      // تخزين النتيجة في cache لمدة 5 دقائق
+      await this.redis.set(cacheKey, JSON.stringify(existingUser), 300);
+    }
 
     const type: QuickSignType = existingUser ? QuickSignType.LOGIN : QuickSignType.SIGNUP;
 
@@ -66,10 +83,19 @@ export class QuickSignService {
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + this.QUICKSIGN_EXPIRY_MINUTES);
 
-    // 🔒 حفظ في قاعدة البيانات
-    // ملاحظة: نحتفظ بالتوكن كاملاً هنا لأن الـ schema يتطلب ذلك للبحث
-    // في المستقبل يمكن تخزين hash فقط مع إضافة حقل منفصل للبحث
-    await this.prisma.quicksign_links.create({
+    // ⚡ حفظ في Redis للتحقق السريع
+    const tokenCacheKey = `${this.CACHE_PREFIX}${this.hashToken(jwtToken)}`;
+    const tokenData = {
+      email,
+      type,
+      userId: existingUser?.id,
+      expiresAt: expiresAt.toISOString(),
+      used: false,
+    };
+    await this.redis.set(tokenCacheKey, JSON.stringify(tokenData), this.QUICKSIGN_EXPIRY_MINUTES * 60);
+
+    // 🔒 حفظ في قاعدة البيانات بشكل غير متزامن (للسجلات)
+    this.prisma.quicksign_links.create({
       data: {
         id: uuidv4(),
         email,
@@ -80,7 +106,7 @@ export class QuickSignService {
         userAgent,
         userId: existingUser?.id,
       },
-    });
+    }).catch(err => console.error('[QuickSign] Failed to save to DB:', err));
 
     return {
       token: jwtToken,
@@ -91,6 +117,7 @@ export class QuickSignService {
 
   /**
    * 🔒 التحقق من صلاحية QuickSign token
+   * ⚡ محسّن للأداء - يتحقق من Redis أولاً
    */
   async verifyQuickSign(token: string): Promise<{
     valid: boolean;
@@ -105,7 +132,58 @@ export class QuickSignService {
       // 🔒 فك تشفير JWT أولاً للتحقق من الصلاحية
       const payload = this.jwtService.verify(token);
 
-      // البحث عن Token في قاعدة البيانات
+      // ⚡ التحقق من Redis أولاً (أسرع)
+      const tokenCacheKey = `${this.CACHE_PREFIX}${this.hashToken(token)}`;
+      const cachedDataStr = await this.redis.get(tokenCacheKey);
+      
+      if (cachedDataStr) {
+        const cachedData: {
+          email: string;
+          type: QuickSignType;
+          userId?: string;
+          expiresAt: string;
+          used: boolean;
+        } = JSON.parse(cachedDataStr);
+
+        // التحقق من الاستخدام المسبق
+        if (cachedData.used) {
+          return {
+            valid: false,
+            used: true,
+            email: cachedData.email,
+          };
+        }
+
+        // التحقق من انتهاء الصلاحية
+        if (new Date() > new Date(cachedData.expiresAt)) {
+          return {
+            valid: false,
+            expired: true,
+            email: cachedData.email,
+          };
+        }
+
+        // جلب profileCompleted من الـ cache إذا كان هناك userId
+        let profileCompleted = false;
+        if (cachedData.userId) {
+          const userCacheKey = `${this.USER_CACHE_PREFIX}${cachedData.email}`;
+          const cachedUserStr = await this.redis.get(userCacheKey);
+          if (cachedUserStr) {
+            const cachedUser = JSON.parse(cachedUserStr);
+            profileCompleted = cachedUser?.profileCompleted || false;
+          }
+        }
+
+        return {
+          valid: true,
+          email: cachedData.email,
+          type: cachedData.type,
+          userId: cachedData.userId,
+          profileCompleted,
+        };
+      }
+
+      // ⚡ Fallback إلى قاعدة البيانات
       const quickSign = await this.prisma.quicksign_links.findUnique({
         where: { token },
         include: {
@@ -228,8 +306,19 @@ export class QuickSignService {
 
   /**
    * تحديد QuickSign كمستخدم
+   * ⚡ يحدّث Redis + DB
    */
   async markQuickSignAsUsed(token: string): Promise<void> {
+    // ⚡ تحديث Redis أولاً (سريع)
+    const tokenCacheKey = `${this.CACHE_PREFIX}${this.hashToken(token)}`;
+    const cachedDataStr = await this.redis.get(tokenCacheKey);
+    if (cachedDataStr) {
+      const cachedData = JSON.parse(cachedDataStr);
+      cachedData.used = true;
+      await this.redis.set(tokenCacheKey, JSON.stringify(cachedData), 60); // نحتفظ لمدة دقيقة فقط
+    }
+
+    // تحديث DB
     await this.prisma.quicksign_links.update({
       where: { token },
       data: {
@@ -243,6 +332,10 @@ export class QuickSignService {
    * إبطال QuickSign link
    */
   async invalidateQuickSign(token: string): Promise<void> {
+    // ⚡ حذف من Redis
+    const tokenCacheKey = `${this.CACHE_PREFIX}${this.hashToken(token)}`;
+    await this.redis.del(tokenCacheKey);
+
     await this.prisma.quicksign_links.updateMany({
       where: { token },
       data: {

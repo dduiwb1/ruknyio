@@ -96,8 +96,18 @@ export class QuickSignController {
     const userAgent = req.headers['user-agent'];
     const ipAddress = req.ip || req.socket.remoteAddress;
 
-    // 🔒 التحقق من قفل الحساب قبل إرسال الرابط
-    const lockoutCheck = await this.accountLockoutService.checkBeforeAttempt(dto.email, ipAddress);
+    // Parse device info (sync - fast)
+    const parser = new UAParser(userAgent);
+    const result = parser.getResult();
+
+    // ⚡ تشغيل العمليات بالتوازي لتحسين الأداء
+    const [lockoutCheck] = await Promise.all([
+      // 🔒 التحقق من قفل الحساب
+      this.accountLockoutService.checkBeforeAttempt(dto.email, ipAddress),
+      // إبطال جميع الروابط السابقة لنفس البريد (لا ننتظر النتيجة)
+      this.quickSignService.invalidateAllForEmail(dto.email).catch(() => {}),
+    ]);
+
     if (!lockoutCheck.allowed) {
       throw new ForbiddenException({
         statusCode: 403,
@@ -107,13 +117,6 @@ export class QuickSignController {
         lockoutMinutes: lockoutCheck.lockoutMinutes,
       });
     }
-
-    // Parse device info
-    const parser = new UAParser(userAgent);
-    const result = parser.getResult();
-
-    // إبطال جميع الروابط السابقة لنفس البريد
-    await this.quickSignService.invalidateAllForEmail(dto.email);
 
     // إنشاء QuickSign link جديد
     const { token, type } = await this.quickSignService.generateQuickSign(
