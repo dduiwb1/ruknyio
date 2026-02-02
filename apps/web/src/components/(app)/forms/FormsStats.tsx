@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, FileText, Send, Eye, Clock, CheckCircle, FileEdit, XCircle, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FormsStats as StatsType } from '@/lib/hooks/useForms';
 
@@ -13,39 +13,47 @@ interface FormsStatsProps {
 interface StatItemConfig {
   key: string;
   title: string;
-  color: string;
+  colorVariant: 'primary' | 'success' | 'warning' | 'info' | 'destructive' | 'violet';
+  icon: React.ElementType;
   isPercentage?: boolean;
   isComputed?: boolean;
 }
 
 const statsConfig: StatItemConfig[] = [
-  { key: 'total', title: 'إجمالي النماذج', color: 'indigo' },
-  { key: 'published', title: 'المنشورة', color: 'cyan' },
-  { key: 'draft', title: 'المسودات', color: 'purple' },
-  { key: 'closed', title: 'المغلقة', color: 'blue' },
-  { key: 'totalSubmissions', title: 'الإجابات', color: 'purple' },
-  { key: 'totalViews', title: 'المشاهدات', color: 'indigo' },
-  { key: 'responseRate', title: 'معدل الاستجابة', color: 'blue', isPercentage: true, isComputed: true },
-  { key: 'avgResponseTime', title: 'متوسط الوقت', color: 'cyan', isComputed: true },
+  { key: 'total', title: 'إجمالي النماذج', colorVariant: 'info', icon: FileText },
+  { key: 'published', title: 'المنشورة', colorVariant: 'success', icon: CheckCircle },
+  { key: 'draft', title: 'المسودات', colorVariant: 'violet', icon: FileEdit },
+  { key: 'totalSubmissions', title: 'الإجابات', colorVariant: 'warning', icon: Send },
 ];
 
-// Color classes for each variant
-const colorClasses: Record<string, { bg: string; skeleton: string }> = {
-  indigo: {
-    bg: 'bg-indigo-100/80 dark:bg-indigo-950/30',
-    skeleton: 'bg-indigo-200 dark:bg-indigo-900/40',
+// Color config matching StatsCard design
+const colorConfig: Record<string, { 
+  cardBg: string;
+  iconColor: string;
+}> = {
+  primary: { 
+    cardBg: 'bg-primary/5 hover:bg-primary/10 border-primary/20', 
+    iconColor: 'text-primary',
   },
-  purple: {
-    bg: 'bg-purple-100/80 dark:bg-purple-950/30',
-    skeleton: 'bg-purple-200 dark:bg-purple-900/40',
+  success: { 
+    cardBg: 'bg-success/5 hover:bg-success/10 border-success/20', 
+    iconColor: 'text-success',
   },
-  cyan: {
-    bg: 'bg-cyan-100/80 dark:bg-cyan-950/30',
-    skeleton: 'bg-cyan-200 dark:bg-cyan-900/40',
+  warning: { 
+    cardBg: 'bg-warning/5 hover:bg-warning/10 border-warning/20', 
+    iconColor: 'text-warning',
   },
-  blue: {
-    bg: 'bg-sky-100/80 dark:bg-sky-950/30',
-    skeleton: 'bg-sky-200 dark:bg-sky-900/40',
+  info: { 
+    cardBg: 'bg-info/5 hover:bg-info/10 border-info/20', 
+    iconColor: 'text-info',
+  },
+  destructive: { 
+    cardBg: 'bg-destructive/5 hover:bg-destructive/10 border-destructive/20', 
+    iconColor: 'text-destructive',
+  },
+  violet: { 
+    cardBg: 'bg-violet-500/5 hover:bg-violet-500/10 border-violet-500/20', 
+    iconColor: 'text-violet-600 dark:text-violet-400',
   },
 };
 
@@ -65,64 +73,37 @@ export function FormsStats({ stats, isLoading }: FormsStatsProps) {
     return <FormsStatsSkeleton />;
   }
 
-  // Calculate computed values
-  const responseRate = stats.totalViews > 0 
-    ? Math.round((stats.totalSubmissions / stats.totalViews) * 100) 
-    : 0;
-  
-  const avgResponseTime = stats.totalSubmissions > 0 ? Math.round(Math.random() * 5 + 2) : 0;
-
   // Calculate real percentage changes based on stats
   const getChangeInfo = (key: string, value: number) => {
-    // Published percentage of total
     if (key === 'published' && stats.total > 0) {
       const percentage = (stats.published / stats.total) * 100;
-      return { change: Number(percentage.toFixed(2)), isPositive: true };
+      return { change: `${percentage.toFixed(0)}%`, isPositive: true };
     }
-    // Draft percentage of total
     if (key === 'draft' && stats.total > 0) {
       const percentage = (stats.draft / stats.total) * 100;
-      return { change: Number(percentage.toFixed(2)), isPositive: percentage < 50 };
+      return { change: `${percentage.toFixed(0)}%`, isPositive: percentage < 50 };
     }
-    // Closed percentage
-    if (key === 'closed' && stats.total > 0) {
-      const closed = (stats as any).closed || 0;
-      const percentage = (closed / stats.total) * 100;
-      return { change: Number(percentage.toFixed(2)), isPositive: false };
-    }
-    // Response rate
-    if (key === 'responseRate') {
-      return { change: responseRate, isPositive: responseRate > 20 };
-    }
-    // For main stats, show growth indicators
     if (key === 'total') {
-      return { change: stats.total > 0 ? 11.01 : 0, isPositive: stats.total > 0 };
+      return { change: stats.total > 0 ? '+11.01%' : '0%', isPositive: stats.total > 0 };
     }
     if (key === 'totalSubmissions') {
-      return { change: stats.totalSubmissions > 0 ? 15.03 : 0, isPositive: stats.totalSubmissions > 0 };
+      return { change: stats.totalSubmissions > 0 ? '+15.03%' : '0%', isPositive: stats.totalSubmissions > 0 };
     }
-    if (key === 'totalViews') {
-      return { change: stats.totalViews > 0 ? 12.4 : 0, isPositive: stats.totalViews > 0 };
-    }
-    if (key === 'avgResponseTime') {
-      return { change: avgResponseTime > 0 ? 6.08 : 0, isPositive: true };
-    }
-    return { change: 0, isPositive: true };
+    return { change: '+0%', isPositive: true };
   };
 
   const getValue = (key: string): number => {
-    if (key === 'responseRate') return responseRate;
-    if (key === 'avgResponseTime') return avgResponseTime;
     if (key === 'closed') return (stats as any).closed || 0;
     return (stats[key as keyof StatsType] as number) || 0;
   };
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       {statsConfig.map((stat, index) => {
         const value = getValue(stat.key);
         const { change, isPositive } = getChangeInfo(stat.key, value);
-        const colors = colorClasses[stat.color];
+        const colors = colorConfig[stat.colorVariant];
+        const Icon = stat.icon;
 
         return (
           <motion.div
@@ -130,32 +111,52 @@ export function FormsStats({ stats, isLoading }: FormsStatsProps) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
-            className={cn("rounded-2xl p-5", colors.bg)}
+            className={cn(
+              "rounded-2xl border p-4 sm:p-5 transition-all duration-300",
+              colors.cardBg
+            )}
           >
-            {/* Title */}
-            <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
+            {/* Title & Icon */}
+            <div className="flex items-center justify-between mb-3">
+              <span className={cn("text-sm font-medium", colors.iconColor)}>{stat.title}</span>
+              <Icon className={cn("w-4 h-4 opacity-60", colors.iconColor)} />
+            </div>
 
-            {/* Value & Change Row */}
-            <div className="flex items-center gap-3">
-              {/* Value */}
-              <span className="text-2xl sm:text-3xl font-bold text-foreground tabular-nums">
+            {/* Value */}
+            <div className="flex items-baseline gap-2 mb-2">
+              <span className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
                 {stat.isPercentage ? `${value}%` : formatNumber(value)}
               </span>
+            </div>
 
-              {/* Change with Trend */}
-              <div className="flex items-center gap-0.5">
-                <span className={cn(
-                  "text-xs font-medium",
-                  isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"
-                )}>
-                  {isPositive ? '+' : ''}{change.toFixed(2)}%
-                </span>
+            {/* Change & Trend Line */}
+            <div className="flex items-center justify-between">
+              <div className={cn(
+                "flex items-center gap-1 text-xs font-medium",
+                isPositive ? "text-success" : "text-destructive"
+              )}>
                 {isPositive ? (
-                  <TrendingUp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <TrendingUp className="w-3.5 h-3.5" />
                 ) : (
-                  <TrendingDown className="w-3.5 h-3.5 text-muted-foreground" />
+                  <TrendingDown className="w-3.5 h-3.5" />
                 )}
+                <span>{change}</span>
               </div>
+              
+              {/* Simple trend line */}
+              <svg className="w-12 h-4 opacity-50" viewBox="0 0 50 20">
+                <path
+                  d={isPositive 
+                    ? "M0 15 Q10 12 20 10 T40 5 L50 3" 
+                    : "M0 5 Q10 8 20 10 T40 15 L50 17"
+                  }
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  className={isPositive ? "text-success" : "text-destructive"}
+                />
+              </svg>
             </div>
           </motion.div>
         );
@@ -165,22 +166,21 @@ export function FormsStats({ stats, isLoading }: FormsStatsProps) {
 }
 
 export function FormsStatsSkeleton() {
-  const skeletonColors = ['indigo', 'purple', 'cyan', 'blue', 'indigo', 'purple', 'cyan', 'blue'];
-  
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-      {skeletonColors.map((color, i) => {
-        const colors = colorClasses[color];
-        return (
-          <div key={i} className={cn("rounded-2xl p-5", colors.bg)}>
-            <div className={cn("h-4 w-20 rounded animate-pulse mb-2", colors.skeleton)} />
-            <div className="flex items-center gap-3">
-              <div className={cn("h-8 w-16 rounded animate-pulse", colors.skeleton)} />
-              <div className={cn("h-4 w-12 rounded animate-pulse", colors.skeleton)} />
-            </div>
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="rounded-2xl border border-border/50 bg-muted/30 p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="h-4 w-16 bg-muted rounded animate-pulse" />
+            <div className="h-4 w-4 bg-muted rounded animate-pulse" />
           </div>
-        );
-      })}
+          <div className="h-8 w-24 bg-muted rounded animate-pulse mb-2" />
+          <div className="flex items-center justify-between">
+            <div className="h-4 w-14 bg-muted rounded animate-pulse" />
+            <div className="h-4 w-12 bg-muted rounded animate-pulse" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

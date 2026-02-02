@@ -9,14 +9,6 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/providers";
 import {
-  DollarSign,
-  ShoppingBag,
-  Package,
-  AlertCircle,
-  CheckCircle2,
-  FileText,
-  Eye,
-  CalendarDays,
   Loader2,
 } from "lucide-react";
 import { buildApiPath } from "@/lib/config";
@@ -27,14 +19,17 @@ import {
   StatsCardSkeleton,
   RecentOrders,
   RecentOrdersSkeleton,
-  QuickStatsBar,
-  QuickStatsBarSkeleton,
   DashboardHeader,
   DashboardHeaderSkeleton,
   RevenueChart,
   RevenueChartSkeleton,
   TotalSalesChart,
   TotalSalesChartSkeleton,
+  TopProductsTable,
+  TopProductsTableSkeleton,
+  RecentActivities,
+  RecentActivitiesSkeleton,
+  type RevenueChartData,
 } from "@/components/(app)/dashboard";
 
 // ============ Types ============
@@ -78,6 +73,13 @@ interface DashboardStats {
   views: { total: number; thisMonth: number };
 }
 
+interface TrafficSource {
+  name: string;
+  value: number;
+  percentage: number;
+  color?: string;
+}
+
 // ============ Utility Functions ============
 
 function formatNumber(num: number): string {
@@ -98,7 +100,11 @@ export default function DashboardPage() {
   const [storeStats, setStoreStats] = useState<StoreStats | null>(null);
   const [orderStats, setOrderStats] = useState<OrderStats | null>(null);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+  const [chartData, setChartData] = useState<RevenueChartData | null>(null);
+  const [trafficSources, setTrafficSources] = useState<TrafficSource[]>([]);
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [topProducts, setTopProducts] = useState<any[]>([]);
   const [dateRange, setDateRange] = useState("7");
   const initializedRef = useRef(false);
 
@@ -119,16 +125,27 @@ export default function DashboardPage() {
       try {
         setLoading(true);
 
-        const [storeRes, orderStatsRes, ordersRes, dashboardRes] = await Promise.all([
+        const [storeRes, orderStatsRes, ordersRes, dashboardRes, chartRes, trafficRes, activityRes, productsRes] = await Promise.all([
           secureFetch(buildApiPath("/stores/stats")),
           secureFetch(buildApiPath("/orders/store/stats")),
           secureFetch(buildApiPath("/orders/store?limit=5&sortBy=createdAt&sortOrder=desc")),
           secureFetch(buildApiPath("/dashboard/stats")),
+          secureFetch(buildApiPath(`/dashboard/chart?days=${dateRange}`)),
+          secureFetch(buildApiPath("/dashboard/traffic")),
+          secureFetch(buildApiPath("/dashboard/activity?limit=5")),
+          secureFetch(buildApiPath("/products/store/top?limit=5")),
         ]);
 
         if (storeRes.ok) setStoreStats(await storeRes.json());
         if (orderStatsRes.ok) setOrderStats(await orderStatsRes.json());
         if (dashboardRes.ok) setDashboardStats(await dashboardRes.json());
+        if (chartRes.ok) setChartData(await chartRes.json());
+        if (trafficRes.ok) setTrafficSources(await trafficRes.json());
+        if (activityRes.ok) setRecentActivities(await activityRes.json());
+        if (productsRes.ok) {
+          const productsData = await productsRes.json();
+          setTopProducts(productsData.data || productsData || []);
+        }
         if (ordersRes.ok) {
           const ordersData = await ordersRes.json();
           setRecentOrders(ordersData.data || ordersData || []);
@@ -154,81 +171,83 @@ export default function DashboardPage() {
 
   if (!isAuthenticated) return null;
 
-  // Stats cards data
+  // Stats cards data - تصميم مطابق للنماذج
   const statsData = [
     {
-      title: "إجمالي المبيعات",
-      value: formatNumber(orderStats?.totalRevenue || 0),
-      unit: "IQD",
-      change: orderStats?.totalRevenue ? "—" : "0",
+      title: "المشاهدات",
+      value: formatNumber(dashboardStats?.views?.total || 0),
+      change: dashboardStats?.views?.thisMonth 
+        ? `+${Math.round((dashboardStats.views.thisMonth / Math.max(dashboardStats.views.total, 1)) * 100)}%` 
+        : "+0%",
       trend: "up" as const,
-      icon: DollarSign,
-      colorVariant: "lime" as const,
+      colorVariant: "indigo" as const,
     },
     {
       title: "الطلبات",
       value: formatNumber(orderStats?.totalOrders || 0),
-      unit: "طلب",
-      change: orderStats?.pendingOrders ? `${orderStats.pendingOrders} معلق` : "—",
+      change: orderStats?.pendingOrders 
+        ? `+${orderStats.pendingOrders}` 
+        : "+0%",
       trend: "up" as const,
-      icon: ShoppingBag,
-      colorVariant: "amber" as const,
+      colorVariant: "purple" as const,
     },
     {
       title: "المنتجات",
       value: formatNumber(storeStats?.totalProducts || 0),
-      unit: "منتج",
-      change: storeStats?.activeProducts ? `${storeStats.activeProducts} نشط` : "—",
+      change: storeStats?.activeProducts 
+        ? `+${storeStats.activeProducts}` 
+        : "+0%",
       trend: "up" as const,
-      icon: Package,
-      colorVariant: "sky" as const,
+      colorVariant: "cyan" as const,
     },
     {
-      title: "نفاد المخزون",
-      value: formatNumber(storeStats?.outOfStock || 0),
-      unit: "منتج",
-      change: storeStats?.outOfStock && storeStats.outOfStock > 0 ? "تنبيه" : "جيد",
-      trend: (storeStats?.outOfStock && storeStats.outOfStock > 0 ? "down" : "up") as "up" | "down",
-      icon: AlertCircle,
-      colorVariant: "rose" as const,
-    },
-    {
-      title: "الطلبات المكتملة",
-      value: formatNumber(orderStats?.completedOrders || 0),
-      unit: "طلب",
-      change: orderStats?.totalOrders && orderStats.totalOrders > 0 
-        ? `${Math.round((orderStats.completedOrders / orderStats.totalOrders) * 100)}%` 
-        : "—",
+      title: "الإيرادات",
+      value: orderStats?.totalRevenue 
+        ? `${Math.round(orderStats.totalRevenue / 1000)}K` 
+        : "0",
+      change: "+12.5%",
       trend: "up" as const,
-      icon: CheckCircle2,
-      colorVariant: "emerald" as const,
+      colorVariant: "blue" as const,
     },
+  ];
+
+  // القسم الثاني من البطاقات
+  const secondaryStats = [
     {
       title: "النماذج",
       value: formatNumber(dashboardStats?.forms?.total || 0),
-      unit: "نموذج",
-      change: dashboardStats?.forms?.active ? `${dashboardStats.forms.active} نشط` : "—",
+      change: dashboardStats?.forms?.active 
+        ? `+${dashboardStats.forms.active}` 
+        : "+0%",
       trend: "up" as const,
-      icon: FileText,
-      colorVariant: "violet" as const,
-    },
-    {
-      title: "المشاهدات",
-      value: formatNumber(dashboardStats?.views?.total || 0),
-      unit: "مشاهدة",
-      change: dashboardStats?.views?.thisMonth ? `${dashboardStats.views.thisMonth} هذا الشهر` : "—",
-      trend: "up" as const,
-      icon: Eye,
-      colorVariant: "coral" as const,
+      colorVariant: "emerald" as const,
     },
     {
       title: "الفعاليات",
       value: formatNumber(dashboardStats?.events?.total || 0),
-      unit: "فعالية",
-      change: dashboardStats?.events?.active ? `${dashboardStats.events.active} نشط` : "—",
+      change: dashboardStats?.events?.active 
+        ? `+${dashboardStats.events.active}` 
+        : "+0%",
       trend: "up" as const,
-      icon: CalendarDays,
-      colorVariant: "slate" as const,
+      colorVariant: "amber" as const,
+    },
+    {
+      title: "المكتملة",
+      value: formatNumber(orderStats?.completedOrders || 0),
+      change: orderStats?.totalOrders && orderStats.totalOrders > 0 
+        ? `${Math.round((orderStats.completedOrders / orderStats.totalOrders) * 100)}%` 
+        : "0%",
+      trend: "up" as const,
+      colorVariant: "cyan" as const,
+    },
+    {
+      title: "نفاد المخزون",
+      value: formatNumber(storeStats?.outOfStock || 0),
+      change: storeStats?.outOfStock && storeStats.outOfStock > 0 
+        ? "تنبيه" 
+        : "جيد",
+      trend: (storeStats?.outOfStock && storeStats.outOfStock > 0 ? "down" : "up") as "up" | "down",
+      colorVariant: "rose" as const,
     },
   ];
 
@@ -248,11 +267,20 @@ export default function DashboardPage() {
             />
           )}
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Stats Cards - القسم الأول */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {loading
-              ? statsData.slice(0, 4).map((_, i) => <StatsCardSkeleton key={i} />)
-              : statsData.slice(0, 4).map((stat, index) => (
+              ? Array.from({ length: 4 }).map((_, i) => <StatsCardSkeleton key={i} />)
+              : statsData.map((stat, index) => (
+                  <StatsCard key={index} {...stat} />
+                ))}
+          </div>
+
+          {/* Stats Cards - القسم الثاني */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {loading
+              ? Array.from({ length: 4 }).map((_, i) => <StatsCardSkeleton key={i} />)
+              : secondaryStats.map((stat, index) => (
                   <StatsCard key={index} {...stat} />
                 ))}
           </div>
@@ -267,34 +295,44 @@ export default function DashboardPage() {
             ) : (
               <>
                 <RevenueChart 
-                  currentTotal={orderStats?.totalRevenue || 0}
-                  previousTotal={Math.round((orderStats?.totalRevenue || 0) * 0.85)}
+                  data={chartData || undefined}
+                  currentTotal={chartData?.summary?.currentTotal || orderStats?.totalRevenue || 0}
+                  previousTotal={chartData?.summary?.previousTotal || Math.round((orderStats?.totalRevenue || 0) * 0.85)}
                 />
                 <TotalSalesChart 
-                  totalSales={orderStats?.totalRevenue || 0}
+                  data={trafficSources.length > 0 ? trafficSources.map((source) => ({
+                    name: source.name,
+                    value: source.value,
+                    color: source.color || "bg-slate-400 dark:bg-slate-500"
+                  })) : undefined}
                 />
               </>
             )}
           </div>
 
-          {/* Recent Orders */}
+          {/* Recent Orders & Top Products */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {loading ? (
+              <>
+                <RecentOrdersSkeleton />
+                <TopProductsTableSkeleton />
+              </>
+            ) : (
+              <>
+                <RecentOrders orders={recentOrders} formatCurrency={formatCurrency} />
+                <TopProductsTable products={topProducts} formatCurrency={formatCurrency} />
+              </>
+            )}
+          </div>
+
+          {/* Recent Activities */}
           {loading ? (
-            <RecentOrdersSkeleton />
+            <RecentActivitiesSkeleton />
           ) : (
-            <RecentOrders orders={recentOrders} formatCurrency={formatCurrency} />
+            <RecentActivities activities={recentActivities} />
           )}
 
-          {/* Quick Stats */}
-          {loading ? (
-            <QuickStatsBarSkeleton />
-          ) : (
-            <QuickStatsBar
-              completedOrders={orderStats?.completedOrders}
-              processingOrders={orderStats?.processingOrders}
-            />
-          )}
-          {/* Bottom Blur Gradient Effect */}
-        <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-card via-card/80 to-transparent pointer-events-none z-10" />
+          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-card via-card/80 to-transparent pointer-events-none z-10" />
         </div>
       </div>
     </div>

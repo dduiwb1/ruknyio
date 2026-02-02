@@ -2,41 +2,50 @@
 
 /**
  * 📈 Revenue Chart Component
- * رسم بياني للإيرادات مع مقارنة الفترات
+ * رسم بياني للإيرادات مع تبويبات - تصميم Snow Dashboard
  */
 
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
-  AreaChart,
-  Area,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface RevenueDataPoint {
-  name: string;
-  current: number;
-  previous: number;
+export interface ChartDataPoint {
+  day: string;
+  date: string;
+  orders: number;
+  revenue: number;
+  products: number;
+}
+
+export interface RevenueChartData {
+  current: ChartDataPoint[];
+  previous: ChartDataPoint[];
+  summary: {
+    currentTotal: number;
+    previousTotal: number;
+    currentOrders: number;
+    previousOrders: number;
+  };
 }
 
 interface RevenueChartProps {
-  data?: RevenueDataPoint[];
+  data?: RevenueChartData;
   currentTotal?: number;
   previousTotal?: number;
 }
 
-const defaultData: RevenueDataPoint[] = [
-  { name: "يناير", current: 4000, previous: 2400 },
-  { name: "فبراير", current: 3000, previous: 1398 },
-  { name: "مارس", current: 2000, previous: 9800 },
-  { name: "أبريل", current: 2780, previous: 3908 },
-  { name: "مايو", current: 1890, previous: 4800 },
-  { name: "يونيو", current: 2390, previous: 3800 },
+const tabs = [
+  { id: "orders", label: "إجمالي الطلبات", key: "orders" as const },
+  { id: "products", label: "المنتجات", key: "products" as const },
+  { id: "revenue", label: "الإيرادات", key: "revenue" as const },
 ];
 
 function formatNum(num: number): string {
@@ -51,7 +60,7 @@ function CustomTooltip({
   label,
 }: {
   active?: boolean;
-  payload?: { value: number }[];
+  payload?: { value: number; dataKey: string }[];
   label?: string;
 }) {
   if (!active || !payload?.length || !label) return null;
@@ -59,144 +68,160 @@ function CustomTooltip({
     <motion.div 
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="rounded-xl border border-border/50 bg-card/95 backdrop-blur-sm px-4 py-3 text-right shadow-xl"
+      className="rounded-4xl border border-border/50 bg-card/95 backdrop-blur-sm px-4 py-3 text-right shadow-xl"
     >
       <p className="mb-2 text-sm font-bold text-foreground">{label}</p>
       <div className="space-y-1.5 text-xs">
-        <p className="flex items-center justify-between gap-6">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-violet-500" />
-            <span className="text-muted-foreground">هذا الأسبوع</span>
-          </span>
-          <span className="font-bold text-foreground">{formatNum(payload[0]?.value ?? 0)} IQD</span>
-        </p>
-        <p className="flex items-center justify-between gap-6">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-sky-400" />
-            <span className="text-muted-foreground">الأسبوع السابق</span>
-          </span>
-          <span className="text-muted-foreground">{formatNum(payload[1]?.value ?? 0)} IQD</span>
-        </p>
+        {payload.map((item, index) => (
+          <p key={index} className="flex items-center justify-between gap-4">
+            <span className="flex items-center gap-1.5">
+              <span className={cn(
+                "w-2 h-2 rounded-full",
+                item.dataKey === "current" ? "bg-foreground" : "bg-muted-foreground/50"
+              )} />
+              <span className="text-muted-foreground">
+                {item.dataKey === "current" ? "الأسبوع الحالي" : "الأسبوع السابق"}
+              </span>
+            </span>
+            <span className="font-bold text-foreground">{formatNum(item.value)}</span>
+          </p>
+        ))}
       </div>
     </motion.div>
   );
 }
 
-const primaryColor = "#8b5cf6"; // violet-500
-const secondaryColor = "#38bdf8"; // sky-400
-
 export function RevenueChart({
-  data = defaultData,
-  currentTotal = 68211,
-  previousTotal = 68768,
+  data,
+  currentTotal = 0,
 }: RevenueChartProps) {
-  const percentageChange = previousTotal > 0 
-    ? ((currentTotal - previousTotal) / previousTotal) * 100 
-    : 0;
-  const isPositive = percentageChange >= 0;
+  const [activeTab, setActiveTab] = useState<"orders" | "products" | "revenue">("orders");
+
+  // Transform API data to chart format
+  const chartData = useMemo(() => {
+    if (!data?.current || !data?.previous) {
+      // Default data if no API data
+      return [
+        { name: "السبت", current: 0, previous: 0 },
+        { name: "الأحد", current: 0, previous: 0 },
+        { name: "الإثنين", current: 0, previous: 0 },
+        { name: "الثلاثاء", current: 0, previous: 0 },
+        { name: "الأربعاء", current: 0, previous: 0 },
+        { name: "الخميس", current: 0, previous: 0 },
+        { name: "الجمعة", current: 0, previous: 0 },
+      ];
+    }
+
+    return data.current.map((curr, index) => ({
+      name: curr.day,
+      current: curr[activeTab],
+      previous: data.previous[index]?.[activeTab] || 0,
+    }));
+  }, [data, activeTab]);
+
+  // Calculate totals based on active tab
+  const displayTotal = useMemo(() => {
+    if (!data?.summary) return currentTotal;
+    
+    switch (activeTab) {
+      case "orders":
+        return data.summary.currentOrders;
+      case "revenue":
+        return data.summary.currentTotal;
+      case "products":
+        return data.current.reduce((sum, d) => sum + d.products, 0);
+      default:
+        return currentTotal;
+    }
+  }, [data, activeTab, currentTotal]);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.1 }}
-      className="rounded-2xl border border-border/50 bg-card p-5 sm:p-6"
+      className="rounded-4xl border border-border/50 bg-card p-5 sm:p-6"
     >
-      {/* Header */}
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-violet-500/10 dark:bg-violet-500/20">
-              <TrendingUp className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-            </div>
-            <h3 className="text-base font-bold text-foreground">الإيرادات</h3>
-          </div>
-          <p className="text-xs text-muted-foreground">مقارنة الأداء بين الفترتين</p>
+      {/* Header with Tabs */}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        {/* Tabs */}
+        <div className="flex items-center gap-1">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.key)}
+              className={cn(
+                "px-3 py-1.5 text-sm font-medium rounded-lg transition-all",
+                activeTab === tab.key
+                  ? "text-foreground font-bold"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
-        
-        {/* Change Badge */}
-        <div className={cn(
-          "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold",
-          isPositive 
-            ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-            : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
-        )}>
-          {isPositive ? (
-            <ArrowUpRight className="h-3.5 w-3.5" />
-          ) : (
-            <ArrowDownRight className="h-3.5 w-3.5" />
-          )}
-          <span>{Math.abs(percentageChange).toFixed(1)}%</span>
-        </div>
-      </div>
 
-      {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 mb-4 text-xs">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-violet-500/10 dark:bg-violet-500/20">
-          <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-violet-500" />
-          <span className="text-foreground font-medium">هذا الأسبوع:</span>
-          <span className="font-bold text-violet-600 dark:text-violet-400">{formatNum(currentTotal)} IQD</span>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-500/10 dark:bg-sky-500/20">
-          <div className="h-2.5 w-2.5 shrink-0 rounded-full bg-sky-400" />
-          <span className="text-foreground font-medium">السابق:</span>
-          <span className="font-bold text-sky-600 dark:text-sky-400">{formatNum(previousTotal)} IQD</span>
+        {/* Legend */}
+        <div className="flex items-center gap-4 text-xs">
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-foreground" />
+            <span className="text-muted-foreground">الأسبوع الحالي</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-muted-foreground/50" />
+            <span className="text-muted-foreground">الأسبوع السابق</span>
+          </div>
         </div>
       </div>
 
       {/* Chart */}
-      <div className="h-[200px] sm:h-[260px]">
+      <div className="h-[240px] sm:h-[280px] relative">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id="revCurrent" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={primaryColor} stopOpacity={0.3} />
-                <stop offset="95%" stopColor={primaryColor} stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="revPrevious" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={secondaryColor} stopOpacity={0.2} />
-                <stop offset="95%" stopColor={secondaryColor} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid 
-              strokeDasharray="3 3" 
-              stroke="hsl(var(--border))" 
-              vertical={false}
-              opacity={0.5}
-            />
-            <XAxis
-              dataKey="name"
+          <LineChart data={chartData} margin={{ top: 20, right: 10, left: 0, bottom: 0 }}>
+            <XAxis 
+              dataKey="name" 
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+              tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+              dy={10}
             />
-            <YAxis
+            <YAxis 
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+              tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
               tickFormatter={formatNum}
-              width={45}
+              dx={-10}
             />
             <Tooltip content={<CustomTooltip />} />
-            <Area
-              type="monotone"
-              dataKey="current"
-              stroke={primaryColor}
-              strokeWidth={2.5}
-              fill="url(#revCurrent)"
-              animationDuration={1000}
-            />
-            <Area
+            
+            {/* Previous Week - Dashed Line */}
+            <Line
               type="monotone"
               dataKey="previous"
-              stroke={secondaryColor}
+              stroke="hsl(var(--muted-foreground))"
               strokeWidth={2}
-              strokeDasharray="6 4"
-              fill="url(#revPrevious)"
-              animationDuration={1000}
+              strokeDasharray="5 5"
+              dot={false}
+              activeDot={{ r: 4, fill: 'hsl(var(--muted-foreground))' }}
             />
-          </AreaChart>
+            
+            {/* Current Week - Solid Line */}
+            <Line
+              type="monotone"
+              dataKey="current"
+              stroke="hsl(var(--foreground))"
+              strokeWidth={2.5}
+              dot={false}
+              activeDot={{ r: 6, fill: 'hsl(var(--foreground))' }}
+            />
+          </LineChart>
         </ResponsiveContainer>
+
+        {/* Floating Label */}
+        <div className="absolute top-8 right-1/4 bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 px-3 py-1 rounded-lg text-sm font-bold shadow-sm">
+          {formatNum(displayTotal)}
+        </div>
       </div>
     </motion.div>
   );
@@ -204,22 +229,19 @@ export function RevenueChart({
 
 export function RevenueChartSkeleton() {
   return (
-    <div className="rounded-2xl border border-border/50 bg-card p-5 sm:p-6">
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-xl bg-muted animate-pulse" />
-            <div className="h-5 w-20 rounded-lg bg-muted animate-pulse" />
-          </div>
-          <div className="h-3 w-32 rounded bg-muted animate-pulse" />
+    <div className="rounded-4xl border border-border/50 bg-card p-5 sm:p-6">
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex gap-2">
+          <div className="h-8 w-24 rounded-lg bg-muted animate-pulse" />
+          <div className="h-8 w-20 rounded-lg bg-muted animate-pulse" />
+          <div className="h-8 w-20 rounded-lg bg-muted animate-pulse" />
         </div>
-        <div className="h-6 w-16 rounded-full bg-muted animate-pulse" />
+        <div className="flex gap-4">
+          <div className="h-4 w-24 rounded bg-muted animate-pulse" />
+          <div className="h-4 w-24 rounded bg-muted animate-pulse" />
+        </div>
       </div>
-      <div className="flex gap-4 mb-4">
-        <div className="h-7 w-36 rounded-lg bg-muted animate-pulse" />
-        <div className="h-7 w-28 rounded-lg bg-muted animate-pulse" />
-      </div>
-      <div className="h-[200px] sm:h-[260px] rounded-xl bg-muted/50 animate-pulse" />
+      <div className="h-[240px] sm:h-[280px] bg-muted/30 rounded-xl animate-pulse" />
     </div>
   );
 }

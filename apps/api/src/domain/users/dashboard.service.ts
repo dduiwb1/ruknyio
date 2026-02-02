@@ -149,6 +149,278 @@ export class DashboardService {
   }
 
   /**
+   * 📊 Get chart data for revenue/orders over time
+   */
+  async getChartData(userId: string, days: number = 7) {
+    const cacheKey = `dashboard:chart:${userId}:${days}`;
+
+    return this.cacheManager.wrap(
+      cacheKey,
+      CACHE_TTL.SHORT,
+      async () => this.fetchChartData(userId, days),
+      { tags: [CACHE_TAGS.USER] },
+    );
+  }
+
+  /**
+   * ⚡ Internal method to fetch chart data
+   */
+  private async fetchChartData(userId: string, days: number) {
+    const now = new Date();
+    const startDate = new Date(now);
+    startDate.setDate(startDate.getDate() - days);
+    
+    const previousStartDate = new Date(startDate);
+    previousStartDate.setDate(previousStartDate.getDate() - days);
+
+    // Get user's store
+    const userStore = await this.prisma.store.findFirst({
+      where: { userId },
+      select: { id: true },
+    });
+
+    if (!userStore) {
+      return this.generateEmptyChartData(days);
+    }
+
+    // Get orders for current and previous period
+    const [currentOrders, previousOrders] = await Promise.all([
+      this.prisma.orders.findMany({
+        where: {
+          storeId: userStore.id,
+          createdAt: { gte: startDate },
+        },
+        select: {
+          id: true,
+          total: true,
+          createdAt: true,
+          status: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.orders.findMany({
+        where: {
+          storeId: userStore.id,
+          createdAt: {
+            gte: previousStartDate,
+            lt: startDate,
+          },
+        },
+        select: {
+          id: true,
+          total: true,
+          createdAt: true,
+          status: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+    ]);
+
+    // Generate daily data
+    const currentData = this.aggregateByDay(currentOrders, startDate, days);
+    const previousData = this.aggregateByDay(previousOrders, previousStartDate, days);
+
+    return {
+      current: currentData,
+      previous: previousData,
+      summary: {
+        currentTotal: currentData.reduce((sum, d) => sum + d.revenue, 0),
+        previousTotal: previousData.reduce((sum, d) => sum + d.revenue, 0),
+        currentOrders: currentData.reduce((sum, d) => sum + d.orders, 0),
+        previousOrders: previousData.reduce((sum, d) => sum + d.orders, 0),
+      },
+    };
+  }
+
+  /**
+   * Aggregate orders by day
+   */
+  private aggregateByDay(orders: any[], startDate: Date, days: number) {
+    const dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    const data = [];
+
+    for (let i = 0; i < days; i++) {
+      const date = new Date(startDate);
+      date.setDate(date.getDate() + i);
+      const dayStart = new Date(date.setHours(0, 0, 0, 0));
+      const dayEnd = new Date(date.setHours(23, 59, 59, 999));
+
+      const dayOrders = orders.filter((o) => {
+        const orderDate = new Date(o.createdAt);
+        return orderDate >= dayStart && orderDate <= dayEnd;
+      });
+
+      data.push({
+        day: dayNames[dayStart.getDay()],
+        date: dayStart.toISOString().split('T')[0],
+        orders: dayOrders.length,
+        revenue: dayOrders.reduce((sum, o) => sum + Number(o.total || 0), 0),
+        products: dayOrders.length, // Simplified
+      });
+    }
+
+    return data;
+  }
+
+  /**
+   * Generate empty chart data
+   */
+  private generateEmptyChartData(days: number) {
+    const dayNames = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    const now = new Date();
+    const data = [];
+
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      data.push({
+        day: dayNames[date.getDay()],
+        date: date.toISOString().split('T')[0],
+        orders: 0,
+        revenue: 0,
+        products: 0,
+      });
+    }
+
+    return {
+      current: data,
+      previous: data,
+      summary: {
+        currentTotal: 0,
+        previousTotal: 0,
+        currentOrders: 0,
+        previousOrders: 0,
+      },
+    };
+  }
+
+  /**
+   * 📊 Get traffic sources data
+   */
+  async getTrafficSources(userId: string) {
+    const cacheKey = `dashboard:traffic:${userId}`;
+
+    return this.cacheManager.wrap(
+      cacheKey,
+      CACHE_TTL.MEDIUM,
+      async () => this.fetchTrafficSources(userId),
+      { tags: [CACHE_TAGS.USER] },
+    );
+  }
+
+  /**
+   * ⚡ Internal method to fetch traffic sources
+   * يجلب إحصائيات حقيقية من مصادر متعددة
+   */
+  private async fetchTrafficSources(userId: string) {
+    try {
+      // 1. جلب الـ profile للمستخدم
+      const userProfile = await this.prisma.profile.findFirst({
+        where: { userId },
+        select: { id: true },
+      });
+
+      // تجميع النقرات حسب المنصة
+      const platformClicks: Record<string, number> = {};
+
+      if (userProfile) {
+        // جلب إحصائيات الروابط الاجتماعية
+        const socialLinks = await this.prisma.socialLink.findMany({
+          where: { profileId: userProfile.id },
+          select: { platform: true, totalClicks: true },
+        });
+
+        socialLinks.forEach((link) => {
+          const platform = link.platform || 'رابط';
+          platformClicks[platform] = (platformClicks[platform] || 0) + (link.totalClicks || 0);
+        });
+      }
+
+      // 2. جلب إحصائيات المتجر
+      const userStore = await this.prisma.store.findFirst({
+        where: { userId },
+        select: { id: true },
+      });
+
+      let productCount = 0;
+      let orderSources: { source: string; count: number }[] = [];
+
+      if (userStore) {
+        // عدد المنتجات النشطة
+        productCount = await this.prisma.products.count({
+          where: { storeId: userStore.id, status: 'ACTIVE' },
+        });
+
+        // الطلبات الأخيرة (نستخدمها كمؤشر للمصادر)
+        const recentOrders = await this.prisma.orders.count({
+          where: { storeId: userStore.id },
+        });
+        orderSources.push({ source: 'الطلبات', count: recentOrders });
+      }
+
+      // 3. جلب تسجيلات الفعاليات
+      const eventRegistrations = await this.prisma.eventRegistration.count({
+        where: { event: { userId } },
+      });
+
+      // 4. جلب ردود النماذج
+      const formSubmissions = await this.prisma.form_submissions.count({
+        where: { form: { userId } },
+      });
+
+      // بناء البيانات من مصادر حقيقية
+      const sources: { name: string; value: number }[] = [];
+
+      // إضافة إحصائيات الروابط
+      Object.entries(platformClicks).forEach(([platform, clicks]) => {
+        if (clicks > 0) {
+          sources.push({
+            name: platform,
+            value: clicks,
+          });
+        }
+      });
+
+      // إضافة مصادر أخرى
+      if (productCount > 0) {
+        sources.push({ name: 'المنتجات', value: productCount });
+      }
+      if (eventRegistrations > 0) {
+        sources.push({ name: 'الفعاليات', value: eventRegistrations });
+      }
+      if (formSubmissions > 0) {
+        sources.push({ name: 'النماذج', value: formSubmissions });
+      }
+      if (orderSources.length > 0 && orderSources[0].count > 0) {
+        sources.push({ name: 'الطلبات', value: orderSources[0].count });
+      }
+
+      // ترتيب حسب القيمة
+      sources.sort((a, b) => b.value - a.value);
+
+      // إذا توفرت بيانات حقيقية
+      if (sources.length > 0) {
+        const maxValue = Math.max(...sources.map((s) => s.value));
+        return sources.slice(0, 7).map((s, index) => ({
+          name: s.name,
+          value: s.value,
+          percentage: maxValue > 0 ? Math.round((s.value / maxValue) * 100) : 0,
+          color: index === 0 ? 'bg-foreground' : 
+                 index < 3 ? 'bg-slate-500 dark:bg-slate-400' : 
+                 'bg-slate-300 dark:bg-slate-600',
+        }));
+      }
+    } catch (error) {
+      this.logger.warn('Could not fetch traffic sources:', error.message);
+    }
+
+    // بيانات افتراضية إذا لم تتوفر بيانات
+    return [
+      { name: 'لا توجد بيانات', value: 0, percentage: 0, color: 'bg-muted' },
+    ];
+  }
+
+  /**
    * ⚡ Internal method to fetch recent activity (used by cache wrapper)
    */
   private async fetchRecentActivity(userId: string, limit: number) {

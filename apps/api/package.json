@@ -76,6 +76,7 @@
     "pdfkit": "^0.17.2",
     "qrcode": "^1.5.4",
     "reflect-metadata": "^0.2.2",
+    "resend": "^6.9.1",
     "rxjs": "^7.8.1",
     "sharp": "^0.34.4",
     "socket.io": "^4.8.1",
@@ -87,7 +88,6 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
-    "cross-env": "^7.0.3",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
     "@nestjs/cli": "^11.0.0",
@@ -109,6 +109,7 @@
     "@types/speakeasy": "^2.0.10",
     "@types/supertest": "^6.0.2",
     "@types/ua-parser-js": "^0.7.39",
+    "cross-env": "^7.0.3",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",

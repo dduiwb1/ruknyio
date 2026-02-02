@@ -23,6 +23,7 @@ import { TwoFactorService } from './two-factor.service';
 import { PendingTwoFactorService } from './pending-two-factor.service';
 import { AccountLockoutService } from './account-lockout.service';
 import { EmailService } from '../../integrations/email/email.service';
+import { ResendService } from '../../integrations/email/resend.service';
 import { SecurityLogService } from '../../infrastructure/security/log.service';
 import { SecurityDetectorService } from '../../infrastructure/security/detector.service';
 import { PrismaService } from '../../core/database/prisma/prisma.service';
@@ -68,6 +69,7 @@ export class QuickSignController {
     private pendingTwoFactorService: PendingTwoFactorService,
     private accountLockoutService: AccountLockoutService,
     private emailService: EmailService,
+    private resendService: ResendService,
     private securityLogService: SecurityLogService,
     private securityDetectorService: SecurityDetectorService,
     private prisma: PrismaService,
@@ -129,14 +131,14 @@ export class QuickSignController {
       deviceType: result.device.type || 'desktop',
     };
 
-    // إرسال البريد في الخلفية (لا ننتظر)
+    // إرسال البريد في الخلفية (لا ننتظر) - استخدام Resend
     if (type === QuickSignType.LOGIN) {
-      this.emailService.sendQuickSignLogin(dto.email, token, deviceInfo).catch((error) => {
+      this.resendService.sendQuickSignLogin(dto.email, token, deviceInfo).catch((error) => {
         console.error('[QuickSign] Failed to send login email:', error);
         // لا نرمي الخطأ - البريد فشل لكن الطلب نجح
       });
     } else {
-      this.emailService.sendQuickSignSignup(dto.email, token, deviceInfo).catch((error) => {
+      this.resendService.sendQuickSignSignup(dto.email, token, deviceInfo).catch((error) => {
         console.error('[QuickSign] Failed to send signup email:', error);
         // لا نرمي الخطأ - البريد فشل لكن الطلب نجح
       });

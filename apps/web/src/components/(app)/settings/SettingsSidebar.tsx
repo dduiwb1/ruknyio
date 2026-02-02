@@ -293,7 +293,7 @@ function SettingsSidebarContent({ onItemClick }: { onItemClick?: () => void }) {
 
 export function SettingsSidebarDesktop() {
   return (
-    <aside className="hidden lg:flex flex-col shrink-0 w-[260px] mr-2 h-full rounded-2xl border border-border/50 bg-card shadow-sm">
+    <aside className="hidden lg:flex flex-col shrink-0 w-[260px] mr-2 h-full rounded-2xl border border-border/50 bg-card">
       <SettingsSidebarContent />
     </aside>
   );
@@ -360,14 +360,9 @@ export function SettingsSidebarSlider() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Combined: desktop sidebar + mobile slider
+// Combined: desktop sidebar only (mobile slider removed)
 // ═══════════════════════════════════════════════════════════════════════════
 
 export function SettingsSidebar() {
-  return (
-    <>
-      <SettingsSidebarDesktop />
-      <SettingsSidebarSlider />
-    </>
-  );
+  return <SettingsSidebarDesktop />;
 }
