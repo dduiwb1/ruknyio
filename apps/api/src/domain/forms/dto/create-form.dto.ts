@@ -382,4 +382,24 @@ export class CreateFormDto {
   @Type(() => CreateFormStepDto)
   @IsOptional()
   steps?: CreateFormStepDto[];
+
+  // ============================================
+  // Integration Settings
+  // ============================================
+
+  @ApiPropertyOptional({
+    example: false,
+    description: 'Enable automatic Google Sheets integration for form submissions',
+  })
+  @IsBoolean()
+  @IsOptional()
+  enableGoogleSheets?: boolean;
+
+  @ApiPropertyOptional({
+    example: 's3',
+    description: 'Storage provider for file uploads: s3 or google_drive',
+  })
+  @IsString()
+  @IsOptional()
+  storageProvider?: 's3' | 'google_drive';
 }

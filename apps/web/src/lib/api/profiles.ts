@@ -65,16 +65,17 @@ export async function updateProfile(input: UpdateProfileInput): Promise<Profile>
 import { API_URL } from '@/lib/config';
 
 /**
- * Upload avatar
+ * Upload avatar to S3 via profiles endpoint
  */
-export async function uploadAvatar(file: File): Promise<{ url: string }> {
+export async function uploadAvatar(file: File): Promise<{ url: string; key?: string; avatarUrl?: string }> {
   const formData = new FormData();
   formData.append('file', file);
   
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
   
+  // Use /profiles/avatar endpoint which uploads to S3
   const response = await fetch(
-    `${API_URL}/upload/avatar`,
+    `${API_URL}/profiles/avatar`,
     {
       method: 'POST',
       body: formData,
@@ -90,6 +91,11 @@ export async function uploadAvatar(file: File): Promise<{ url: string }> {
   }
 
   const data = await response.json();
-  // Runtime validation
-  return z.object({ url: z.string().url() }).parse(data);
+  // The endpoint returns { ...profile, avatarUrl } where avatarUrl is the presigned S3 URL
+  // Return the avatarUrl as url for compatibility
+  return { 
+    url: data.avatarUrl || data.url || data.avatar,
+    key: data.avatar,
+    avatarUrl: data.avatarUrl,
+  };
 }

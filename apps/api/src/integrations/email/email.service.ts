@@ -3,52 +3,124 @@ import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import * as fs from 'fs';
 import * as path from 'path';
+import { Resend } from 'resend';
 
 @Injectable()
 export class EmailService {
   private transporter: nodemailer.Transporter | null = null;
+  private resend: Resend | null = null;
   private emailEnabled: boolean = false;
+  private useResend: boolean = false;
+  private fromEmail: string;
+  private fromName: string;
 
   constructor(private configService: ConfigService) {
-    // Check if email credentials are configured
-    const smtpHost =
-      this.configService.get('MAIL_HOST') ||
-      this.configService.get('SMTP_HOST');
-    const smtpUser =
-      this.configService.get('MAIL_USER') ||
-      this.configService.get('SMTP_USER');
-    const smtpPassword =
-      this.configService.get('MAIL_PASSWORD') ||
-      this.configService.get('SMTP_PASSWORD') ||
-      this.configService.get('SMTP_PASS');
-
-    if (smtpHost && smtpUser && smtpPassword) {
+    // First, check for Resend API (preferred)
+    const resendApiKey = this.configService.get('RESEND_API_KEY');
+    
+    if (resendApiKey) {
+      this.resend = new Resend(resendApiKey);
       this.emailEnabled = true;
-      const port = parseInt(this.configService.get('MAIL_PORT') || this.configService.get('SMTP_PORT') || '587');
-      const secure = this.configService.get('MAIL_SECURE') === 'true';
-      
-      this.transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: port,
-        secure: secure,
-        auth: {
-          user: smtpUser,
-          pass: smtpPassword,
-        },
-        connectionTimeout: 30000,
-        socketTimeout: 30000,
-        greetingTimeout: 15000,
-        pool: true,
-        maxConnections: 5,
-        maxMessages: 100,
-      } as nodemailer.TransportOptions);
-      
-      console.log(`✅ Email service enabled - Host: ${smtpHost}:${port} (Secure: ${secure})`);
+      this.useResend = true;
+      this.fromEmail = this.configService.get('RESEND_FROM_EMAIL', 'notifications@rukny.store');
+      this.fromName = this.configService.get('SMTP_FROM_NAME', 'Rukny');
+      console.log(`✅ Email service enabled via Resend API - From: ${this.fromEmail}`);
     } else {
-      console.warn(
-        '⚠️  Email service disabled - Missing MAIL_HOST, MAIL_USER, or MAIL_PASSWORD',
-      );
-      console.warn('   Email notifications will be logged to console only');
+      // Fallback to SMTP if no Resend
+      const smtpHost =
+        this.configService.get('MAIL_HOST') ||
+        this.configService.get('SMTP_HOST');
+      const smtpUser =
+        this.configService.get('MAIL_USER') ||
+        this.configService.get('SMTP_USER');
+      const smtpPassword =
+        this.configService.get('MAIL_PASSWORD') ||
+        this.configService.get('SMTP_PASSWORD') ||
+        this.configService.get('SMTP_PASS');
+
+      if (smtpHost && smtpUser && smtpPassword) {
+        this.emailEnabled = true;
+        const port = parseInt(this.configService.get('MAIL_PORT') || this.configService.get('SMTP_PORT') || '587');
+        const secure = this.configService.get('MAIL_SECURE') === 'true';
+        
+        this.transporter = nodemailer.createTransport({
+          host: smtpHost,
+          port: port,
+          secure: secure,
+          auth: {
+            user: smtpUser,
+            pass: smtpPassword,
+          },
+          connectionTimeout: 30000,
+          socketTimeout: 30000,
+          greetingTimeout: 15000,
+          pool: true,
+          maxConnections: 5,
+          maxMessages: 100,
+        } as nodemailer.TransportOptions);
+        
+        this.fromEmail = this.configService.get('SMTP_FROM_EMAIL', 'notifications@rukny.store');
+        this.fromName = this.configService.get('SMTP_FROM_NAME', 'Rukny');
+        console.log(`✅ Email service enabled via SMTP - Host: ${smtpHost}:${port}`);
+      } else {
+        console.warn(
+          '⚠️  Email service disabled - Missing RESEND_API_KEY or SMTP credentials',
+        );
+        console.warn('   Email notifications will be logged to console only');
+      }
+    }
+  }
+
+  /**
+   * Send email using Resend or SMTP based on configuration
+   * This is the main public method for sending emails
+   */
+  async sendEmail(options: {
+    to: string;
+    subject: string;
+    html: string;
+    from?: string;
+  }): Promise<boolean> {
+    if (!this.emailEnabled) {
+      console.log(`📧 [SIMULATED] Email would be sent to ${options.to}: ${options.subject}`);
+      return false;
+    }
+
+    const from = options.from || `"${this.fromName}" <${this.fromEmail}>`;
+
+    try {
+      if (this.useResend && this.resend) {
+        // Use Resend API
+        const result = await this.resend.emails.send({
+          from: `${this.fromName} <${this.fromEmail}>`,
+          to: options.to,
+          subject: options.subject,
+          html: options.html,
+        });
+        
+        if (result.error) {
+          throw new Error(result.error.message);
+        }
+        
+        console.log(`✅ Email sent via Resend to ${options.to}`);
+        return true;
+      } else if (this.transporter) {
+        // Use SMTP
+        await this.transporter.sendMail({
+          from,
+          to: options.to,
+          subject: options.subject,
+          html: options.html,
+        });
+        
+        console.log(`✅ Email sent via SMTP to ${options.to}`);
+        return true;
+      }
+      
+      return false;
+    } catch (error: any) {
+      console.error(`❌ Failed to send email to ${options.to}:`, error.message);
+      throw error;
     }
   }
 
@@ -2176,38 +2248,188 @@ export class EmailService {
   }
 
   /**
-   * Generic method to send custom emails
+   * Send notification when a form receives a new submission
    */
-  async sendEmail(options: {
-    to: string;
-    subject: string;
-    html: string;
-    from?: string;
-  }) {
+  async sendFormSubmissionNotification(
+    to: string,
+    formTitle: string,
+    submissionData: Record<string, any>,
+    formId: string,
+  ) {
     try {
-      const fromEmail = this.configService.get(
-        'SMTP_FROM_EMAIL',
-        'notifications@rukny.store',
-      );
-      const fromName = this.configService.get('SMTP_FROM_NAME', 'Rukny');
+      const frontendUrl = this.getFrontendUrl();
+      const formUrl = `${frontendUrl}/app/forms/${formId}/responses`;
+      
+      // Build submission summary (limit to first 5 fields)
+      const entries = Object.entries(submissionData || {}).slice(0, 5);
+      const submissionHtml = entries.length > 0
+        ? entries.map(([key, value]) => `
+          <tr>
+            <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; color: #6b7280; width: 40%;">${key}</td>
+            <td style="padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; color: #1a1a1a;">${String(value || '-').substring(0, 100)}</td>
+          </tr>
+        `).join('')
+        : '<tr><td colspan="2" style="padding: 12px; text-align: center; color: #9ca3af;">No data submitted</td></tr>';
 
-      const mailOptions = {
-        from: options.from || `"${fromName}" <${fromEmail}>`,
-        to: options.to,
-        subject: options.subject,
-        html: options.html,
-      };
+      const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 500px; background-color: #ffffff; border-radius: 8px; overflow: hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 30px 30px 20px 30px;">
+              <span style="font-size: 24px; font-weight: bold; color: #1a1a1a;">Rukny</span>
+            </td>
+          </tr>
+          
+          <!-- Content -->
+          <tr>
+            <td style="padding: 0 30px;">
+              <p style="font-size: 16px; color: #1a1a1a; margin: 0 0 10px 0;">
+                📝 <strong>New Form Response</strong>
+              </p>
+              <p style="font-size: 14px; color: #6b7280; margin: 0 0 20px 0;">
+                Your form "<strong>${formTitle}</strong>" has received a new submission.
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Submission Data -->
+          <tr>
+            <td style="padding: 0 30px 20px 30px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; border-radius: 8px; overflow: hidden;">
+                ${submissionHtml}
+              </table>
+              ${entries.length >= 5 ? '<p style="font-size: 12px; color: #9ca3af; margin: 10px 0 0 0; text-align: center;">+ more fields</p>' : ''}
+            </td>
+          </tr>
+          
+          <!-- Button -->
+          <tr>
+            <td style="padding: 0 30px 30px 30px;">
+              <a href="${formUrl}" style="display: block; background-color: #1a1a1a; color: #ffffff; text-decoration: none; padding: 14px 20px; border-radius: 8px; text-align: center; font-size: 14px; font-weight: 500;">
+                View All Responses
+              </a>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 20px 30px; border-top: 1px solid #e5e7eb;">
+              <p style="font-size: 12px; color: #9ca3af; margin: 0; text-align: center;">
+                Rukny © ${new Date().getFullYear()}
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+      `;
 
-      if (this.emailEnabled && this.transporter) {
-        await this.transporter.sendMail(mailOptions);
-        console.log(`✅ Email sent to ${options.to}`);
-      } else {
-        console.log(`📧 [SIMULATED] Email would be sent to ${options.to}`);
-        console.log(`   Subject: ${options.subject}`);
-      }
+      await this.sendEmail({
+        to,
+        subject: `📝 New response: ${formTitle}`,
+        html,
+      });
     } catch (error) {
-      console.error('❌ Failed to send email:', error);
-      throw error;
+      console.error('❌ Failed to send form submission notification:', error);
+      // Don't throw - email failure shouldn't block submission
+    }
+  }
+
+  /**
+   * Send auto-response email to form submitter
+   */
+  async sendAutoResponse(
+    to: string,
+    formTitle: string,
+    customMessage: string,
+  ) {
+    try {
+      const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 450px; background-color: #ffffff; border-radius: 8px; overflow: hidden;">
+          <!-- Header -->
+          <tr>
+            <td style="padding: 30px 30px 20px 30px;">
+              <span style="font-size: 24px; font-weight: bold; color: #1a1a1a;">Rukny</span>
+            </td>
+          </tr>
+          
+          <!-- Success Icon -->
+          <tr>
+            <td style="padding: 0 30px; text-align: center;">
+              <div style="width: 60px; height: 60px; background-color: #dcfce7; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+                <span style="font-size: 28px;">✅</span>
+              </div>
+            </td>
+          </tr>
+          
+          <!-- Content -->
+          <tr>
+            <td style="padding: 0 30px;">
+              <p style="font-size: 18px; font-weight: 600; color: #1a1a1a; margin: 0 0 10px 0; text-align: center;">
+                Response Received!
+              </p>
+              <p style="font-size: 14px; color: #6b7280; margin: 0 0 20px 0; text-align: center;">
+                Thank you for submitting "<strong>${formTitle}</strong>"
+              </p>
+            </td>
+          </tr>
+          
+          <!-- Custom Message -->
+          <tr>
+            <td style="padding: 0 30px 30px 30px;">
+              <div style="background-color: #f0fdf4; border-radius: 8px; padding: 20px; border-left: 4px solid #22c55e;">
+                <p style="font-size: 14px; color: #166534; margin: 0; line-height: 1.6; white-space: pre-wrap;">${customMessage}</p>
+              </div>
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 20px 30px; border-top: 1px solid #e5e7eb;">
+              <p style="font-size: 12px; color: #9ca3af; margin: 0; text-align: center;">
+                Rukny © ${new Date().getFullYear()}
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+      `;
+
+      await this.sendEmail({
+        to,
+        subject: `✅ Thank you for your submission – ${formTitle}`,
+        html,
+      });
+    } catch (error) {
+      console.error('❌ Failed to send auto-response:', error);
+      // Don't throw - email failure shouldn't block submission
     }
   }
 
@@ -2224,57 +2446,22 @@ export class EmailService {
     },
   ) {
     try {
-      const fromEmail = this.configService.get(
-        'SMTP_FROM_EMAIL',
-        'notifications@rukny.store',
-      );
-      const fromName = this.configService.get('SMTP_FROM_NAME', 'Rukny');
       const frontendUrl = this.getFrontendUrl();
-
       const formUrl = `${frontendUrl}/f/${formData.formSlug}`;
       // Generate QR code as base64 using Google Charts API (works in emails)
       const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(formUrl)}`;
 
-      const mailOptions = {
-        from: `"${fromName}" <${fromEmail}>`,
+      const html = this.getFormCreatedTemplate(userName, {
+        ...formData,
+        formUrl,
+        qrCodeUrl,
+      });
+
+      await this.sendEmail({
         to,
         subject: `Your form has been created – Rukny`,
-        html: this.getFormCreatedTemplate(userName, {
-          ...formData,
-          formUrl,
-          qrCodeUrl,
-        }),
-      };
-
-      if (this.emailEnabled && this.transporter) {
-        try {
-          await this.transporter.sendMail(mailOptions);
-          console.log(`✅ Form created notification sent to ${to}`);
-        } catch (smtpError: any) {
-          console.error('❌ SMTP Error details:', {
-            code: smtpError.code,
-            message: smtpError.message,
-            command: smtpError.command,
-            response: smtpError.response,
-          });
-          
-          // Log simulated email if SMTP fails
-          console.log(`📧 [FALLBACK] Logging form notification instead of sending:`, {
-            to,
-            subject: mailOptions.subject,
-            userName,
-            formTitle: formData.formTitle,
-            formUrl,
-          });
-          
-          // Re-throw so caller knows it failed
-          throw smtpError;
-        }
-      } else {
-        console.log(
-          `📧 [SIMULATED] Form created notification would be sent to ${to}`,
-        );
-      }
+        html,
+      });
     } catch (error) {
       console.error('❌ Failed to send form created notification:', error);
       // Don't throw - email failure shouldn't block form creation

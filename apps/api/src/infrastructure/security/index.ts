@@ -27,3 +27,10 @@ export * from './cleanup.service';
 export * from './security.gateway';
 export * from './security.module';
 export * from './dto';
+
+// Advanced Security Services
+export * from './brute-force.service';
+export * from './anomaly-detection.service';
+export * from './session-fingerprint.service';
+export * from './threat-alert.service';
+export * from './audit-export.service';

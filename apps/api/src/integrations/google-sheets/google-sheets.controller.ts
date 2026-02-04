@@ -25,14 +25,17 @@ export class GoogleSheetsController {
 
   /**
    * Get OAuth URL to connect Google Sheets
+   * Uses login_hint to auto-select the user's Google account
    */
   @Get('connect/:formId')
   @UseGuards(JwtAuthGuard)
   getConnectUrl(
     @Param('formId') formId: string,
     @CurrentUser('id') userId: string,
+    @CurrentUser('email') userEmail: string,
   ) {
-    const authUrl = this.googleSheetsService.getAuthUrl(formId, userId);
+    // Pass user's email as login_hint to skip account selection
+    const authUrl = this.googleSheetsService.getAuthUrl(formId, userId, userEmail);
     return { authUrl };
   }
 

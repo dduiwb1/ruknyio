@@ -48,12 +48,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
       : message;
 
     // بناء response آمن
+    const requestId = (request as any).requestId || request.headers['x-request-id'];
     const errorResponse = {
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
       method: request.method,
       message: Array.isArray(safeMessage) ? safeMessage : [safeMessage],
+      // 🔒 Request ID للتتبع والدعم الفني
+      requestId,
       // 🔒 في Development فقط، إضافة تفاصيل إضافية
       ...(!this.isProduction && {
         error:

@@ -3,16 +3,38 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  OnModuleInit,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../core/database/prisma/prisma.service';
+import { CacheManager } from '../../core/cache/cache.manager';
+import { CacheKeys, CACHE_TTL, CACHE_TAGS } from '../../core/cache/cache.constants';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { sanitizeInput } from './utils/event.utils';
 import { EVENT_ERRORS } from './constants/event.constants';
 
 @Injectable()
-export class CategoriesService {
-  constructor(private prisma: PrismaService) {}
+export class CategoriesService implements OnModuleInit {
+  private readonly logger = new Logger(CategoriesService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private cacheManager: CacheManager,
+  ) {}
+
+  /**
+   * 🔥 Cache Warming - تحميل التصنيفات في الكاش عند بدء التشغيل
+   */
+  async onModuleInit() {
+    try {
+      this.logger.log('🔥 Warming categories cache...');
+      await this.findAll(); // This will cache the categories
+      this.logger.log('✅ Categories cache warmed successfully');
+    } catch (error) {
+      this.logger.warn(`⚠️ Failed to warm categories cache: ${error.message}`);
+    }
+  }
 
   /**
    * Create a new category
@@ -60,19 +82,26 @@ export class CategoriesService {
 
   /**
    * Get all categories
-   * Public endpoint
+   * Public endpoint - ✅ Cached for 1 hour
    */
   async findAll() {
-    return this.prisma.eventCategory.findMany({
-      include: {
-        _count: {
-          select: { events: true },
-        },
+    return this.cacheManager.wrap(
+      CacheKeys.eventCategories(),
+      CACHE_TTL.CATEGORIES,
+      async () => {
+        return this.prisma.eventCategory.findMany({
+          include: {
+            _count: {
+              select: { events: true },
+            },
+          },
+          orderBy: {
+            name: 'asc',
+          },
+        });
       },
-      orderBy: {
-        name: 'asc',
-      },
-    });
+      { tags: [CACHE_TAGS.CATEGORY] },
+    );
   }
 
   /**
@@ -200,7 +229,7 @@ export class CategoriesService {
       sanitizedData.color = updateCategoryDto.color;
     }
 
-    return this.prisma.eventCategory.update({
+    const result = await this.prisma.eventCategory.update({
       where: { id },
       data: sanitizedData,
       include: {
@@ -209,6 +238,11 @@ export class CategoriesService {
         },
       },
     });
+
+    // 🔥 Invalidate categories cache
+    await this.cacheManager.invalidateByTags(CACHE_TAGS.CATEGORY);
+
+    return result;
   }
 
   /**
@@ -234,6 +268,9 @@ export class CategoriesService {
     await this.prisma.eventCategory.delete({
       where: { id },
     });
+
+    // 🔥 Invalidate categories cache
+    await this.cacheManager.invalidateByTags(CACHE_TAGS.CATEGORY);
 
     return { message: 'Category deleted successfully' };
   }

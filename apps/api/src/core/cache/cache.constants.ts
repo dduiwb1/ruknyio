@@ -90,6 +90,10 @@ export const CacheKeys = {
   publicFormsByUsername: (username: string) =>
     `${CACHE_PREFIX.FORM}:${CACHE_PREFIX.PUBLIC}:${username}`,
 
+  // Notifications
+  notificationsList: (userId: string) => `notifications:list:${userId}`,
+  notificationsUnreadCount: (userId: string) => `notifications:unread:${userId}`,
+
   // Generic pattern matcher for invalidation
   pattern: {
     userAll: (userId: string) => `*:*:${userId}*`,
@@ -108,4 +112,5 @@ export const CACHE_TAGS = {
   EVENT: 'tag:event',
   FORM: 'tag:form',
   CATEGORY: 'tag:category',
+  NOTIFICATION: 'tag:notification',
 } as const;

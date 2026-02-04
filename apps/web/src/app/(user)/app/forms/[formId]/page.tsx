@@ -88,29 +88,31 @@ function StatCard({
   value: string | number; 
   color?: string;
 }) {
-  const colorClasses: Record<string, { bg: string; icon: string; text: string }> = {
-    blue: { bg: 'bg-blue-50', icon: 'text-blue-500', text: 'text-blue-600' },
-    green: { bg: 'bg-emerald-50', icon: 'text-emerald-500', text: 'text-emerald-600' },
-    purple: { bg: 'bg-purple-50', icon: 'text-purple-500', text: 'text-purple-600' },
-    orange: { bg: 'bg-orange-50', icon: 'text-orange-500', text: 'text-orange-600' },
-    gray: { bg: 'bg-gray-50', icon: 'text-gray-500', text: 'text-gray-600' },
+  const colorClasses: Record<string, { bg: string; iconBg: string; icon: string; text: string; border: string }> = {
+    blue: { bg: 'bg-gradient-to-br from-blue-50 to-blue-100/50', iconBg: 'bg-blue-500', icon: 'text-white', text: 'text-blue-600', border: 'border-blue-200/50' },
+    green: { bg: 'bg-gradient-to-br from-emerald-50 to-emerald-100/50', iconBg: 'bg-emerald-500', icon: 'text-white', text: 'text-emerald-600', border: 'border-emerald-200/50' },
+    purple: { bg: 'bg-gradient-to-br from-purple-50 to-purple-100/50', iconBg: 'bg-purple-500', icon: 'text-white', text: 'text-purple-600', border: 'border-purple-200/50' },
+    orange: { bg: 'bg-gradient-to-br from-orange-50 to-orange-100/50', iconBg: 'bg-orange-500', icon: 'text-white', text: 'text-orange-600', border: 'border-orange-200/50' },
+    gray: { bg: 'bg-gradient-to-br from-gray-50 to-gray-100/50', iconBg: 'bg-gray-500', icon: 'text-white', text: 'text-gray-600', border: 'border-gray-200/50' },
   };
 
   const colors = colorClasses[color] || colorClasses.gray;
 
   return (
     <div className={cn(
-      "flex items-center gap-2 sm:gap-3 p-2.5 sm:p-4 rounded-xl bg-white border border-gray-100",
-      colors.bg
+      "flex items-center gap-2.5 p-3 rounded-2xl border",
+      colors.bg,
+      colors.border
     )}>
       <div className={cn(
-        "w-8 h-8 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl flex items-center justify-center bg-white shadow-sm flex-shrink-0",
+        "w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0",
+        colors.iconBg
       )}>
-        <Icon className={cn("w-4 h-4 sm:w-5 sm:h-5", colors.icon)} />
+        <Icon className={cn("w-4 h-4", colors.icon)} />
       </div>
       <div className="min-w-0">
-        <p className={cn("text-base sm:text-xl font-bold leading-tight", colors.text)}>{value}</p>
-        <p className="text-[10px] sm:text-xs text-gray-500 truncate">{label}</p>
+        <p className={cn("text-lg font-bold leading-tight", colors.text)}>{value}</p>
+        <p className="text-[10px] text-gray-500">{label}</p>
       </div>
     </div>
   );
@@ -126,24 +128,31 @@ function SettingItem({
   enabled: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between py-1.5 sm:py-2">
-      <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
-        <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
-        <span className="text-xs sm:text-sm text-gray-600 truncate">{label}</span>
+    <div className="flex items-center justify-between py-2 px-2.5 rounded-xl hover:bg-gray-50/80 transition-all">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div className={cn(
+          "w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
+          enabled ? "bg-emerald-500" : "bg-gray-200"
+        )}>
+          <Icon className={cn(
+            "w-3.5 h-3.5",
+            enabled ? "text-white" : "text-gray-500"
+          )} />
+        </div>
+        <span className={cn(
+          "text-xs font-medium transition-colors",
+          enabled ? "text-gray-900" : "text-gray-500"
+        )}>{label}</span>
       </div>
-      {enabled ? (
-        <span className="flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs text-emerald-600 bg-emerald-50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full flex-shrink-0">
-          <CheckCircle2 className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-          <span className="hidden xs:inline">مفعّل</span>
-          <span className="xs:hidden">✓</span>
-        </span>
-      ) : (
-        <span className="flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs text-gray-400 bg-gray-50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full flex-shrink-0">
-          <AlertCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-          <span className="hidden xs:inline">معطّل</span>
-          <span className="xs:hidden">✗</span>
-        </span>
-      )}
+      <div className={cn(
+        "w-9 h-5 rounded-full relative transition-all cursor-default",
+        enabled ? "bg-emerald-500" : "bg-gray-300"
+      )}>
+        <div className={cn(
+          "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all",
+          enabled ? "right-0.5" : "left-0.5"
+        )} />
+      </div>
     </div>
   );
 }
@@ -346,29 +355,29 @@ export default function FormDetailsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-4 sm:mb-6"
+            className="bg-gradient-to-br from-white to-gray-50/50 rounded-[1.5rem] border border-gray-200/80 overflow-hidden mb-4"
           >
             {/* Form Info */}
-            <div className="p-4 sm:p-6">
+            <div className="p-4 sm:p-5">
               {/* Top Row - Icon, Title, Status */}
-              <div className="flex items-start gap-3 sm:gap-4 mb-4">
+              <div className="flex items-start gap-3 mb-3">
                 {/* Form Icon */}
                 <div className={cn(
-                  "w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br",
+                  "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-gradient-to-br",
                   gradient
                 )}>
-                  <FileText className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                  <FileText className="w-6 h-6 text-white" />
                 </div>
                 
                 {/* Title & Meta */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2 mb-1">
-                    <h1 className="text-lg sm:text-xl font-bold text-gray-900 line-clamp-1">
+                    <h1 className="text-base sm:text-lg font-bold text-gray-900 line-clamp-1">
                       {form.title}
                     </h1>
                     {/* Status Badge */}
                     <span className={cn(
-                      "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium flex-shrink-0",
+                      "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0",
                       statusConfig.bg,
                       statusConfig.color
                     )}>
@@ -383,30 +392,30 @@ export default function FormDetailsPage() {
                   </div>
                   
                   {form.description && (
-                    <p className="text-xs sm:text-sm text-gray-500 line-clamp-1 mb-2">
+                    <p className="text-xs text-gray-500 line-clamp-1 mb-2">
                       {form.description}
                     </p>
                   )}
 
                   {/* Tags Row */}
-                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-medium bg-gray-100 text-gray-600">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 text-gray-700">
                       {FORM_TYPE_CONFIG[form.type]?.icon} {FORM_TYPE_LABELS[form.type]}
                     </span>
                     {form.requiresAuthentication ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-medium bg-amber-50 text-amber-600">
-                        <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-100 text-amber-700">
+                        <Lock className="w-2.5 h-2.5" />
                         خاص
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-medium bg-emerald-50 text-emerald-600">
-                        <Globe className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-emerald-100 text-emerald-700">
+                        <Globe className="w-2.5 h-2.5" />
                         عام
                       </span>
                     )}
                     {form.isMultiStep && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-medium bg-blue-50 text-blue-600">
-                        <Layers className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-blue-100 text-blue-700">
+                        <Layers className="w-2.5 h-2.5" />
                         متعدد
                       </span>
                     )}
@@ -415,17 +424,21 @@ export default function FormDetailsPage() {
               </div>
 
               {/* Divider */}
-              <div className="border-t border-gray-100 my-3 sm:my-4" />
+              <div className="border-t border-gray-100 my-3" />
 
               {/* Meta Info Row */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-gray-400">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3 text-[10px] text-gray-500">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center">
+                      <Calendar className="w-3 h-3 text-gray-500" />
+                    </div>
                     <span>{formatDate(form.createdAt)}</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center">
+                      <Clock className="w-3 h-3 text-gray-500" />
+                    </div>
                     <span>{formatRelativeTime(form.updatedAt)}</span>
                   </div>
                 </div>
@@ -435,7 +448,7 @@ export default function FormDetailsPage() {
               <div className="flex items-center gap-2">
                 <Link
                   href={`/app/forms/${form.id}/edit`}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gray-900 text-white rounded-xl text-xs sm:text-sm font-medium hover:bg-gray-800 transition-colors"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gray-900 text-white rounded-xl text-xs font-semibold hover:bg-gray-800 transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <Edit className="w-4 h-4" />
                   <span>تحرير</span>
@@ -443,12 +456,12 @@ export default function FormDetailsPage() {
                 
                 <Link
                   href={`/app/forms/${form.id}/responses`}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-xs sm:text-sm font-medium hover:bg-gray-200 transition-colors"
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-purple-100 text-purple-700 rounded-xl text-xs font-semibold hover:bg-purple-200 transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
                   <BarChart3 className="w-4 h-4" />
                   <span>الإجابات</span>
                   {submissionsCount > 0 && (
-                    <span className="bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full text-[10px] font-semibold">
+                    <span className="bg-purple-600 text-white px-1.5 py-0.5 rounded text-[10px] font-bold">
                       {submissionsCount}
                     </span>
                   )}
@@ -457,7 +470,7 @@ export default function FormDetailsPage() {
                 {form.status === FormStatus.PUBLISHED && (
                   <button
                     onClick={handleOpenForm}
-                    className="p-2.5 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors"
+                    className="p-2.5 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200 transition-all hover:scale-105 active:scale-95"
                     title="عرض النموذج"
                   >
                     <ExternalLink className="w-4 h-4" />
@@ -466,7 +479,7 @@ export default function FormDetailsPage() {
 
                 <button
                   onClick={handleDeleteClick}
-                  className="p-2.5 bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition-colors"
+                  className="p-2.5 bg-red-100 text-red-600 rounded-xl hover:bg-red-200 transition-all hover:scale-105 active:scale-95"
                   title="حذف النموذج"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -516,39 +529,41 @@ export default function FormDetailsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6"
+              className="bg-gradient-to-br from-blue-50 to-white rounded-[1.5rem] border border-blue-200/50 p-4"
             >
-              <h2 className="flex items-center gap-2 text-base sm:text-lg font-semibold text-gray-900 mb-4">
-                <Share2 className="w-5 h-5 text-gray-400" />
+              <h2 className="flex items-center gap-2 text-sm font-bold text-gray-900 mb-3">
+                <div className="w-7 h-7 rounded-lg bg-blue-500 flex items-center justify-center">
+                  <Share2 className="w-3.5 h-3.5 text-white" />
+                </div>
                 مشاركة النموذج
               </h2>
 
               {/* Form Link */}
-              <div className="mb-3 sm:mb-4">
-                <label className="block text-xs sm:text-sm text-gray-500 mb-1.5 sm:mb-2">رابط النموذج</label>
-                <div className="flex gap-1.5 sm:gap-2">
-                  <div className="flex-1 flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 sm:py-2.5 bg-gray-50 rounded-lg sm:rounded-xl text-xs sm:text-sm text-gray-600 truncate border border-gray-100 min-w-0">
-                    <Link2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
-                    <span className="truncate" dir="ltr">{formLink}</span>
+              <div className="mb-3">
+                <label className="block text-[10px] font-medium text-gray-500 mb-1.5">رابط النموذج</label>
+                <div className="flex gap-1.5">
+                  <div className="flex-1 flex items-center gap-2 px-2.5 py-2 bg-white rounded-xl text-xs text-gray-600 truncate border border-gray-200 min-w-0">
+                    <Link2 className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                    <span className="truncate font-mono text-[10px]" dir="ltr">{formLink}</span>
                   </div>
                   <button
                     onClick={handleCopyLink}
                     className={cn(
-                      "px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 flex-shrink-0",
+                      "px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 flex-shrink-0 hover:scale-105 active:scale-95",
                       copied 
-                        ? "bg-emerald-100 text-emerald-700" 
-                        : "bg-gray-900 text-white hover:bg-gray-800"
+                        ? "bg-emerald-500 text-white" 
+                        : "bg-blue-600 text-white hover:bg-blue-700"
                     )}
                   >
                     {copied ? (
                       <>
-                        <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        <span className="hidden sm:inline">تم النسخ</span>
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>تم!</span>
                       </>
                     ) : (
                       <>
-                        <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        <span className="hidden sm:inline">نسخ</span>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>نسخ</span>
                       </>
                     )}
                   </button>
@@ -556,28 +571,28 @@ export default function FormDetailsPage() {
               </div>
 
               {/* Slug */}
-              <div className="mb-3 sm:mb-4">
-                <label className="block text-xs sm:text-sm text-gray-500 mb-1.5 sm:mb-2">المعرّف الفريد (Slug)</label>
-                <div className="flex items-center gap-2 px-2 sm:px-3 py-2 sm:py-2.5 bg-gray-50 rounded-lg sm:rounded-xl text-xs sm:text-sm text-gray-600 border border-gray-100 font-mono truncate">
-                  {form.slug}
+              <div className="mb-3">
+                <label className="block text-[10px] font-medium text-gray-500 mb-1.5">المعرّف الفريد</label>
+                <div className="flex items-center gap-2 px-2.5 py-2 bg-white rounded-xl text-xs text-gray-700 border border-gray-200 font-mono">
+                  <span className="text-blue-500">/</span>{form.slug}
                 </div>
               </div>
 
               {/* Quick Actions */}
-              <div className="flex gap-1.5 sm:gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <button 
                   onClick={handleOpenForm}
                   disabled={form.status !== FormStatus.PUBLISHED}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-50 text-gray-600 rounded-lg sm:rounded-xl text-xs sm:text-sm hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center gap-1.5 px-2.5 py-2 bg-white text-gray-700 rounded-xl text-xs font-medium border border-gray-200 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <ExternalLink className="w-3.5 h-3.5 text-blue-500" />
                   <span>فتح</span>
                 </button>
                 <button 
                   onClick={() => setQrModalOpen(true)}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-50 text-gray-600 rounded-lg sm:rounded-xl text-xs sm:text-sm hover:bg-gray-100 transition-colors"
+                  className="flex items-center justify-center gap-1.5 px-2.5 py-2 bg-white text-gray-700 rounded-xl text-xs font-medium border border-gray-200 hover:bg-gray-50 transition-all"
                 >
-                  <QrCode className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <QrCode className="w-3.5 h-3.5 text-purple-500" />
                   <span>QR</span>
                 </button>
               </div>
@@ -588,14 +603,16 @@ export default function FormDetailsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6"
+              className="bg-gradient-to-br from-purple-50 to-white rounded-[1.5rem] border border-purple-200/50 p-4"
             >
-              <h2 className="flex items-center gap-2 text-base sm:text-lg font-semibold text-gray-900 mb-4">
-                <Settings className="w-5 h-5 text-gray-400" />
+              <h2 className="flex items-center gap-2 text-sm font-bold text-gray-900 mb-3">
+                <div className="w-7 h-7 rounded-lg bg-purple-500 flex items-center justify-center">
+                  <Settings className="w-3.5 h-3.5 text-white" />
+                </div>
                 إعدادات النموذج
               </h2>
 
-              <div className="space-y-1 divide-y divide-gray-50">
+              <div className="space-y-0.5 bg-white rounded-xl p-1.5 border border-gray-100">
                 <SettingItem 
                   icon={Users} 
                   label="السماح بإجابات متعددة" 
@@ -636,29 +653,35 @@ export default function FormDetailsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="mt-4 sm:mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6"
+              className="mt-4 bg-gradient-to-br from-orange-50 to-white rounded-[1.5rem] border border-orange-200/50 p-4"
             >
-              <h2 className="flex items-center gap-2 text-base sm:text-lg font-semibold text-gray-900 mb-4">
-                <Link2 className="w-5 h-5 text-gray-400" />
+              <h2 className="flex items-center gap-2 text-sm font-bold text-gray-900 mb-3">
+                <div className="w-7 h-7 rounded-lg bg-orange-500 flex items-center justify-center">
+                  <Link2 className="w-3.5 h-3.5 text-white" />
+                </div>
                 مرتبط بـ
               </h2>
 
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-2">
                 {form.linkedEvent && (
-                  <div className="flex items-center gap-3 px-4 py-3 bg-purple-50 rounded-xl">
-                    <Calendar className="w-5 h-5 text-purple-500" />
+                  <div className="flex items-center gap-2.5 px-3 py-2.5 bg-white rounded-xl border border-purple-200">
+                    <div className="w-8 h-8 rounded-lg bg-purple-500 flex items-center justify-center">
+                      <Calendar className="w-4 h-4 text-white" />
+                    </div>
                     <div>
-                      <p className="text-xs text-purple-500">فعالية</p>
-                      <p className="text-sm font-medium text-purple-700">{form.linkedEvent.title}</p>
+                      <p className="text-[10px] text-purple-500 font-semibold">فعالية</p>
+                      <p className="text-xs font-bold text-gray-900">{form.linkedEvent.title}</p>
                     </div>
                   </div>
                 )}
                 {form.linkedStore && (
-                  <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 rounded-xl">
-                    <Globe className="w-5 h-5 text-emerald-500" />
+                  <div className="flex items-center gap-2.5 px-3 py-2.5 bg-white rounded-xl border border-emerald-200">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center">
+                      <Globe className="w-4 h-4 text-white" />
+                    </div>
                     <div>
-                      <p className="text-xs text-emerald-500">متجر</p>
-                      <p className="text-sm font-medium text-emerald-700">{form.linkedStore.name}</p>
+                      <p className="text-[10px] text-emerald-500 font-semibold">متجر</p>
+                      <p className="text-xs font-bold text-gray-900">{form.linkedStore.name}</p>
                     </div>
                   </div>
                 )}
@@ -672,34 +695,36 @@ export default function FormDetailsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="mt-4 sm:mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6"
+              className="mt-4 bg-gradient-to-br from-emerald-50 to-white rounded-[1.5rem] border border-emerald-200/50 p-4"
             >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="flex items-center gap-2 text-base sm:text-lg font-semibold text-gray-900">
-                  <FileText className="w-5 h-5 text-gray-400" />
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
+                    <FileText className="w-3.5 h-3.5 text-white" />
+                  </div>
                   حقول النموذج
                 </h2>
-                <span className="text-sm text-gray-500">
+                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded-full">
                   {form.fields.length} حقل
                 </span>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5 bg-white rounded-xl p-2 border border-gray-100">
                 {form.fields.slice(0, 5).map((field, index) => (
                   <div 
                     key={field.id}
-                    className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl"
+                    className="flex items-center gap-2.5 p-2.5 bg-gray-50 rounded-xl border border-gray-100 hover:border-emerald-200 transition-all"
                   >
-                    <span className="w-6 h-6 rounded-lg bg-white text-xs font-medium text-gray-500 flex items-center justify-center shadow-sm">
+                    <span className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-600 text-[10px] font-bold text-white flex items-center justify-center">
                       {index + 1}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-700 truncate">
+                      <p className="text-xs font-medium text-gray-800 truncate">
                         {field.label}
                         {field.required && <span className="text-red-500 mr-1">*</span>}
                       </p>
                     </div>
-                    <span className="text-xs text-gray-400 bg-white px-2 py-1 rounded-lg">
+                    <span className="text-[10px] font-medium text-emerald-700 bg-emerald-100 px-2 py-1 rounded-lg">
                       {FIELD_TYPE_LABELS[field.type as FieldType] || field.type}
                     </span>
                   </div>
@@ -707,7 +732,7 @@ export default function FormDetailsPage() {
                 
                 {form.fields.length > 5 && (
                   <div className="text-center py-2">
-                    <span className="text-sm text-gray-400">
+                    <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full">
                       +{form.fields.length - 5} حقول أخرى
                     </span>
                   </div>
@@ -722,27 +747,45 @@ export default function FormDetailsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="mt-4 sm:mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6"
+              className="mt-4 bg-gradient-to-br from-amber-50 to-white rounded-[1.5rem] border border-amber-200/50 p-4"
             >
-              <h2 className="flex items-center gap-2 text-base sm:text-lg font-semibold text-gray-900 mb-4">
-                <Clock className="w-5 h-5 text-gray-400" />
+              <h2 className="flex items-center gap-2 text-sm font-bold text-gray-900 mb-3">
+                <div className="w-7 h-7 rounded-lg bg-amber-500 flex items-center justify-center">
+                  <Clock className="w-3.5 h-3.5 text-white" />
+                </div>
                 فترة الاستقبال
               </h2>
 
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="grid sm:grid-cols-2 gap-2">
                 {form.opensAt && (
-                  <div className="p-3 bg-emerald-50 rounded-xl">
-                    <p className="text-xs text-emerald-600 mb-1">يفتح في</p>
-                    <p className="text-sm font-medium text-emerald-700">
-                      {formatDate(form.opensAt)} - {formatTime(form.opensAt)}
+                  <div className="p-3 bg-white rounded-xl border border-emerald-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-6 h-6 rounded-lg bg-emerald-500 flex items-center justify-center">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                      </div>
+                      <p className="text-[10px] font-bold text-emerald-600">يفتح في</p>
+                    </div>
+                    <p className="text-sm font-bold text-gray-900">
+                      {formatDate(form.opensAt)}
+                    </p>
+                    <p className="text-[10px] text-emerald-600 font-medium">
+                      {formatTime(form.opensAt)}
                     </p>
                   </div>
                 )}
                 {form.closesAt && (
-                  <div className="p-3 bg-red-50 rounded-xl">
-                    <p className="text-xs text-red-600 mb-1">يغلق في</p>
-                    <p className="text-sm font-medium text-red-700">
-                      {formatDate(form.closesAt)} - {formatTime(form.closesAt)}
+                  <div className="p-3 bg-white rounded-xl border border-red-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-6 h-6 rounded-lg bg-red-500 flex items-center justify-center">
+                        <AlertCircle className="w-3.5 h-3.5 text-white" />
+                      </div>
+                      <p className="text-[10px] font-bold text-red-600">يغلق في</p>
+                    </div>
+                    <p className="text-sm font-bold text-gray-900">
+                      {formatDate(form.closesAt)}
+                    </p>
+                    <p className="text-[10px] text-red-600 font-medium">
+                      {formatTime(form.closesAt)}
                     </p>
                   </div>
                 )}
@@ -782,31 +825,31 @@ export default function FormDetailsPage() {
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               className="fixed inset-0 flex items-center justify-center z-50 p-4"
             >
-              <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+              <div className="bg-gradient-to-br from-white to-gray-50 rounded-[1.5rem] border border-gray-200 w-full max-w-xs overflow-hidden">
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-gray-100">
+                <div className="flex items-center justify-between p-3 border-b border-gray-100">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                      <QrCode className="w-4 h-4 text-gray-600" />
+                    <div className="w-7 h-7 rounded-lg bg-purple-500 flex items-center justify-center">
+                      <QrCode className="w-3.5 h-3.5 text-white" />
                     </div>
-                    <h3 className="text-base font-semibold text-gray-900">رمز QR</h3>
+                    <h3 className="text-sm font-bold text-gray-900">رمز QR</h3>
                   </div>
                   <button
                     onClick={() => setQrModalOpen(false)}
-                    className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                    className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
                   >
-                    <X className="w-5 h-5 text-gray-400" />
+                    <X className="w-4 h-4 text-gray-500" />
                   </button>
                 </div>
 
                 {/* Content */}
-                <div className="p-6">
+                <div className="p-4">
                   {/* QR Code */}
-                  <div className="flex justify-center mb-4">
-                    <div className="p-4 bg-white rounded-2xl border-2 border-gray-100 shadow-sm">
+                  <div className="flex justify-center mb-3">
+                    <div className="p-3 bg-white rounded-xl border-2 border-gray-200">
                       <QRCodeSVG 
                         value={formLink}
-                        size={180}
+                        size={150}
                         level="H"
                         includeMargin={false}
                         bgColor="#ffffff"
@@ -816,11 +859,11 @@ export default function FormDetailsPage() {
                   </div>
 
                   {/* Form Title */}
-                  <p className="text-center text-sm font-medium text-gray-900 mb-1">
+                  <p className="text-center text-xs font-bold text-gray-900 mb-1">
                     {form.title}
                   </p>
-                  <p className="text-center text-xs text-gray-400 mb-4 font-mono" dir="ltr">
-                    {form.slug}
+                  <p className="text-center text-[10px] text-gray-500 mb-3 font-mono bg-gray-100 py-1.5 px-3 rounded-lg mx-auto" dir="ltr">
+                    /{form.slug}
                   </p>
 
                   {/* Actions */}
@@ -846,22 +889,22 @@ export default function FormDetailsPage() {
                           img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
                         }
                       }}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gray-900 text-white rounded-xl text-xs font-semibold hover:bg-gray-800 transition-all"
                     >
-                      <Download className="w-4 h-4" />
-                      <span>تحميل PNG</span>
+                      <Download className="w-3.5 h-3.5" />
+                      <span>تحميل</span>
                     </button>
                     <button
                       onClick={handleCopyLink}
                       className={cn(
-                        "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors",
+                        "flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all",
                         copied 
-                          ? "bg-emerald-100 text-emerald-700" 
+                          ? "bg-emerald-500 text-white" 
                           : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                       )}
                     >
-                      {copied ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                      <span>{copied ? 'تم النسخ' : 'نسخ الرابط'}</span>
+                      {copied ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copied ? 'تم!' : 'نسخ'}</span>
                     </button>
                   </div>
                 </div>
@@ -883,8 +926,6 @@ export default function FormDetailsPage() {
         )}
       </AnimatePresence>
 
-      {/* Bottom Blur Gradient Effect */}
-      <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-card via-card/80 to-transparent pointer-events-none z-10" />
       </div>
     </div>
   );

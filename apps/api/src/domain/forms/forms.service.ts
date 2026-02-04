@@ -86,10 +86,14 @@ export class FormsService {
 
     try {
       // Extract mime type and base64 data
+      // Support various image formats including webp, svg+xml, jpeg, png, gif
       const matches = normalizedCoverImage.match(
-        /^data:image\/([\w+]+);base64,(.+)$/,
+        /^data:image\/([\w+\-]+);base64,(.+)$/s,
       );
       if (!matches) {
+        // Log the format for debugging
+        const preview = normalizedCoverImage.substring(0, 100);
+        console.warn(`Invalid image format detected: ${preview}...`);
         throw new BadRequestException('Invalid image data format');
       }
 
@@ -245,8 +249,20 @@ export class FormsService {
       coverImage,
       bannerImages,
       bannerDisplayMode,
+      // Integration settings - not stored in Form table, used after form creation
+      enableGoogleSheets,
+      storageProvider,
       ...formData
     } = createFormDto;
+
+    // Log integration settings for future use
+    // TODO: After form creation, automatically setup Google Sheets integration if enableGoogleSheets is true
+    if (enableGoogleSheets) {
+      this.logger.log(`Form will be created with Google Sheets integration enabled`);
+    }
+    if (storageProvider) {
+      this.logger.log(`Form will use storage provider: ${storageProvider}`);
+    }
 
     // Determine if it's a multi-step form
     const isMultiStep = formData.isMultiStep || (steps && steps.length > 0);
@@ -473,7 +489,15 @@ export class FormsService {
       this.logger.warn(`Cache invalidation error (form create): ${err?.message || err}`);
     }
 
-    return form;
+    // Return form with integration preferences for frontend to handle OAuth
+    return {
+      ...form,
+      // Integration preferences - frontend will use these to initiate OAuth if needed
+      _integrationPreferences: {
+        enableGoogleSheets: enableGoogleSheets || false,
+        storageProvider: storageProvider || 's3',
+      },
+    };
   }
 
   async findAll(filters?: {
@@ -1538,12 +1562,6 @@ export class FormsService {
 
     // Send email notifications
     if (form.notifyOnSubmission && form.notificationEmail) {
-      // TODO: Implement sendFormSubmissionNotification in EmailService
-      console.log(
-        'Form submission notification would be sent to:',
-        form.notificationEmail,
-      );
-      /*
       await this.emailService.sendFormSubmissionNotification(
         form.notificationEmail,
         form.title,
@@ -1553,7 +1571,6 @@ export class FormsService {
         console.error('Failed to send notification email:', error);
         // Don't throw error - email failure shouldn't block submission
       });
-      */
     }
 
     // Send real-time notification to form owner
@@ -1584,9 +1601,6 @@ export class FormsService {
       });
 
       if (user?.email) {
-        // TODO: Implement sendAutoResponse in EmailService
-        console.log('Auto-response would be sent to:', user.email);
-        /*
         await this.emailService.sendAutoResponse(
           user.email,
           form.title,
@@ -1595,7 +1609,6 @@ export class FormsService {
           console.error('Failed to send auto-response email:', error);
           // Don't throw error
         });
-        */
       }
     }
 

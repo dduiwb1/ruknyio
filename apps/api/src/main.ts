@@ -10,9 +10,17 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import * as bodyParser from 'body-parser';
 import compression from 'compression';
+import { randomUUID } from 'crypto';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // 🔒 Request ID Middleware - Adds unique ID to each request for tracing
+  app.use((req, res, next) => {
+    req['requestId'] = req.headers['x-request-id'] || randomUUID();
+    res.setHeader('X-Request-ID', req['requestId']);
+    next();
+  });
 
   // ⚡ Performance: Enable response compression (60-80% size reduction)
   // Compresses all responses > 1KB using gzip/deflate
@@ -64,6 +72,12 @@ async function bootstrap() {
   // Security: Helmet - HTTP Security Headers
   app.use(
     helmet({
+      // 🔒 HSTS - Force HTTPS for 1 year
+      strictTransportSecurity: {
+        maxAge: 31536000, // 1 year in seconds
+        includeSubDomains: true,
+        preload: true,
+      },
       contentSecurityPolicy:
         process.env.NODE_ENV === 'production'
           ? {
@@ -82,6 +96,10 @@ async function bootstrap() {
           : false,
       crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow cross-origin images for uploads
       crossOriginEmbedderPolicy: false,
+      // 🔒 Additional security headers
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+      dnsPrefetchControl: { allow: false },
+      permittedCrossDomainPolicies: { permittedPolicies: 'none' },
     }),
   );
 
@@ -114,8 +132,17 @@ async function bootstrap() {
 
   // CORS - Allow access from network devices
   const allowedOrigins = [
+    // Development
     'http://localhost:3000',
     'http://127.0.0.1:3000',
+    // Production domains
+    'https://rukny.io',
+    'https://www.rukny.io',
+    'https://rukny.store',
+    'https://www.rukny.store',
+    'https://rukny.xyz',
+    'https://www.rukny.xyz',
+    // Environment variable override
     process.env.FRONTEND_URL,
   ].filter(Boolean); // Remove undefined values
 

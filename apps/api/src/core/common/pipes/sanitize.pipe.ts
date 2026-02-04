@@ -28,6 +28,25 @@ export class SanitizePipe implements PipeTransform {
     'backgroundimage',
   ];
 
+  // حقول الـ enum/type التي يجب الحفاظ عليها بدون تعديل
+  private readonly ENUM_FIELDS = [
+    'type',
+    'status',
+    'role',
+    'category',
+    'fieldtype',
+    'formtype',
+    'formstatus',
+  ];
+
+  // قيم الـ enum المسموح بها (لن تُحذف)
+  private readonly ALLOWED_ENUM_VALUES = [
+    'TEXT', 'TEXTAREA', 'NUMBER', 'EMAIL', 'PHONE', 'DATE', 'TIME', 'DATETIME',
+    'SELECT', 'RADIO', 'CHECKBOX', 'FILE', 'RATING', 'SCALE', 'TOGGLE', 'MATRIX', 'SIGNATURE',
+    'DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED', 'ACTIVE', 'INACTIVE',
+    'CONTACT', 'SURVEY', 'REGISTRATION', 'ORDER', 'FEEDBACK', 'QUIZ', 'APPLICATION', 'OTHER',
+  ];
+
   // Regex للتحقق من صورة base64 صالحة
   private readonly VALID_BASE64_IMAGE =
     /^data:image\/(jpeg|jpg|png|gif|webp|svg\+xml);base64,[A-Za-z0-9+/]+=*$/;
@@ -53,6 +72,13 @@ export class SanitizePipe implements PipeTransform {
    */
   private sanitizeString(str: string, fieldName?: string): string {
     if (!str) return str;
+
+    // إذا كان حقل enum (مثل type, status)، تحقق من أنه قيمة مسموح بها وأرجعه بدون تعديل
+    if (fieldName && this.isEnumField(fieldName)) {
+      if (this.isAllowedEnumValue(str)) {
+        return str;
+      }
+    }
 
     // إذا كان حقل صورة، تحقق من صحة base64 وأرجعه كما هو
     if (fieldName && this.isImageField(fieldName)) {
@@ -84,6 +110,22 @@ export class SanitizePipe implements PipeTransform {
           /data:(?!image\/(jpeg|jpg|png|gif|webp|svg\+xml);base64,)/gi,
           '',
         )
+        // 🔒 SQL Injection Protection - أنماط إضافية (لكن ليس على قيم قصيرة جداً)
+        .replace(/(\b)(union|select|insert|update|delete|drop|truncate|alter|exec|execute|xp_|sp_|0x)(\b)/gi, (match, p1, word, p3) => {
+          // لا تحذف الكلمات المحجوزة إذا كانت قيمة enum مسموح بها
+          if (this.ALLOWED_ENUM_VALUES.includes(word.toUpperCase())) {
+            return match;
+          }
+          return '';
+        })
+        .replace(/(--)|(\/\*)|(\*\/)|(\|{2})|(;)/g, '')
+        .replace(/('|"|`)\s*(or|and)\s*('|"|`)/gi, '')
+        .replace(/(char|nchar|varchar|nvarchar)\s*\(/gi, '')
+        .replace(/cast\s*\(/gi, '')
+        .replace(/convert\s*\(/gi, '')
+        .replace(/@@\w+/gi, '')
+        .replace(/\bwaitfor\b/gi, '')
+        .replace(/\bbenchmark\b/gi, '')
         // تنظيف whitespace زائد
         .trim()
     );
@@ -94,6 +136,20 @@ export class SanitizePipe implements PipeTransform {
    */
   private isImageField(fieldName: string): boolean {
     return this.IMAGE_FIELDS.includes(fieldName.toLowerCase());
+  }
+
+  /**
+   * التحقق من أن الحقل هو حقل enum
+   */
+  private isEnumField(fieldName: string): boolean {
+    return this.ENUM_FIELDS.includes(fieldName.toLowerCase());
+  }
+
+  /**
+   * التحقق من أن القيمة هي قيمة enum مسموح بها
+   */
+  private isAllowedEnumValue(value: string): boolean {
+    return this.ALLOWED_ENUM_VALUES.includes(value.toUpperCase());
   }
 
   /**

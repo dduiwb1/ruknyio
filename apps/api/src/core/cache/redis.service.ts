@@ -278,6 +278,155 @@ export class RedisService implements OnModuleDestroy {
     };
   }
 
+  // Get raw Redis client for advanced operations
+  getClient(): Redis {
+    return this.client;
+  }
+
+  // ============ Additional Redis Operations ============
+
+  async setex(key: string, seconds: number, value: string): Promise<void> {
+    if (!this.isConnected) return;
+    try {
+      await this.client.setex(key, seconds, value);
+    } catch (error) {
+      this.logger.error(`Error setex ${key}:`, error.message);
+    }
+  }
+
+  async expire(key: string, seconds: number): Promise<boolean> {
+    if (!this.isConnected) return false;
+    try {
+      const result = await this.client.expire(key, seconds);
+      return result === 1;
+    } catch (error) {
+      this.logger.error(`Error expire ${key}:`, error.message);
+      return false;
+    }
+  }
+
+  async ttl(key: string): Promise<number> {
+    if (!this.isConnected) return -1;
+    try {
+      return await this.client.ttl(key);
+    } catch (error) {
+      this.logger.error(`Error ttl ${key}:`, error.message);
+      return -1;
+    }
+  }
+
+  async decr(key: string): Promise<number> {
+    if (!this.isConnected) return 0;
+    try {
+      return await this.client.decr(key);
+    } catch (error) {
+      this.logger.error(`Error decr ${key}:`, error.message);
+      return 0;
+    }
+  }
+
+  async keys(pattern: string): Promise<string[]> {
+    if (!this.isConnected) return [];
+    try {
+      return await this.client.keys(pattern);
+    } catch (error) {
+      this.logger.error(`Error keys ${pattern}:`, error.message);
+      return [];
+    }
+  }
+
+  // Hash operations
+  async hgetall(hash: string): Promise<Record<string, string> | null> {
+    if (!this.isConnected) return null;
+    try {
+      const result = await this.client.hgetall(hash);
+      return Object.keys(result).length > 0 ? result : null;
+    } catch (error) {
+      this.logger.error(`Error hgetall ${hash}:`, error.message);
+      return null;
+    }
+  }
+
+  async hmset(hash: string, data: Record<string, string>): Promise<void> {
+    if (!this.isConnected) return;
+    try {
+      await this.client.hmset(hash, data);
+    } catch (error) {
+      this.logger.error(`Error hmset ${hash}:`, error.message);
+    }
+  }
+
+  async hexists(hash: string, field: string): Promise<number> {
+    if (!this.isConnected) return 0;
+    try {
+      return await this.client.hexists(hash, field);
+    } catch (error) {
+      this.logger.error(`Error hexists ${hash}:`, error.message);
+      return 0;
+    }
+  }
+
+  // Set operations
+  async sadd(key: string, ...members: string[]): Promise<number> {
+    if (!this.isConnected) return 0;
+    try {
+      return await this.client.sadd(key, ...members);
+    } catch (error) {
+      this.logger.error(`Error sadd ${key}:`, error.message);
+      return 0;
+    }
+  }
+
+  async scard(key: string): Promise<number> {
+    if (!this.isConnected) return 0;
+    try {
+      return await this.client.scard(key);
+    } catch (error) {
+      this.logger.error(`Error scard ${key}:`, error.message);
+      return 0;
+    }
+  }
+
+  async smembers(key: string): Promise<string[]> {
+    if (!this.isConnected) return [];
+    try {
+      return await this.client.smembers(key);
+    } catch (error) {
+      this.logger.error(`Error smembers ${key}:`, error.message);
+      return [];
+    }
+  }
+
+  // List operations
+  async lpush(key: string, ...values: string[]): Promise<number> {
+    if (!this.isConnected) return 0;
+    try {
+      return await this.client.lpush(key, ...values);
+    } catch (error) {
+      this.logger.error(`Error lpush ${key}:`, error.message);
+      return 0;
+    }
+  }
+
+  async lrange(key: string, start: number, stop: number): Promise<string[]> {
+    if (!this.isConnected) return [];
+    try {
+      return await this.client.lrange(key, start, stop);
+    } catch (error) {
+      this.logger.error(`Error lrange ${key}:`, error.message);
+      return [];
+    }
+  }
+
+  async ltrim(key: string, start: number, stop: number): Promise<void> {
+    if (!this.isConnected) return;
+    try {
+      await this.client.ltrim(key, start, stop);
+    } catch (error) {
+      this.logger.error(`Error ltrim ${key}:`, error.message);
+    }
+  }
+
   async onModuleDestroy() {
     try {
       await this.client.quit();

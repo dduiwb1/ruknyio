@@ -9,7 +9,7 @@ import { EmailService } from '../../integrations/email/email.service';
 import { SecurityDetectorService } from '../../infrastructure/security/detector.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { RedisService } from '../../core/cache/redis.service';
-import * as speakeasy from 'speakeasy';
+import { TOTP, generateSecret, generateURI, verify as otpVerify } from 'otplib';
 import * as qrcode from 'qrcode';
 import {
   UpdateProfileDto,
@@ -137,27 +137,25 @@ export class UserService {
       throw new UnauthorizedException('User not found');
     }
 
-    // Generate secret
-    const secret = speakeasy.generateSecret({
-      name: `Rukny.io (${user.email})`,
-      length: 32,
-    });
+    // Generate secret using otplib
+    const secret = generateSecret();
+    const otpauthUrl = generateURI({ issuer: 'Rukny.io', label: user.email, secret });
 
     // Save secret temporarily (not enabled yet)
     await this.prisma.user.update({
       where: { id: userId },
       data: {
-        twoFactorSecret: secret.base32,
+        twoFactorSecret: secret,
         updatedAt: new Date(),
       },
       select: { id: true, twoFactorSecret: true },
     });
 
     // Generate QR Code
-    const qrCodeUrl = await qrcode.toDataURL(secret.otpauth_url);
+    const qrCodeUrl = await qrcode.toDataURL(otpauthUrl);
 
     return {
-      secret: secret.base32,
+      secret: secret,
       qrCode: qrCodeUrl,
     };
   }
@@ -177,12 +175,8 @@ export class UserService {
       throw new BadRequestException('2FA setup not initiated');
     }
 
-    // Verify code
-    const verified = speakeasy.totp.verify({
-      secret: user.twoFactorSecret,
-      encoding: 'base32',
-      token: code,
-    });
+    // Verify code using otplib
+    const verified = otpVerify({ token: code, secret: user.twoFactorSecret });
 
     if (!verified) {
       // Log failed 2FA verification
@@ -252,12 +246,8 @@ export class UserService {
       throw new BadRequestException('2FA is not enabled');
     }
 
-    // Verify code before disabling
-    const verified = speakeasy.totp.verify({
-      secret: user.twoFactorSecret,
-      encoding: 'base32',
-      token: code,
-    });
+    // Verify code before disabling using otplib
+    const verified = otpVerify({ token: code, secret: user.twoFactorSecret });
 
     if (!verified) {
       // Log failed 2FA disable attempt

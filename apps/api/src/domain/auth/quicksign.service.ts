@@ -83,8 +83,15 @@ export class QuickSignService {
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + this.QUICKSIGN_EXPIRY_MINUTES);
 
+    // 🔒 حساب hash الـ token للتخزين الآمن
+    const tokenHash = this.hashToken(jwtToken);
+
+    console.log(`[QuickSign] Generating token for ${email}`);
+    console.log(`[QuickSign] Token hash: ${tokenHash.substring(0, 16)}...`);
+    console.log(`[QuickSign] Expires at: ${expiresAt.toISOString()}`);
+
     // ⚡ حفظ في Redis للتحقق السريع
-    const tokenCacheKey = `${this.CACHE_PREFIX}${this.hashToken(jwtToken)}`;
+    const tokenCacheKey = `${this.CACHE_PREFIX}${tokenHash}`;
     const tokenData = {
       email,
       type,
@@ -93,20 +100,30 @@ export class QuickSignService {
       used: false,
     };
     await this.redis.set(tokenCacheKey, JSON.stringify(tokenData), this.QUICKSIGN_EXPIRY_MINUTES * 60);
+    console.log(`[QuickSign] Token saved to Redis: ${tokenCacheKey.substring(0, 30)}...`);
 
-    // 🔒 حفظ في قاعدة البيانات بشكل غير متزامن (للسجلات)
-    this.prisma.quicksign_links.create({
-      data: {
-        id: uuidv4(),
-        email,
-        token: jwtToken,
-        type,
-        expiresAt,
-        ipAddress,
-        userAgent,
-        userId: existingUser?.id,
-      },
-    }).catch(err => console.error('[QuickSign] Failed to save to DB:', err));
+    // 🔒 حفظ في قاعدة البيانات (ننتظر لضمان الحفظ - لا race condition)
+    // ⚠️ نخزن hash فقط وليس الـ token نفسه (أمان أعلى)
+    try {
+      await this.prisma.quicksign_links.create({
+        data: {
+          id: uuidv4(),
+          email,
+          token: tokenHash, // 🔒 hash بدلاً من plain text
+          type,
+          expiresAt,
+          ipAddress,
+          userAgent,
+          userId: existingUser?.id,
+        },
+      });
+      console.log(`[QuickSign] Token saved to DB for ${email}`);
+    } catch (err) {
+      // إذا فشل الحفظ، نحذف من Redis ونرمي خطأ
+      await this.redis.del(tokenCacheKey);
+      console.error('[QuickSign] Failed to save to DB:', err);
+      throw new Error('Failed to create QuickSign link');
+    }
 
     return {
       token: jwtToken,
@@ -129,14 +146,19 @@ export class QuickSignService {
     profileCompleted?: boolean;
   }> {
     try {
+      const tokenHash = this.hashToken(token);
+      console.log(`[QuickSign] Verifying token hash: ${tokenHash.substring(0, 16)}...`);
+
       // 🔒 فك تشفير JWT أولاً للتحقق من الصلاحية
       const payload = this.jwtService.verify(token);
+      console.log(`[QuickSign] JWT verified successfully for: ${payload.email}`);
 
       // ⚡ التحقق من Redis أولاً (أسرع)
-      const tokenCacheKey = `${this.CACHE_PREFIX}${this.hashToken(token)}`;
+      const tokenCacheKey = `${this.CACHE_PREFIX}${tokenHash}`;
       const cachedDataStr = await this.redis.get(tokenCacheKey);
       
       if (cachedDataStr) {
+        console.log(`[QuickSign] Found token in Redis cache`);
         const cachedData: {
           email: string;
           type: QuickSignType;
@@ -183,9 +205,10 @@ export class QuickSignService {
         };
       }
 
-      // ⚡ Fallback إلى قاعدة البيانات
+      // ⚡ Fallback إلى قاعدة البيانات (نبحث بالـ hash)
+      console.log(`[QuickSign] Token not in Redis, checking DB...`);
       const quickSign = await this.prisma.quicksign_links.findUnique({
-        where: { token },
+        where: { token: tokenHash }, // 🔒 البحث بالـ hash
         include: {
           users: {
             select: {
@@ -198,11 +221,15 @@ export class QuickSignService {
       });
 
       if (!quickSign) {
+        console.warn(`[QuickSign] Token not found in DB`);
         return { valid: false };
       }
 
+      console.log(`[QuickSign] Found token in DB for: ${quickSign.email}, used: ${quickSign.used}, expiresAt: ${quickSign.expiresAt}`);
+
       // التحقق من الاستخدام المسبق
       if (quickSign.used) {
+        console.warn(`[QuickSign] Token already used at: ${quickSign.usedAt}`);
         return {
           valid: false,
           used: true,
@@ -231,8 +258,26 @@ export class QuickSignService {
         profileCompleted,
       };
     } catch (error) {
-      // JWT verification failed
-      return { valid: false, expired: true };
+      // 🔒 تحديد نوع الخطأ بدقة
+      const errorName = error?.name || 'UnknownError';
+      const errorMessage = error?.message || 'Unknown error';
+      
+      console.warn(`[QuickSign] Token verification failed: ${errorName} - ${errorMessage}`);
+      
+      // JWT Token Expired
+      if (errorName === 'TokenExpiredError') {
+        return { valid: false, expired: true };
+      }
+      
+      // Invalid JWT (bad signature, malformed, etc.)
+      if (errorName === 'JsonWebTokenError') {
+        console.warn(`[QuickSign] Invalid JWT token: ${errorMessage}`);
+        return { valid: false };
+      }
+      
+      // Other errors (database, network, etc.)
+      console.error(`[QuickSign] Unexpected error during verification:`, error);
+      return { valid: false };
     }
   }
 
@@ -252,9 +297,10 @@ export class QuickSignService {
       // فك تشفير JWT
       const payload = this.jwtService.verify(token);
 
-      // البحث عن Token في قاعدة البيانات
+      // البحث عن Token في قاعدة البيانات (بالـ hash)
+      const tokenHash = this.hashToken(token);
       const quickSign = await this.prisma.quicksign_links.findUnique({
-        where: { token },
+        where: { token: tokenHash }, // 🔒 البحث بالـ hash
       });
 
       if (!quickSign) {
@@ -299,8 +345,19 @@ export class QuickSignService {
         type: quickSign.type,
       };
     } catch (error) {
-      // JWT verification failed
-      return { valid: false, expired: true };
+      // 🔒 تحديد نوع الخطأ بدقة
+      const errorName = error?.name || 'UnknownError';
+      const errorMessage = error?.message || 'Unknown error';
+      
+      console.warn(`[QuickSign] Signup token verification failed: ${errorName} - ${errorMessage}`);
+      
+      // JWT Token Expired
+      if (errorName === 'TokenExpiredError') {
+        return { valid: false, expired: true };
+      }
+      
+      // Invalid JWT or other errors
+      return { valid: false };
     }
   }
 
@@ -309,8 +366,10 @@ export class QuickSignService {
    * ⚡ يحدّث Redis + DB
    */
   async markQuickSignAsUsed(token: string): Promise<void> {
+    const tokenHash = this.hashToken(token);
+    
     // ⚡ تحديث Redis أولاً (سريع)
-    const tokenCacheKey = `${this.CACHE_PREFIX}${this.hashToken(token)}`;
+    const tokenCacheKey = `${this.CACHE_PREFIX}${tokenHash}`;
     const cachedDataStr = await this.redis.get(tokenCacheKey);
     if (cachedDataStr) {
       const cachedData = JSON.parse(cachedDataStr);
@@ -318,9 +377,9 @@ export class QuickSignService {
       await this.redis.set(tokenCacheKey, JSON.stringify(cachedData), 60); // نحتفظ لمدة دقيقة فقط
     }
 
-    // تحديث DB
+    // تحديث DB (بالـ hash)
     await this.prisma.quicksign_links.update({
-      where: { token },
+      where: { token: tokenHash }, // 🔒 البحث بالـ hash
       data: {
         used: true,
         usedAt: new Date(),
@@ -332,12 +391,14 @@ export class QuickSignService {
    * إبطال QuickSign link
    */
   async invalidateQuickSign(token: string): Promise<void> {
+    const tokenHash = this.hashToken(token);
+    
     // ⚡ حذف من Redis
-    const tokenCacheKey = `${this.CACHE_PREFIX}${this.hashToken(token)}`;
+    const tokenCacheKey = `${this.CACHE_PREFIX}${tokenHash}`;
     await this.redis.del(tokenCacheKey);
 
     await this.prisma.quicksign_links.updateMany({
-      where: { token },
+      where: { token: tokenHash }, // 🔒 البحث بالـ hash
       data: {
         used: true,
         usedAt: new Date(),

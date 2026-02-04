@@ -568,6 +568,81 @@ export class ProductsService {
   }
 
   /**
+   * Get top products for store dashboard (sorted by order count)
+   */
+  async getTopProducts(userId: string, limit: number = 5) {
+    const store = await this.prisma.store.findFirst({
+      where: { userId },
+    });
+
+    if (!store) {
+      return { data: [] };
+    }
+
+    const cacheKey = `products:top:${store.id}:${limit}`;
+    const products = await this.cacheManager.wrap(cacheKey, 60, async () => {
+      return this.prisma.products.findMany({
+        where: {
+          storeId: store.id,
+          status: 'ACTIVE',
+        },
+        include: {
+          product_images: {
+            where: { isPrimary: true },
+            take: 1,
+          },
+          _count: {
+            select: {
+              order_items: true,
+              reviews: true,
+            },
+          },
+        },
+        orderBy: {
+          order_items: {
+            _count: 'desc',
+          },
+        },
+        take: limit,
+      });
+    });
+
+    // Generate presigned URLs for images
+    const productsWithUrls = await Promise.all(
+      products.map(async (product) => {
+        let imageUrl = product.product_images[0]?.imagePath || null;
+        if (imageUrl && !imageUrl.startsWith('http')) {
+          try {
+            imageUrl = await this.s3Service.getPresignedGetUrl(
+              this.bucket,
+              imageUrl,
+              3600,
+            );
+          } catch (error) {
+            this.logger.warn(
+              `Failed to generate presigned URL for ${imageUrl}`,
+            );
+            imageUrl = `https://${this.bucket}.s3.${process.env.AWS_REGION || 'eu-north-1'}.amazonaws.com/${imageUrl}`;
+          }
+        }
+
+        return {
+          id: product.id,
+          name: product.name,
+          nameAr: product.nameAr,
+          price: product.price,
+          image: imageUrl,
+          ordersCount: product._count.order_items,
+          reviewsCount: product._count.reviews,
+          status: product.status,
+        };
+      }),
+    );
+
+    return { data: productsWithUrls };
+  }
+
+  /**
    * Generate unique slug
    */
   private async generateUniqueSlug(name: string): Promise<string> {

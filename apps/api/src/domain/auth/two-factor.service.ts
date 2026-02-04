@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../core/database/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
-import * as speakeasy from 'speakeasy';
+import { TOTP, generateSecret, generateURI, verify } from 'otplib';
 import * as QRCode from 'qrcode';
 import * as crypto from 'crypto';
 
@@ -38,22 +38,36 @@ export interface TwoFactorVerifyResult {
 @Injectable()
 export class TwoFactorService {
   private readonly APP_NAME = 'Rukny';
-  private readonly ENCRYPTION_KEY: string;
+  private readonly ENCRYPTION_KEY: Buffer;
   private readonly ENCRYPTION_ALGORITHM = 'aes-256-gcm';
 
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
   ) {
-    // 🔒 مفتاح التشفير للأسرار (يجب أن يكون 32 bytes)
+    // 🔒 مفتاح التشفير للأسرار (يجب أن يكون 32 bytes = 64 hex characters)
     const key = this.configService.get<string>('TWO_FACTOR_ENCRYPTION_KEY');
-    if (!key || key.length < 32) {
+    
+    if (!key) {
       throw new Error(
-        '❌ TWO_FACTOR_ENCRYPTION_KEY is required and must be at least 32 characters. ' +
+        '❌ TWO_FACTOR_ENCRYPTION_KEY is required. ' +
           'Generate one with: openssl rand -hex 32',
       );
     }
-    this.ENCRYPTION_KEY = key.substring(0, 32);
+
+    // 🔒 دعم كلا التنسيقين: hex (64 chars) أو plain text (32 chars)
+    if (/^[0-9a-fA-F]{64}$/.test(key)) {
+      // Hex encoded key (32 bytes = 64 hex chars)
+      this.ENCRYPTION_KEY = Buffer.from(key, 'hex');
+    } else if (key.length >= 32) {
+      // Plain text key (at least 32 chars)
+      this.ENCRYPTION_KEY = Buffer.from(key.substring(0, 32), 'utf8');
+    } else {
+      throw new Error(
+        '❌ TWO_FACTOR_ENCRYPTION_KEY must be either 64 hex characters or at least 32 characters. ' +
+          'Generate one with: openssl rand -hex 32',
+      );
+    }
   }
 
   /**
@@ -63,7 +77,7 @@ export class TwoFactorService {
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv(
       this.ENCRYPTION_ALGORITHM,
-      Buffer.from(this.ENCRYPTION_KEY),
+      this.ENCRYPTION_KEY, // 🔒 استخدام Buffer مباشرة
       iv,
     );
 
@@ -105,7 +119,7 @@ export class TwoFactorService {
 
       const decipher = crypto.createDecipheriv(
         this.ENCRYPTION_ALGORITHM,
-        Buffer.from(this.ENCRYPTION_KEY),
+        this.ENCRYPTION_KEY, // 🔒 استخدام Buffer مباشرة
         iv,
       );
 
@@ -173,15 +187,12 @@ export class TwoFactorService {
       );
     }
 
-    // إنشاء مفتاح سري جديد
-    const secret = speakeasy.generateSecret({
-      name: `${this.APP_NAME}:${user.email}`,
-      issuer: this.APP_NAME,
-      length: 32, // 256 bits
-    });
+    // إنشاء مفتاح سري جديد باستخدام otplib
+    const secret = generateSecret(); // توليد مفتاح base32
+    const otpauthUrl = generateURI({ issuer: this.APP_NAME, label: user.email, secret });
 
     // توليد QR Code
-    const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url);
+    const qrCodeUrl = await QRCode.toDataURL(otpauthUrl);
 
     // توليد رموز احتياطية
     const backupCodes = this.generateBackupCodes(10);
@@ -191,7 +202,7 @@ export class TwoFactorService {
     await this.prisma.user.update({
       where: { id: userId },
       data: {
-        twoFactorSecret: this.encrypt(secret.base32),
+        twoFactorSecret: this.encrypt(secret),
         // لا نفعّل حتى يتم التحقق
         twoFactorEnabled: false,
       },
@@ -202,10 +213,10 @@ export class TwoFactorService {
     await this.saveBackupCodes(userId, backupCodes);
 
     return {
-      secret: secret.base32,
+      secret: secret,
       qrCodeUrl,
       backupCodes,
-      manualEntryKey: secret.base32, // للإدخال اليدوي
+      manualEntryKey: secret, // للإدخال اليدوي
     };
   }
 
@@ -242,13 +253,9 @@ export class TwoFactorService {
     // فك تشفير المفتاح
     const secret = this.decrypt(user.twoFactorSecret);
 
-    // التحقق من الرمز
-    const isValid = speakeasy.totp.verify({
-      secret,
-      encoding: 'base32',
-      token: token.replace(/\s/g, ''), // إزالة المسافات
-      window: 2, // السماح بفارق ±60 ثانية
-    });
+    // التحقق من الرمز باستخدام otplib
+    const cleanToken = token.replace(/\s/g, ''); // إزالة المسافات
+    const isValid = verify({ token: cleanToken, secret });
 
     if (!isValid) {
       throw new UnauthorizedException(
@@ -307,13 +314,9 @@ export class TwoFactorService {
     // فك تشفير المفتاح
     const secret = this.decrypt(user.twoFactorSecret);
 
-    // التحقق من الرمز
-    const isValid = speakeasy.totp.verify({
-      secret,
-      encoding: 'base32',
-      token: token.replace(/\s/g, ''),
-      window: 2,
-    });
+    // التحقق من الرمز باستخدام otplib
+    const cleanToken = token.replace(/\s/g, '');
+    const isValid = verify({ token: cleanToken, secret });
 
     if (isValid) {
       return { valid: true };

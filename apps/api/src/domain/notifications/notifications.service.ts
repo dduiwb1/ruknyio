@@ -5,6 +5,8 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../core/database/prisma/prisma.service';
+import { CacheManager } from '../../core/cache/cache.manager';
+import { CacheKeys, CACHE_TTL, CACHE_TAGS } from '../../core/cache/cache.constants';
 import { NotificationType } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
@@ -60,7 +62,10 @@ export class NotificationsService {
   private readonly MAX_NOTIFICATIONS_PER_USER = 100;
   private readonly NOTIFICATION_RETENTION_DAYS = 30;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheManager: CacheManager,
+  ) {}
 
   /**
    * Create a new notification
@@ -86,6 +91,9 @@ export class NotificationsService {
       } as any,
     });
 
+    // 🔥 Invalidate notifications cache
+    await this.invalidateUserCache(dto.userId);
+
     // Cleanup old notifications (async, don't wait)
     this.cleanupOldNotifications(dto.userId).catch((err) =>
       this.logger.error(`Failed to cleanup notifications: ${err.message}`),
@@ -95,7 +103,21 @@ export class NotificationsService {
   }
 
   /**
-   * Get all notifications for a user
+   * 🔥 Invalidate user's notifications cache
+   */
+  private async invalidateUserCache(userId: string): Promise<void> {
+    try {
+      await this.cacheManager.invalidate(
+        CacheKeys.notificationsList(userId),
+        CacheKeys.notificationsUnreadCount(userId),
+      );
+    } catch (error) {
+      this.logger.warn(`Failed to invalidate cache for user ${userId}: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get all notifications for a user - ✅ Cached for 30 seconds
    */
   async findAllForUser(
     userId: string,
@@ -105,6 +127,40 @@ export class NotificationsService {
       unreadOnly?: boolean;
       type?: NotificationType;
     } = {},
+  ): Promise<{
+    notifications: NotificationResponseDto[];
+    total: number;
+    unreadCount: number;
+  }> {
+    const { limit = 50, offset = 0, unreadOnly = false, type } = options;
+
+    // Only cache default list (no filters, first page)
+    const shouldCache = !unreadOnly && !type && offset === 0 && limit === 50;
+    const cacheKey = CacheKeys.notificationsList(userId);
+
+    if (shouldCache) {
+      return this.cacheManager.wrap(
+        cacheKey,
+        CACHE_TTL.SHORT, // 30 seconds - notifications change frequently
+        async () => this.fetchNotifications(userId, options),
+        { tags: [CACHE_TAGS.NOTIFICATION] },
+      );
+    }
+
+    return this.fetchNotifications(userId, options);
+  }
+
+  /**
+   * Internal method to fetch notifications
+   */
+  private async fetchNotifications(
+    userId: string,
+    options: {
+      limit?: number;
+      offset?: number;
+      unreadOnly?: boolean;
+      type?: NotificationType;
+    },
   ): Promise<{
     notifications: NotificationResponseDto[];
     total: number;
@@ -168,6 +224,9 @@ export class NotificationsService {
       data: { isRead: true },
     });
 
+    // 🔥 Invalidate cache
+    await this.invalidateUserCache(userId);
+
     return this.toResponseDto(notification);
   }
 
@@ -179,6 +238,9 @@ export class NotificationsService {
       where: { userId, isRead: false },
       data: { isRead: true },
     });
+
+    // 🔥 Invalidate cache
+    await this.invalidateUserCache(userId);
 
     this.logger.log(
       `Marked ${result.count} notifications as read for user ${userId}`,
@@ -197,6 +259,9 @@ export class NotificationsService {
       where: { id },
     });
 
+    // 🔥 Invalidate cache
+    await this.invalidateUserCache(userId);
+
     this.logger.log(`Deleted notification ${id} for user ${userId}`);
   }
 
@@ -208,17 +273,27 @@ export class NotificationsService {
       where: { userId },
     });
 
+    // 🔥 Invalidate cache
+    await this.invalidateUserCache(userId);
+
     this.logger.log(`Deleted ${result.count} notifications for user ${userId}`);
     return { count: result.count };
   }
 
   /**
-   * Get unread count for a user
+   * Get unread count for a user - ✅ Cached for 30 seconds
    */
   async getUnreadCount(userId: string): Promise<number> {
-    return this.prisma.notifications.count({
-      where: { userId, isRead: false },
-    });
+    return this.cacheManager.wrap(
+      CacheKeys.notificationsUnreadCount(userId),
+      CACHE_TTL.SHORT,
+      async () => {
+        return this.prisma.notifications.count({
+          where: { userId, isRead: false },
+        });
+      },
+      { tags: [CACHE_TAGS.NOTIFICATION] },
+    );
   }
 
   /**

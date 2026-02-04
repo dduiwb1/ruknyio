@@ -159,8 +159,9 @@ export class UploadService {
       );
     }
 
-    // 4. Process image with sharp
+    // 4. Process image with sharp (rotate() removes EXIF metadata)
     const processedImage = await sharp(buf)
+      .rotate() // 🔒 Remove EXIF metadata for privacy
       .resize(this.AVATAR_SIZE, this.AVATAR_SIZE, {
         fit: 'cover',
         position: 'center',
@@ -206,8 +207,9 @@ export class UploadService {
       throw new BadRequestException('Image dimensions exceed 4000x4000px');
     }
 
-    // 4. Process image with sharp - resize to cover dimensions
+    // 4. Process image with sharp - resize to cover dimensions (rotate() removes EXIF)
     const processedImage = await sharp(buf)
+      .rotate() // 🔒 Remove EXIF metadata for privacy
       .resize(this.COVER_WIDTH, this.COVER_HEIGHT, {
         fit: 'cover',
         position: 'center',
@@ -302,8 +304,9 @@ export class UploadService {
       );
     }
 
-    // 3. Process image with sharp - resize and optimize
+    // 3. Process image with sharp - resize and optimize (rotate() removes EXIF)
     const processedImage = await sharp(buf)
+      .rotate() // 🔒 Remove EXIF metadata for privacy
       .resize(this.EVENT_IMAGE_WIDTH, null, {
         fit: 'inside',
         withoutEnlargement: true,
@@ -372,8 +375,9 @@ export class UploadService {
       );
     }
 
-    // 3. Process image with sharp - resize and optimize for thumbnails
+    // 3. Process image with sharp - resize and optimize for thumbnails (rotate() removes EXIF)
     const processedImage = await sharp(buf)
+      .rotate() // 🔒 Remove EXIF metadata for privacy
       .resize(this.THUMBNAIL_WIDTH, null, {
         fit: 'inside',
         withoutEnlargement: true,
@@ -416,8 +420,9 @@ export class UploadService {
       if (!fileType || !this.ALLOWED_MIME_TYPES.includes(fileType.mime))
         throw new BadRequestException('Invalid file type');
 
-      // process image similar to cover
+      // process image similar to cover (rotate() removes EXIF)
       const processed = await sharp(buf)
+        .rotate() // 🔒 Remove EXIF metadata for privacy
         .resize(this.BANNER_WIDTH, this.BANNER_HEIGHT, {
           fit: 'cover',
           position: 'center',

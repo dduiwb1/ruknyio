@@ -18,6 +18,16 @@ import {
   MoreVertical,
   Save,
   CheckCircle2,
+  Link as LinkIcon,
+  Cloud,
+  FolderOpen,
+  Sheet,
+  Zap,
+  Clock,
+  Shield,
+  Share2,
+  HardDrive,
+  Sparkles,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -50,7 +60,7 @@ import {
   FIELD_TYPE_LABELS,
 } from '@/lib/hooks/useForms';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { toast } from '@/components/toast-provider';
 import { cn } from '@/lib/utils';
 import { FieldTypeSelector } from './FieldTypeSelector';
 import { type FormFieldInput } from './FieldEditor';
@@ -58,12 +68,16 @@ import { FieldEditorDialog } from './FieldEditorDialog';
 import { StepEditor, type FormStepInput } from './StepEditor';
 import FormBannersUpload, { type BannerDisplayMode } from './FormBannersUpload';
 import { FormTemplateSelector, type TemplateLanguage, getTemplateById } from './templates';
+import { useGoogleSheets } from '@/lib/hooks/useGoogleSheets';
 
 // ============================================
 // Constants
 // ============================================
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
+
+// Storage options for file uploads
+type StorageOption = 's3' | 'google_drive' | null;
 
 // ============================================
 // Draggable Field Item Component (Memoized for performance)
@@ -238,6 +252,8 @@ export type FormDraftRestore = {
   showQuestionNumbers?: boolean;
   notifyOnSubmission?: boolean;
   notificationEmail?: string;
+  enableGoogleSheets?: boolean;
+  storageOption?: 's3' | 'google_drive' | null;
 };
 
 // ============================================
@@ -247,6 +263,7 @@ export type FormDraftRestore = {
 export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRestore | null } = {}) {
   const router = useRouter();
   const { createForm, isLoading } = useForms();
+  const { connect: connectGoogleSheets } = useGoogleSheets();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -288,6 +305,10 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
   const [showQuestionNumbers, setShowQuestionNumbers] = useState(true);
   const [notifyOnSubmission, setNotifyOnSubmission] = useState(false);
   const [notificationEmail, setNotificationEmail] = useState('');
+  
+  // Step 5: Integrations (optional)
+  const [enableGoogleSheets, setEnableGoogleSheets] = useState(false);
+  const [storageOption, setStorageOption] = useState<StorageOption>(null);
 
   // Generate unique slug
   const generateSlug = useCallback(() => {
@@ -298,6 +319,22 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
     }
     return result;
   }, []);
+
+  // Valid field types for validation
+  const VALID_FIELD_TYPES = Object.values(FieldType);
+
+  // Helper to validate field type
+  const isValidFieldType = (type: any): type is FieldType => {
+    return VALID_FIELD_TYPES.includes(type);
+  };
+
+  // Sanitize fields from draft (filter out invalid types)
+  const sanitizeDraftFields = (draftFields: FormFieldInput[]): FormFieldInput[] => {
+    return draftFields.map(field => ({
+      ...field,
+      type: isValidFieldType(field.type) ? field.type : FieldType.TEXT,
+    }));
+  };
 
   // Restore state only when user explicitly chose "متابعة المسودة" (initialDraft from page)
   useEffect(() => {
@@ -311,14 +348,22 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
       if (initialDraft.formType) setFormType(initialDraft.formType);
       if (initialDraft.status) setStatus(initialDraft.status);
       if (initialDraft.isMultiStep !== undefined) setIsMultiStep(initialDraft.isMultiStep);
-      if (initialDraft.fields?.length) setFields(initialDraft.fields);
-      if (initialDraft.formSteps?.length) setFormSteps(initialDraft.formSteps);
+      if (initialDraft.fields?.length) setFields(sanitizeDraftFields(initialDraft.fields));
+      if (initialDraft.formSteps?.length) {
+        setFormSteps(initialDraft.formSteps.map(step => ({
+          ...step,
+          fields: sanitizeDraftFields(step.fields),
+        })));
+      }
       if (initialDraft.allowMultipleSubmissions !== undefined) setAllowMultipleSubmissions(initialDraft.allowMultipleSubmissions);
       if (initialDraft.requiresAuthentication !== undefined) setRequiresAuthentication(initialDraft.requiresAuthentication);
       if (initialDraft.showProgressBar !== undefined) setShowProgressBar(initialDraft.showProgressBar);
       if (initialDraft.showQuestionNumbers !== undefined) setShowQuestionNumbers(initialDraft.showQuestionNumbers);
       if (initialDraft.notifyOnSubmission !== undefined) setNotifyOnSubmission(initialDraft.notifyOnSubmission);
       if (initialDraft.notificationEmail !== undefined) setNotificationEmail(initialDraft.notificationEmail);
+      // Restore integration settings
+      if (initialDraft.enableGoogleSheets !== undefined) setEnableGoogleSheets(initialDraft.enableGoogleSheets);
+      if (initialDraft.storageOption !== undefined) setStorageOption(initialDraft.storageOption);
     } else if (!slug) {
       setSlug(generateSlug());
     }
@@ -344,6 +389,9 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
       showQuestionNumbers,
       notifyOnSubmission,
       notificationEmail,
+      // Integration settings
+      enableGoogleSheets,
+      storageOption,
       // Note: banners are not saved as they are File objects
     };
     
@@ -376,6 +424,8 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
     showQuestionNumbers,
     notifyOnSubmission,
     notificationEmail,
+    enableGoogleSheets,
+    storageOption,
   ]);
 
   // Handle template selection
@@ -588,6 +638,25 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
         coverImage: coverImageData,
         bannerImages: bannerImagesData.length > 0 ? bannerImagesData : undefined,
         bannerDisplayMode: bannerImagesData.length > 0 ? bannerDisplayMode : undefined,
+        // Integration settings
+        enableGoogleSheets,
+        storageProvider: storageOption || 's3', // Default to S3 if not selected
+      };
+
+      // Valid field types (must match backend enum)
+      const VALID_FIELD_TYPES = [
+        'TEXT', 'TEXTAREA', 'NUMBER', 'EMAIL', 'PHONE', 'DATE', 'TIME', 'DATETIME',
+        'SELECT', 'RADIO', 'CHECKBOX', 'FILE', 'RATING', 'SCALE', 'TOGGLE', 'MATRIX', 'SIGNATURE'
+      ];
+
+      // Helper to validate and sanitize field type
+      const sanitizeFieldType = (type: string | FieldType): string => {
+        const typeStr = String(type);
+        if (VALID_FIELD_TYPES.includes(typeStr)) {
+          return typeStr;
+        }
+        console.warn(`Invalid field type "${typeStr}", defaulting to TEXT`);
+        return 'TEXT';
       };
 
       if (isMultiStep) {
@@ -598,7 +667,7 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
           fields: step.fields.map(f => ({
             label: f.label,
             description: f.description,
-            type: f.type,
+            type: sanitizeFieldType(f.type),
             order: f.order,
             required: f.required,
             placeholder: f.placeholder,
@@ -608,10 +677,10 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
           })),
         }));
       } else {
-        formData.fields = fields.map(f => ({
+        formData.fields = fields.map((f, index) => ({
           label: f.label,
           description: f.description,
-          type: f.type,
+          type: sanitizeFieldType(f.type),
           order: f.order,
           required: f.required,
           placeholder: f.placeholder,
@@ -625,20 +694,40 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
       const created = await createForm(formData);
 
       if (!created?.id) {
-        toast.error('تم إنشاء النموذج لكن لم نتمكن من نقلك لصفحة التعديل.');
+        toast.error('تم إنشاء النموذج لكن لم نتمكن من نقلك لصفحة النماذج.');
         setIsSubmitting(false);
         setSubmitPhase('idle');
         return;
       }
 
       localStorage.removeItem(FORM_DRAFT_KEY);
-      toast.success('تم إنشاء النموذج بنجاح، جاري التحويل...');
+      toast.success('تم إنشاء النموذج بنجاح! ✨');
+      
+      // Check if Google Sheets integration was requested
+      const integrationPrefs = (created as any)?._integrationPreferences;
+      if (integrationPrefs?.enableGoogleSheets) {
+        toast.info('جاري ربط Google Sheets...', { duration: 3000 });
+        
+        // Start Google Sheets OAuth
+        try {
+          const result = await connectGoogleSheets(created.id);
+          if (result?.authUrl) {
+            // Open OAuth in same window - will redirect back to responses page
+            window.location.href = result.authUrl;
+            return; // Don't continue with normal redirect
+          }
+        } catch (gsError) {
+          console.error('Google Sheets connection error:', gsError);
+          toast.error('فشل في ربط Google Sheets. يمكنك ربطه لاحقاً من صفحة الردود.');
+        }
+      }
+      
       setSubmitPhase('redirecting');
       isRedirecting = true;
 
       await new Promise((r) => setTimeout(r, 600));
 
-      router.replace(`/app/forms/${created.id}/edit`);
+      router.replace('/app/forms');
     } catch (error: any) {
       toast.error(error.message || 'فشل في إنشاء النموذج');
       setIsSubmitting(false);
@@ -697,7 +786,7 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
     >
       {/* Step Header */}
       <p className="text-xs bg-muted text-muted-foreground font-medium px-3 py-1 rounded-full">
-        الخطوة 2 من 5
+        الخطوة 2 من 6
       </p>
       <h2 className="text-2xl font-bold py-3 text-center text-foreground">معلومات النموذج</h2>
       <p className="text-muted-foreground pb-6 text-center text-sm">
@@ -839,7 +928,7 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
       >
         {/* Step Header */}
         <p className="text-xs bg-muted text-muted-foreground font-medium px-3 py-1 rounded-full">
-          الخطوة 3 من 5
+          الخطوة 3 من 6
         </p>
         <h2 className="text-2xl font-bold py-3 text-center text-foreground">حقول النموذج</h2>
         <p className="text-gray-500 dark:text-gray-400 pb-4 text-center text-sm">
@@ -944,7 +1033,7 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
     >
       {/* Step Header */}
       <p className="text-xs bg-muted text-muted-foreground font-medium px-3 py-1 rounded-full">
-        الخطوة 4 من 5
+        الخطوة 4 من 6
       </p>
       <h2 className="text-2xl font-bold py-3 text-center text-foreground">إعدادات النموذج</h2>
       <p className="text-gray-500 dark:text-gray-400 pb-6 text-center text-sm">
@@ -1033,7 +1122,7 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
     </motion.div>
   );
 
-  // Step 5: Preview
+  // Step 5: Integrations (Optional)
   const renderStep5 = () => (
     <motion.div
       key="step5"
@@ -1045,7 +1134,210 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
     >
       {/* Step Header */}
       <p className="text-xs bg-muted text-muted-foreground font-medium px-3 py-1 rounded-full">
-        الخطوة 5 من 5
+        الخطوة 5 من 6
+      </p>
+      <h2 className="text-2xl font-bold py-3 text-center text-foreground">التكاملات الخارجية</h2>
+      <p className="text-gray-500 dark:text-gray-400 pb-2 text-center text-sm">
+        اربط نموذجك بخدمات خارجية لتسهيل العمل
+      </p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 pb-6 text-center flex items-center gap-1">
+        <Sparkles className="w-3 h-3" />
+        اختياري - يمكنك إعداده لاحقاً من صفحة الردود
+      </p>
+
+      <div className="w-full max-w-md px-4 space-y-4">
+        {/* Google Sheets Integration */}
+        <div className={cn(
+          "relative rounded-2xl border-2 transition-all overflow-hidden",
+          enableGoogleSheets 
+            ? "border-green-500 bg-green-50/50 dark:bg-green-900/10" 
+            : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50"
+        )}>
+          <button
+            type="button"
+            onClick={() => setEnableGoogleSheets(!enableGoogleSheets)}
+            className="w-full p-4 text-right"
+          >
+            <div className="flex items-start gap-3">
+              <div className={cn(
+                "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors",
+                enableGoogleSheets 
+                  ? "bg-green-100 dark:bg-green-900/30" 
+                  : "bg-gray-100 dark:bg-gray-700"
+              )}>
+                <Sheet className={cn(
+                  "w-6 h-6",
+                  enableGoogleSheets ? "text-green-600" : "text-gray-500"
+                )} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-gray-900 dark:text-white">Google Sheets</h3>
+                  <div className={cn(
+                    "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                    enableGoogleSheets 
+                      ? "bg-green-500 border-green-500" 
+                      : "border-gray-300 dark:border-gray-600"
+                  )}>
+                    {enableGoogleSheets && <CheckCircle2 className="w-3 h-3 text-white" />}
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  إرسال الردود تلقائياً إلى جدول بيانات Google
+                </p>
+              </div>
+            </div>
+          </button>
+          
+          {/* Features List */}
+          <AnimatePresence>
+            {enableGoogleSheets && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="px-4 pb-4 pt-0">
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { icon: Zap, text: 'مزامنة فورية' },
+                      { icon: Clock, text: 'تحديث لحظي' },
+                      { icon: Share2, text: 'سهولة المشاركة' },
+                      { icon: Shield, text: 'نسخ احتياطي آمن' },
+                    ].map((feature, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                        <feature.icon className="w-3.5 h-3.5 text-green-500" />
+                        <span>{feature.text}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-3 flex items-center gap-1">
+                    <LinkIcon className="w-3 h-3" />
+                    سيتم ربط الحساب بعد إنشاء النموذج
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* File Storage Options */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <FolderOpen className="w-4 h-4 text-gray-500" />
+            <h3 className="font-medium text-gray-800 dark:text-gray-200">تخزين الملفات المرفوعة</h3>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 -mt-1">
+            اختر مكان حفظ الملفات والتوقيعات المرفوعة في النموذج
+          </p>
+
+          <div className="grid grid-cols-2 gap-3">
+            {/* S3 Option */}
+            <button
+              type="button"
+              onClick={() => setStorageOption(storageOption === 's3' ? null : 's3')}
+              className={cn(
+                "relative p-4 rounded-xl border-2 text-right transition-all",
+                storageOption === 's3'
+                  ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/10"
+                  : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 hover:border-gray-300 dark:hover:border-gray-600"
+              )}
+            >
+              {storageOption === 's3' && (
+                <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                  <CheckCircle2 className="w-3 h-3 text-white" />
+                </div>
+              )}
+              <div className={cn(
+                "w-10 h-10 rounded-lg flex items-center justify-center mb-2",
+                storageOption === 's3' ? "bg-blue-100 dark:bg-blue-900/30" : "bg-gray-100 dark:bg-gray-700"
+              )}>
+                <Cloud className={cn("w-5 h-5", storageOption === 's3' ? "text-blue-600" : "text-gray-500")} />
+              </div>
+              <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Amazon S3</h4>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">افتراضي - سريع وآمن</p>
+              <div className="mt-2 space-y-1">
+                <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                  <CheckCircle2 className="w-3 h-3 text-blue-500" />
+                  <span>سرعة تحميل عالية</span>
+                </div>
+                <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                  <CheckCircle2 className="w-3 h-3 text-blue-500" />
+                  <span>تشفير متقدم</span>
+                </div>
+              </div>
+            </button>
+
+            {/* Google Drive Option */}
+            <button
+              type="button"
+              onClick={() => setStorageOption(storageOption === 'google_drive' ? null : 'google_drive')}
+              className={cn(
+                "relative p-4 rounded-xl border-2 text-right transition-all",
+                storageOption === 'google_drive'
+                  ? "border-amber-500 bg-amber-50/50 dark:bg-amber-900/10"
+                  : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 hover:border-gray-300 dark:hover:border-gray-600"
+              )}
+            >
+              {storageOption === 'google_drive' && (
+                <div className="absolute top-2 left-2 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center">
+                  <CheckCircle2 className="w-3 h-3 text-white" />
+                </div>
+              )}
+              <div className={cn(
+                "w-10 h-10 rounded-lg flex items-center justify-center mb-2",
+                storageOption === 'google_drive' ? "bg-amber-100 dark:bg-amber-900/30" : "bg-gray-100 dark:bg-gray-700"
+              )}>
+                <HardDrive className={cn("w-5 h-5", storageOption === 'google_drive' ? "text-amber-600" : "text-gray-500")} />
+              </div>
+              <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Google Drive</h4>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">مجاني - سهل المشاركة</p>
+              <div className="mt-2 space-y-1">
+                <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                  <CheckCircle2 className="w-3 h-3 text-amber-500" />
+                  <span>15GB مجاني</span>
+                </div>
+                <div className="flex items-center gap-1 text-[10px] text-gray-500">
+                  <CheckCircle2 className="w-3 h-3 text-amber-500" />
+                  <span>تكامل Google</span>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          {storageOption === null && (
+            <p className="text-[10px] text-center text-gray-400 dark:text-gray-500">
+              سيتم استخدام التخزين الافتراضي (S3) إذا لم تختر
+            </p>
+          )}
+        </div>
+
+        {/* Skip Note */}
+        <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800/30 rounded-xl">
+          <Sparkles className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            يمكنك تخطي هذه الخطوة وإعداد التكاملات لاحقاً من صفحة الردود
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  );
+
+  // Step 6: Preview
+  const renderStep6 = () => (
+    <motion.div
+      key="step6"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.3 }}
+      className="flex flex-col items-center text-sm text-slate-800 dark:text-slate-200"
+    >
+      {/* Step Header */}
+      <p className="text-xs bg-muted text-muted-foreground font-medium px-3 py-1 rounded-full">
+        الخطوة 6 من 6
       </p>
       <h2 className="text-2xl font-bold py-3 text-center text-foreground">معاينة النموذج</h2>
       <p className="text-gray-500 dark:text-gray-400 pb-6 text-center text-sm">
@@ -1146,6 +1438,35 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
               </div>
             </div>
           </div>
+
+          {/* Integrations Summary */}
+          {(enableGoogleSheets || storageOption) && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+              <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+                <LinkIcon className="w-4 h-4" />
+                التكاملات
+              </h4>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className={cn("w-2 h-2 rounded-full", enableGoogleSheets ? "bg-green-500" : "bg-gray-300")} />
+                  <span className="text-gray-600 dark:text-gray-400">Google Sheets</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {storageOption === 'google_drive' ? (
+                    <>
+                      <FolderOpen className="w-3 h-3 text-amber-500" />
+                      <span className="text-gray-600 dark:text-gray-400">Google Drive</span>
+                    </>
+                  ) : (
+                    <>
+                      <HardDrive className="w-3 h-3 text-blue-500" />
+                      <span className="text-gray-600 dark:text-gray-400">S3 Storage</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         </div>
         {/* Note: Submit button is now in ProgressIndicator below */}
@@ -1206,6 +1527,7 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
           {currentStep === 3 && renderStep3()}
           {currentStep === 4 && renderStep4()}
           {currentStep === 5 && renderStep5()}
+          {currentStep === 6 && renderStep6()}
         </AnimatePresence>
       </div>
 

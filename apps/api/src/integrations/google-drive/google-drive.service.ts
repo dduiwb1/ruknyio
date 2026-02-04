@@ -29,8 +29,11 @@ export class GoogleDriveService {
 
   /**
    * Generate Google OAuth URL for Drive authorization
+   * @param formId - The form ID
+   * @param userId - The user ID
+   * @param userEmail - Optional: User's email to auto-select Google account (login_hint)
    */
-  getAuthUrl(formId: string, userId: string): string {
+  getAuthUrl(formId: string, userId: string, userEmail?: string): string {
     const scopes = [
       'https://www.googleapis.com/auth/drive.file',
       'https://www.googleapis.com/auth/spreadsheets',
@@ -40,12 +43,19 @@ export class GoogleDriveService {
       JSON.stringify({ formId, userId, type: 'drive' }),
     ).toString('base64');
 
-    return this.oauth2Client.generateAuthUrl({
+    const authOptions: any = {
       access_type: 'offline',
       scope: scopes,
       prompt: 'consent',
       state,
-    });
+    };
+
+    // Add login_hint if user email is provided
+    if (userEmail) {
+      authOptions.login_hint = userEmail;
+    }
+
+    return this.oauth2Client.generateAuthUrl(authOptions);
   }
 
   /**

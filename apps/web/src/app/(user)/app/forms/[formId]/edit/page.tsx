@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import React, { useState, useCallback, useEffect, memo } from 'react';
+import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion';
 import {
   FileText,
   Mail,
@@ -11,11 +11,21 @@ import {
   Copy,
   Edit2,
   ArrowRight,
+  ArrowLeft,
   Loader2,
-  ImageIcon,
   Layers,
   AlertCircle,
   Image as ImageLucide,
+  Settings,
+  Eye,
+  CheckCircle2,
+  Clock,
+  Users,
+  Bell,
+  Hash,
+  BarChart3,
+  MoreVertical,
+  Save,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -25,7 +35,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import ProgressIndicator from '@/components/ui/progress-indicator';
 import { 
   useForms, 
@@ -38,10 +57,11 @@ import {
   Form,
 } from '@/lib/hooks/useForms';
 import { useParams, useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { toast } from '@/components/toast-provider';
 import { cn } from '@/lib/utils';
 import { FieldTypeSelector } from '@/components/(app)/forms/FieldTypeSelector';
-import { FieldEditor, type FormFieldInput } from '@/components/(app)/forms/FieldEditor';
+import { type FormFieldInput } from '@/components/(app)/forms/FieldEditor';
+import { FieldEditorDialog } from '@/components/(app)/forms/FieldEditorDialog';
 import { StepEditor, type FormStepInput } from '@/components/(app)/forms/StepEditor';
 import FormBannersUpload, { type BannerDisplayMode } from '@/components/(app)/forms/FormBannersUpload';
 
@@ -50,6 +70,160 @@ import FormBannersUpload, { type BannerDisplayMode } from '@/components/(app)/fo
 // ============================================
 
 const TOTAL_STEPS = 4;
+
+// ============================================
+// Draggable Field Item Component (Memoized for performance)
+// ============================================
+
+interface DraggableFieldItemProps {
+  field: FormFieldInput;
+  index: number;
+  onEdit: (id: string) => void;
+  onDuplicate: (id: string) => void;
+  onDelete: (id: string) => void;
+  getFieldIcon: (type: FieldType) => React.ReactNode;
+}
+
+const DraggableFieldItem = memo(function DraggableFieldItem({
+  field,
+  index,
+  onEdit,
+  onDuplicate,
+  onDelete,
+  getFieldIcon,
+}: DraggableFieldItemProps) {
+  const dragControls = useDragControls();
+  
+  return (
+    <Reorder.Item
+      value={field}
+      dragListener={false}
+      dragControls={dragControls}
+      layout="position"
+      layoutScroll
+      transition={{
+        layout: { duration: 0.2, ease: 'easeOut' },
+      }}
+      className={cn(
+        "group relative bg-card rounded-xl border border-border",
+        "shadow-sm hover:shadow-md transition-shadow duration-200"
+      )}
+      whileDrag={{
+        scale: 1.02,
+        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+        zIndex: 50,
+      }}
+    >
+      <div className="flex items-center gap-2 sm:gap-3 p-3">
+        {/* Drag Handle */}
+        <div 
+          className="flex flex-col items-center justify-center p-2 -m-1 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-colors select-none"
+          onPointerDown={(e) => {
+            e.preventDefault();
+            dragControls.start(e);
+          }}
+          style={{ touchAction: 'none' }}
+        >
+          <GripVertical className="w-5 h-5 pointer-events-none" />
+        </div>
+
+        {/* Order Number */}
+        <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-[11px] font-bold flex items-center justify-center flex-shrink-0">
+          {index + 1}
+        </div>
+
+        {/* Field Icon */}
+        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-muted text-muted-foreground">
+          {getFieldIcon(field.type as FieldType)}
+        </div>
+
+        {/* Field Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-sm text-foreground truncate">{field.label}</span>
+            {field.required && (
+              <span className="text-[10px] px-1.5 py-0.5 bg-destructive/10 text-destructive rounded hidden sm:inline">
+                مطلوب
+              </span>
+            )}
+          </div>
+          <span className="text-xs text-muted-foreground hidden sm:inline">
+            {FIELD_TYPE_LABELS[field.type as FieldType]}
+          </span>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1">
+          {/* Desktop actions */}
+          <div className="hidden sm:flex items-center gap-0.5">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onEdit(field.id); }}
+              className="p-2 hover:bg-muted rounded-lg transition-colors"
+              title="تعديل"
+            >
+              <Edit2 className="w-4 h-4 text-muted-foreground" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onDuplicate(field.id); }}
+              className="p-2 hover:bg-muted rounded-lg transition-colors"
+              title="نسخ"
+            >
+              <Copy className="w-4 h-4 text-muted-foreground" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onDelete(field.id); }}
+              className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+              title="حذف"
+            >
+              <Trash2 className="w-4 h-4 text-red-500" />
+            </button>
+          </div>
+
+          {/* Mobile dropdown menu */}
+          <div className="sm:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="p-2 hover:bg-muted rounded-lg transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreVertical className="w-5 h-5 text-muted-foreground" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[120px] rounded-xl">
+                <DropdownMenuItem
+                  onClick={(e) => { e.stopPropagation(); onEdit(field.id); }}
+                  className="flex items-center gap-2 px-3 py-2.5 text-sm cursor-pointer"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  تعديل
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => { e.stopPropagation(); onDuplicate(field.id); }}
+                  className="flex items-center gap-2 px-3 py-2.5 text-sm cursor-pointer"
+                >
+                  <Copy className="w-4 h-4" />
+                  نسخ
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => { e.stopPropagation(); onDelete(field.id); }}
+                  className="flex items-center gap-2 px-3 py-2.5 text-sm cursor-pointer text-red-600"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  حذف
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </div>
+    </Reorder.Item>
+  );
+});
 
 // ==================== MAIN COMPONENT ====================
 
@@ -67,6 +241,7 @@ export default function EditFormPage() {
   
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitPhase, setSubmitPhase] = useState<'idle' | 'preparing' | 'submitting' | 'redirecting'>('idle');
   const [hasChanges, setHasChanges] = useState(false);
   
   // Step 1: Basic Info
@@ -248,12 +423,16 @@ export default function EditFormPage() {
     });
   };
 
-  // Get preview URL for banner (first one for cover)
-  const getCoverPreview = (): string | null => {
-    if (banners.length === 0) return null;
-    const first = banners[0];
-    if (typeof first === 'string') return first;
-    return URL.createObjectURL(first);
+  // Icons for field types
+  const getFieldIcon = (type: FieldType) => {
+    const icons: Record<string, React.ReactNode> = {
+      [FieldType.TEXT]: <FileText className="w-4 h-4" />,
+      [FieldType.TEXTAREA]: <FileText className="w-4 h-4" />,
+      [FieldType.EMAIL]: <Mail className="w-4 h-4" />,
+      [FieldType.NUMBER]: <FileText className="w-4 h-4" />,
+      [FieldType.SELECT]: <FileText className="w-4 h-4" />,
+    };
+    return icons[type] || <FileText className="w-4 h-4" />;
   };
 
   // Add new field
@@ -350,7 +529,15 @@ export default function EditFormPage() {
   // Navigation
   const handleContinue = () => {
     if (validateStep()) {
-      setCurrentStep(prev => Math.min(prev + 1, TOTAL_STEPS));
+      if (currentStep === TOTAL_STEPS) {
+        // Trigger form submit
+        const formElement = document.querySelector('form');
+        if (formElement) {
+          formElement.requestSubmit();
+        }
+      } else {
+        setCurrentStep(prev => Math.min(prev + 1, TOTAL_STEPS));
+      }
     }
   };
 
@@ -365,6 +552,7 @@ export default function EditFormPage() {
     if (currentStep !== TOTAL_STEPS) return;
     
     setIsSubmitting(true);
+    setSubmitPhase('preparing');
     
     try {
       // Convert banner files to base64 or keep URLs
@@ -387,6 +575,8 @@ export default function EditFormPage() {
         // User removed all banners
         coverImageData = null;
       }
+
+      setSubmitPhase('submitting');
 
       const formData: any = {
         title,
@@ -444,16 +634,17 @@ export default function EditFormPage() {
       
       if (result) {
         toast.success('تم حفظ التغييرات بنجاح! ✨');
-        router.push(`/app/forms/${formId}`);
+        setSubmitPhase('redirecting');
+        await new Promise((r) => setTimeout(r, 500));
+        router.push('/app/forms');
       }
     } catch (error: any) {
       toast.error(error.message || 'فشل في حفظ التغييرات');
     } finally {
       setIsSubmitting(false);
+      setSubmitPhase('idle');
     }
   };
-
-  const editingField = editingFieldId ? fields.find(f => f.id === editingFieldId) : null;
 
   // Loading State
   if (isPageLoading) {
@@ -509,60 +700,48 @@ export default function EditFormPage() {
       className="flex flex-col items-center text-sm text-slate-800 dark:text-slate-200"
     >
       {/* Step Header */}
-      <p className="text-xs bg-indigo-200 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 font-medium px-3 py-1 rounded-full">
+      <p className="text-xs bg-muted text-muted-foreground font-medium px-3 py-1 rounded-full">
         الخطوة 1 من 4
       </p>
-      <h2 className="text-2xl font-bold py-3 text-center text-gray-900 dark:text-white">تعديل معلومات النموذج</h2>
+      <h2 className="text-2xl font-bold py-3 text-center text-foreground">المعلومات الأساسية</h2>
       <p className="text-gray-500 dark:text-gray-400 pb-6 text-center text-sm">
-        {originalForm?.title}
+        عدّل المعلومات الأساسية للنموذج
       </p>
 
-      {/* Form Fields */}
       <div className="w-full max-w-md px-4 space-y-5">
         {/* Title */}
-        <div>
-          <label htmlFor="title" className="font-medium text-gray-800 dark:text-gray-200">
-            عنوان النموذج <span className="text-red-500">*</span>
-          </label>
-          <div className="flex items-center mt-2 mb-4 h-11 pr-3 border border-slate-300 dark:border-slate-600 rounded-full focus-within:ring-2 focus-within:ring-indigo-400 transition-all overflow-hidden bg-white dark:bg-gray-800">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M17 3H3C1.89543 3 1 3.89543 1 5V15C1 16.1046 1.89543 17 3 17H17C18.1046 17 19 16.1046 19 15V5C19 3.89543 18.1046 3 17 3Z" stroke="#64748b" strokeWidth="1.5" fill="none"/>
-              <path d="M5 7H15M5 10H12" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-            <input
-              id="title"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="مثال: استبيان رضا العملاء"
-              className="h-full px-3 w-full outline-none bg-transparent text-gray-800 dark:text-gray-200 placeholder:text-gray-400"
-              required
-            />
-          </div>
+        <div className="text-right">
+          <Label className="font-medium text-gray-800 dark:text-gray-200">
+            عنوان النموذج <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="مثال: استبيان رضا العملاء"
+            className="mt-2 h-12 rounded-full border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-gray-400"
+          />
         </div>
 
         {/* Description */}
-        <div>
-          <label htmlFor="description" className="font-medium text-gray-800 dark:text-gray-200">
-            الوصف (اختياري)
-          </label>
-          <textarea
-            id="description"
+        <div className="text-right">
+          <Label className="font-medium text-gray-800 dark:text-gray-200">
+            الوصف <span className="text-muted-foreground text-xs">(اختياري)</span>
+          </Label>
+          <Textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="وصف مختصر للنموذج..."
             rows={3}
-            className="w-full mt-2 p-3 bg-white dark:bg-gray-800 border border-slate-300 dark:border-slate-600 rounded-2xl resize-none outline-none focus:ring-2 focus-within:ring-indigo-400 transition-all text-gray-800 dark:text-gray-200 placeholder:text-gray-400"
+            className="mt-2 rounded-2xl border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-gray-400 resize-none"
           />
         </div>
 
-        {/* Form Type & Status - Side by Side */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Form Type */}
+        {/* Form Type & Status */}
+        <div className="grid grid-cols-2 gap-4">
           <div className="text-right">
-            <label className="font-medium text-gray-800 dark:text-gray-200">نوع النموذج</label>
+            <Label className="font-medium text-gray-800 dark:text-gray-200">نوع النموذج</Label>
             <Select value={formType} onValueChange={(v) => setFormType(v as FormType)}>
-              <SelectTrigger className="mt-2 h-12 w-full rounded-full border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-800 text-right">
+              <SelectTrigger className="mt-2 h-12 w-full rounded-full border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-gray-400 bg-white dark:bg-gray-800 text-right">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -573,11 +752,10 @@ export default function EditFormPage() {
             </Select>
           </div>
 
-          {/* Form Status */}
           <div className="text-right">
-            <label className="font-medium text-gray-800 dark:text-gray-200">حالة النموذج</label>
+            <Label className="font-medium text-gray-800 dark:text-gray-200">حالة النموذج</Label>
             <Select value={status} onValueChange={(v) => setStatus(v as FormStatus)}>
-              <SelectTrigger className="mt-2 h-12 w-full rounded-full border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-800 text-right">
+              <SelectTrigger className="mt-2 h-12 w-full rounded-full border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-gray-400 bg-white dark:bg-gray-800 text-right">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -590,10 +768,10 @@ export default function EditFormPage() {
         </div>
 
         {/* Multi-step Toggle */}
-        <div className="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-2xl">
+        <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
-              <Layers className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+              <Layers className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </div>
             <div>
               <p className="font-medium text-sm text-gray-800 dark:text-gray-200">نموذج متعدد الخطوات</p>
@@ -601,19 +779,16 @@ export default function EditFormPage() {
             </div>
           </div>
           <div dir="ltr">
-            <Switch
-              checked={isMultiStep}
-              onCheckedChange={setIsMultiStep}
-            />
+            <Switch checked={isMultiStep} onCheckedChange={setIsMultiStep} />
           </div>
         </div>
 
-        {/* Cover Image / Banners */}
+        {/* Cover Images */}
         <div>
-          <label className="font-medium text-gray-800 dark:text-gray-200 flex items-center gap-2 mb-2">
+          <Label className="font-medium text-gray-800 dark:text-gray-200 flex items-center gap-2 mb-2">
             <ImageLucide className="w-4 h-4" />
             صور الغلاف (اختياري)
-          </label>
+          </Label>
           <FormBannersUpload
             banners={banners}
             onChange={setBanners}
@@ -637,118 +812,97 @@ export default function EditFormPage() {
       className="flex flex-col items-center text-sm text-slate-800 dark:text-slate-200"
     >
       {/* Step Header */}
-      <p className="text-xs bg-emerald-200 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 font-medium px-3 py-1 rounded-full">
+      <p className="text-xs bg-muted text-muted-foreground font-medium px-3 py-1 rounded-full">
         الخطوة 2 من 4
       </p>
-      <h2 className="text-2xl font-bold py-3 text-center text-gray-900 dark:text-white">حقول النموذج</h2>
-      <p className="text-gray-500 dark:text-gray-400 pb-6 text-center text-sm">
-        أضف الحقول التي تريد جمع بياناتها
+      <h2 className="text-2xl font-bold py-3 text-center text-foreground">حقول النموذج</h2>
+      <p className="text-gray-500 dark:text-gray-400 pb-4 text-center text-sm">
+        راجع الحقول أو عدّلها حسب احتياجاتك
       </p>
 
-      <div className="w-full max-w-md px-4 space-y-4">
-      {/* Multi-step Editor */}
-      {isMultiStep ? (
-        <StepEditor
-          steps={formSteps}
-          onStepsChange={setFormSteps}
-        />
-      ) : (
-        <>
-          {/* Fields List */}
-          {fields.length > 0 ? (
-            <Reorder.Group 
-              axis="y" 
-              values={fields} 
-              onReorder={handleReorderFields}
-              className="space-y-2"
-            >
-              {fields.map((field) => (
-                <Reorder.Item
-                  key={field.id}
-                  value={field}
-                  className={cn(
-                    "flex items-center gap-3 p-4 bg-white dark:bg-gray-800/50 rounded-xl border transition-all cursor-grab active:cursor-grabbing",
-                    editingFieldId === field.id 
-                      ? 'border-violet-400 bg-violet-50/50 dark:bg-violet-900/10' 
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                  )}
-                >
-                  <GripVertical className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900 dark:text-white truncate">{field.label}</span>
-                      {field.required && <span className="text-xs text-red-500">*</span>}
-                    </div>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {FIELD_TYPE_LABELS[field.type as FieldType]}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setEditingFieldId(editingFieldId === field.id ? null : field.id)}
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                    >
-                      <Edit2 className="w-4 h-4 text-gray-500" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDuplicateField(field.id)}
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                    >
-                      <Copy className="w-4 h-4 text-gray-500" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteField(field.id)}
-                      className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </button>
-                  </div>
-                </Reorder.Item>
-              ))}
-            </Reorder.Group>
-          ) : (
-            <div className="text-center py-12 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
-              <Plus className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-500 dark:text-gray-400 mb-4">لم تقم بإضافة أي حقول بعد</p>
-            </div>
-          )}
-
-          {/* Field Editor */}
-          <AnimatePresence>
-            {editingField && (
-              <FieldEditor
-                field={editingField}
-                onUpdate={(updates: Partial<FormFieldInput>) => handleUpdateField(editingField.id, updates)}
-                onClose={() => setEditingFieldId(null)}
-              />
-            )}
-          </AnimatePresence>
-
-          {/* Add Field Button */}
-          <button
-            type="button"
-            onClick={() => setShowFieldSelector(true)}
-            className="w-full flex items-center justify-center gap-2 py-3.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-full transition-all font-medium"
-          >
-            <Plus className="w-5 h-5" />
-            <span>إضافة حقل جديد</span>
-            <ArrowRight className="w-4 h-4 mt-0.5" />
-          </button>
-
-          {/* Field Type Selector Modal */}
-          <AnimatePresence>
-            {showFieldSelector && (
-              <FieldTypeSelector
-                onSelect={handleAddField}
-                onClose={() => setShowFieldSelector(false)}
-              />
-            )}
-          </AnimatePresence>
-        </>
+      {/* Fields Counter */}
+      {fields.length > 0 && (
+        <div className="flex items-center gap-2 mb-4 text-xs">
+          <span className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-600 dark:text-gray-400">
+            {fields.length} حقول
+          </span>
+          <span className="text-gray-400">•</span>
+          <span className="text-gray-500 dark:text-gray-400">اسحب للترتيب</span>
+        </div>
       )}
+
+      <div className="w-full max-w-lg px-4 space-y-3">
+        {/* Multi-step Editor */}
+        {isMultiStep ? (
+          <StepEditor
+            steps={formSteps}
+            onStepsChange={setFormSteps}
+          />
+        ) : (
+          <>
+            {/* Fields List */}
+            {fields.length > 0 ? (
+              <Reorder.Group 
+                axis="y" 
+                values={fields} 
+                onReorder={handleReorderFields}
+                className="space-y-2"
+                layoutScroll
+              >
+                {fields.map((field, index) => (
+                  <DraggableFieldItem
+                    key={field.id}
+                    field={field}
+                    index={index}
+                    onEdit={setEditingFieldId}
+                    onDuplicate={handleDuplicateField}
+                    onDelete={handleDeleteField}
+                    getFieldIcon={getFieldIcon}
+                  />
+                ))}
+              </Reorder.Group>
+            ) : (
+              <div className="text-center py-10 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/30">
+                <div className="w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-3">
+                  <Plus className="w-7 h-7 text-gray-400" />
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 font-medium mb-1">لم تقم بإضافة أي حقول بعد</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">ابدأ بإضافة الحقول لنموذجك</p>
+              </div>
+            )}
+
+            {/* Field Editor Dialog */}
+            {editingFieldId && (
+              <FieldEditorDialog
+                field={fields.find(f => f.id === editingFieldId) ?? null}
+                open={editingFieldId !== null}
+                onOpenChange={(open) => !open && setEditingFieldId(null)}
+                onUpdate={(updates) => editingFieldId && handleUpdateField(editingFieldId, updates)}
+                onSave={() => setEditingFieldId(null)}
+              />
+            )}
+
+            {/* Add Field Button */}
+            <button
+              type="button"
+              onClick={() => setShowFieldSelector(true)}
+              className="w-full flex items-center justify-center gap-2 py-3.5 bg-gray-900 dark:bg-white hover:bg-gray-800 dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-xl transition-all font-medium shadow-lg shadow-gray-900/25 dark:shadow-white/25"
+            >
+              <Plus className="w-5 h-5" />
+              <span>إضافة حقل جديد</span>
+            </button>
+
+            {/* Field Type Selector Modal */}
+            <AnimatePresence>
+              {showFieldSelector && (
+                <FieldTypeSelector
+                  onSelect={handleAddField}
+                  onClose={() => setShowFieldSelector(false)}
+                />
+              )}
+            </AnimatePresence>
+          </>
+        )}
       </div>
     </motion.div>
   );
@@ -763,10 +917,10 @@ export default function EditFormPage() {
       className="flex flex-col items-center text-sm text-slate-800 dark:text-slate-200"
     >
       {/* Step Header */}
-      <p className="text-xs bg-amber-200 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 font-medium px-3 py-1 rounded-full">
+      <p className="text-xs bg-muted text-muted-foreground font-medium px-3 py-1 rounded-full">
         الخطوة 3 من 4
       </p>
-      <h2 className="text-2xl font-bold py-3 text-center text-gray-900 dark:text-white">إعدادات النموذج</h2>
+      <h2 className="text-2xl font-bold py-3 text-center text-foreground">إعدادات النموذج</h2>
       <p className="text-gray-500 dark:text-gray-400 pb-6 text-center text-sm">
         خصص سلوك النموذج
       </p>
@@ -774,10 +928,15 @@ export default function EditFormPage() {
       {/* Settings List */}
       <div className="w-full max-w-md px-4 space-y-3">
         {/* Multiple Submissions */}
-        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 border border-slate-300 dark:border-slate-600 rounded-2xl">
-          <div>
-            <p className="font-medium text-sm text-gray-800 dark:text-gray-200">السماح بالإرسال المتعدد</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">السماح للمستخدم بإرسال أكثر من رد</p>
+        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+              <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <p className="font-medium text-sm text-gray-800 dark:text-gray-200">السماح بالإرسال المتعدد</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">السماح للمستخدم بإرسال أكثر من رد</p>
+            </div>
           </div>
           <div dir="ltr">
             <Switch checked={allowMultipleSubmissions} onCheckedChange={setAllowMultipleSubmissions} />
@@ -785,10 +944,15 @@ export default function EditFormPage() {
         </div>
 
         {/* Requires Authentication */}
-        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 border border-slate-300 dark:border-slate-600 rounded-2xl">
-          <div>
-            <p className="font-medium text-sm text-gray-800 dark:text-gray-200">يتطلب تسجيل الدخول</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">يجب على المستخدم تسجيل الدخول للإرسال</p>
+        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+              <Users className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <p className="font-medium text-sm text-gray-800 dark:text-gray-200">يتطلب تسجيل الدخول</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">يجب على المستخدم تسجيل الدخول قبل الإرسال</p>
+            </div>
           </div>
           <div dir="ltr">
             <Switch checked={requiresAuthentication} onCheckedChange={setRequiresAuthentication} />
@@ -796,10 +960,15 @@ export default function EditFormPage() {
         </div>
 
         {/* Show Progress Bar */}
-        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 border border-slate-300 dark:border-slate-600 rounded-2xl">
-          <div>
-            <p className="font-medium text-sm text-gray-800 dark:text-gray-200">إظهار شريط التقدم</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">عرض نسبة الإكمال للمستخدم</p>
+        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+              <BarChart3 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+              <p className="font-medium text-sm text-gray-800 dark:text-gray-200">إظهار شريط التقدم</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">عرض نسبة إكمال النموذج</p>
+            </div>
           </div>
           <div dir="ltr">
             <Switch checked={showProgressBar} onCheckedChange={setShowProgressBar} />
@@ -807,10 +976,15 @@ export default function EditFormPage() {
         </div>
 
         {/* Show Question Numbers */}
-        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 border border-slate-300 dark:border-slate-600 rounded-2xl">
-          <div>
-            <p className="font-medium text-sm text-gray-800 dark:text-gray-200">ترقيم الأسئلة</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">عرض أرقام الأسئلة</p>
+        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+              <Hash className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <p className="font-medium text-sm text-gray-800 dark:text-gray-200">ترقيم الأسئلة</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">عرض أرقام الأسئلة في النموذج</p>
+            </div>
           </div>
           <div dir="ltr">
             <Switch checked={showQuestionNumbers} onCheckedChange={setShowQuestionNumbers} />
@@ -818,37 +992,44 @@ export default function EditFormPage() {
         </div>
 
         {/* Notify on Submission */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 border border-slate-300 dark:border-slate-600 rounded-2xl">
+        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
+              <Bell className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+            </div>
             <div>
               <p className="font-medium text-sm text-gray-800 dark:text-gray-200">إشعار عند الإرسال</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">استلام بريد عند كل رد جديد</p>
-            </div>
-            <div dir="ltr">
-              <Switch checked={notifyOnSubmission} onCheckedChange={setNotifyOnSubmission} />
+              <p className="text-xs text-gray-500 dark:text-gray-400">استلام بريد إلكتروني عند كل رد جديد</p>
             </div>
           </div>
-          
+          <div dir="ltr">
+            <Switch checked={notifyOnSubmission} onCheckedChange={setNotifyOnSubmission} />
+          </div>
+        </div>
+
+        {/* Email Input (if notification enabled) */}
+        <AnimatePresence>
           {notifyOnSubmission && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
             >
-              <div className="flex items-center h-11 pr-3 border border-slate-300 dark:border-slate-600 rounded-full focus-within:ring-2 focus-within:ring-indigo-400 transition-all overflow-hidden bg-white dark:bg-gray-800">
-                <Mail className="w-5 h-5 text-gray-400" />
-                <input
+              <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-gray-200 dark:border-gray-700">
+                <Mail className="w-4 h-4 text-gray-400" />
+                <Input
                   type="email"
                   value={notificationEmail}
                   onChange={(e) => setNotificationEmail(e.target.value)}
                   placeholder="example@email.com"
-                  className="h-full px-3 w-full outline-none bg-transparent text-gray-800 dark:text-gray-200 placeholder:text-gray-400"
+                  className="h-10 border-0 bg-transparent focus-visible:ring-0"
                   dir="ltr"
                 />
               </div>
             </motion.div>
           )}
-        </div>
+        </AnimatePresence>
       </div>
     </motion.div>
   );
@@ -863,138 +1044,118 @@ export default function EditFormPage() {
       className="flex flex-col items-center text-sm text-slate-800 dark:text-slate-200"
     >
       {/* Step Header */}
-      <p className="text-xs bg-blue-200 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 font-medium px-3 py-1 rounded-full">
+      <p className="text-xs bg-muted text-muted-foreground font-medium px-3 py-1 rounded-full">
         الخطوة 4 من 4
       </p>
-      <h2 className="text-2xl font-bold py-3 text-center text-gray-900 dark:text-white">معاينة التغييرات</h2>
+      <h2 className="text-2xl font-bold py-3 text-center text-foreground">المعاينة والحفظ</h2>
       <p className="text-gray-500 dark:text-gray-400 pb-6 text-center text-sm">
         راجع التغييرات قبل الحفظ
       </p>
 
-      {/* Preview Card */}
       <div className="w-full max-w-md px-4">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-slate-300 dark:border-slate-600 overflow-hidden shadow-sm">
-        {/* Cover Image / Banner Preview */}
-        {banners.length > 0 && (
-          <div className="relative h-32 overflow-hidden">
-            {bannerDisplayMode === 'slider' && banners.length > 1 ? (
-              <div className="flex h-full">
-                {banners.slice(0, 3).map((banner, idx) => {
-                  const url = typeof banner === 'string' ? banner : URL.createObjectURL(banner);
-                  return (
-                    <div key={idx} className="flex-1 h-full">
-                      <img src={url} alt={`Banner ${idx + 1}`} className="w-full h-full object-cover" />
+        {/* Preview Card */}
+        <div className="bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden shadow-lg">
+          {/* Cover Image Preview */}
+          {banners.length > 0 && (
+            <div className="relative h-32 overflow-hidden bg-gray-100 dark:bg-gray-800">
+              {bannerDisplayMode === 'slider' && banners.length > 1 ? (
+                <div className="flex h-full">
+                  {banners.slice(0, 3).map((banner, idx) => {
+                    const url = typeof banner === 'string' ? banner : URL.createObjectURL(banner);
+                    return (
+                      <div key={idx} className="flex-1 h-full">
+                        <img src={url} alt={`Banner ${idx + 1}`} className="w-full h-full object-cover" />
+                      </div>
+                    );
+                  })}
+                  {banners.length > 3 && (
+                    <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
+                      +{banners.length - 3} صور
                     </div>
-                  );
-                })}
-                {banners.length > 3 && (
-                  <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
-                    +{banners.length - 3} صور
-                  </div>
-                )}
+                  )}
+                </div>
+              ) : (
+                <img 
+                  src={typeof banners[0] === 'string' ? banners[0] : URL.createObjectURL(banners[0])} 
+                  alt="Cover" 
+                  className="w-full h-full object-cover" 
+                />
+              )}
+              <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                {bannerDisplayMode === 'slider' ? <Layers className="w-3 h-3" /> : <ImageLucide className="w-3 h-3" />}
+                {bannerDisplayMode === 'slider' ? 'سلايدر' : 'صورة واحدة'}
               </div>
-            ) : (
-              <img 
-                src={typeof banners[0] === 'string' ? banners[0] : URL.createObjectURL(banners[0])} 
-                alt="Cover" 
-                className="w-full h-full object-cover" 
-              />
-            )}
-            <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-              {bannerDisplayMode === 'slider' ? <Layers className="w-3 h-3" /> : <ImageLucide className="w-3 h-3" />}
-              {bannerDisplayMode === 'slider' ? 'سلايدر' : 'صورة واحدة'}
             </div>
+          )}
+
+          <div className="p-5">
+            {/* Form Info */}
+            <div className="flex items-start gap-4 mb-5">
+              <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                <FileText className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <h3 className="font-bold text-lg text-gray-800 dark:text-gray-200">{title || 'بدون عنوان'}</h3>
+                  <span className={cn(
+                    "px-2.5 py-1 text-xs font-medium rounded-full flex-shrink-0",
+                    status === FormStatus.PUBLISHED ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                    status === FormStatus.DRAFT ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' :
+                    status === FormStatus.ARCHIVED ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                    'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                  )}>
+                    {FORM_STATUS_LABELS[status]}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{description || 'بدون وصف'}</p>
+                <div className="flex items-center gap-3 mt-3 flex-wrap">
+                  <span className="text-xs px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full font-medium">
+                    {FORM_TYPE_LABELS[formType]}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {getTotalFieldsCount()} حقول
+                  </span>
+                  {isMultiStep && (
+                    <span className="text-xs text-gray-500">
+                      {formSteps.length} خطوات
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Settings Summary */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-3">الإعدادات</h4>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="flex items-center gap-2">
+                  <div className={cn("w-2 h-2 rounded-full", allowMultipleSubmissions ? "bg-green-500" : "bg-gray-300")} />
+                  <span className="text-gray-600 dark:text-gray-400">إرسال متعدد</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={cn("w-2 h-2 rounded-full", requiresAuthentication ? "bg-green-500" : "bg-gray-300")} />
+                  <span className="text-gray-600 dark:text-gray-400">يتطلب تسجيل دخول</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={cn("w-2 h-2 rounded-full", notifyOnSubmission ? "bg-green-500" : "bg-gray-300")} />
+                  <span className="text-gray-600 dark:text-gray-400">إشعارات البريد</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={cn("w-2 h-2 rounded-full", showProgressBar ? "bg-green-500" : "bg-gray-300")} />
+                  <span className="text-gray-600 dark:text-gray-400">شريط التقدم</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Changes Indicator */}
+        {hasChanges && (
+          <div className="flex items-center gap-2 mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+            <Save className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">يوجد تغييرات غير محفوظة</p>
           </div>
         )}
-
-        <div className="p-5">
-          {/* Form Info */}
-          <div className="flex items-start gap-4 mb-5">
-            <div className="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
-              <FileText className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="font-bold text-lg text-gray-800 dark:text-gray-200">{title || 'بدون عنوان'}</h3>
-                <span className={cn(
-                  "px-2.5 py-1 text-xs font-medium rounded-full flex-shrink-0",
-                  status === FormStatus.PUBLISHED ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                  status === FormStatus.DRAFT ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' :
-                  status === FormStatus.ARCHIVED ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                  'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                )}>
-                  {FORM_STATUS_LABELS[status]}
-                </span>
-              </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{description || 'بدون وصف'}</p>
-              <div className="flex items-center gap-3 mt-3 flex-wrap">
-                <span className="text-xs px-3 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full font-medium">
-                  {FORM_TYPE_LABELS[formType]}
-                </span>
-                <span className="text-xs text-gray-500">
-                  {getTotalFieldsCount()} حقول
-                </span>
-                {isMultiStep && (
-                  <span className="text-xs text-gray-500">
-                    {formSteps.length} خطوات
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Settings Summary */}
-          <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
-            <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-3">الإعدادات</h4>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="flex items-center gap-2">
-                <div className={cn("w-2 h-2 rounded-full", allowMultipleSubmissions ? "bg-green-500" : "bg-gray-300")} />
-                <span className="text-gray-600 dark:text-gray-400">إرسال متعدد</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className={cn("w-2 h-2 rounded-full", requiresAuthentication ? "bg-green-500" : "bg-gray-300")} />
-                <span className="text-gray-600 dark:text-gray-400">يتطلب تسجيل دخول</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className={cn("w-2 h-2 rounded-full", notifyOnSubmission ? "bg-green-500" : "bg-gray-300")} />
-                <span className="text-gray-600 dark:text-gray-400">إشعارات البريد</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className={cn("w-2 h-2 rounded-full", showProgressBar ? "bg-green-500" : "bg-gray-300")} />
-                <span className="text-gray-600 dark:text-gray-400">شريط التقدم</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Changes indicator */}
-          {hasChanges && (
-            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
-              <p className="text-xs text-amber-700 dark:text-amber-400 text-center font-medium">
-                يوجد تغييرات غير محفوظة
-              </p>
-            </div>
-          )}
-        </div>
-        </div>
-
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full flex items-center justify-center gap-2 mt-5 bg-indigo-500 hover:bg-indigo-600 disabled:bg-indigo-400 text-white py-3 rounded-full transition font-medium"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>جاري الحفظ...</span>
-            </>
-          ) : (
-            <>
-              <span>حفظ التغييرات</span>
-              <ArrowRight className="w-4 h-4 mt-0.5" />
-            </>
-          )}
-        </button>
       </div>
     </motion.div>
   );
@@ -1006,59 +1167,84 @@ export default function EditFormPage() {
   return (
     <div className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 bg-card m-2 md:ms-0 rounded-2xl border border-border/50 overflow-hidden" dir="rtl">
       <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        <div className="p-4 sm:p-6 space-y-5">
+        <div className="p-4 sm:p-6">
           
           {/* Back Link */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
+            className="mb-4"
           >
             <Link 
-              href={`/app/forms/${formId}`}
+              href="/app/forms" 
               className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowRight className="w-4 h-4" />
-              <span>العودة للنموذج</span>
+              <span>العودة للنماذج</span>
             </Link>
           </motion.div>
 
           {/* Edit Form Wizard */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <form onSubmit={handleSubmit} className="max-w-lg mx-auto">
-              {/* Form Container */}
-              <div className="p-8 min-h-[520px]">
-                <AnimatePresence mode="wait">
-                  {currentStep === 1 && renderStep1()}
-                  {currentStep === 2 && renderStep2()}
-                  {currentStep === 3 && renderStep3()}
-                  {currentStep === 4 && renderStep4()}
-                </AnimatePresence>
-              </div>
+          <form onSubmit={handleSubmit} className="max-w-2xl mx-auto">
+            {/* Form Title */}
+            <div className="text-center mb-2">
+              <span className="text-xs text-muted-foreground">تعديل:</span>
+              <h1 className="text-lg font-bold text-foreground truncate">{originalForm?.title}</h1>
+            </div>
 
-              {/* Progress Indicator */}
-              <div className="mt-8">
-                <ProgressIndicator
-                  currentStep={currentStep}
-                  totalSteps={TOTAL_STEPS}
-                  onBack={handleBack}
-                  onContinue={handleContinue}
-                  isLoading={isSubmitting}
-                  isBackVisible={currentStep > 1}
-                  continueLabel="التالي"
-                  backLabel="السابق"
-                  finishLabel={isSubmitting ? "جاري الحفظ..." : "حفظ التغييرات"}
-                  disabled={isSubmitting}
-                />
-              </div>
-            </form>
-          </motion.div>
+            {/* Form Container */}
+            <div className="p-4 sm:p-6">
+              <AnimatePresence mode="wait">
+                {currentStep === 1 && renderStep1()}
+                {currentStep === 2 && renderStep2()}
+                {currentStep === 3 && renderStep3()}
+                {currentStep === 4 && renderStep4()}
+              </AnimatePresence>
+            </div>
 
-          {/* Bottom Blur Gradient Effect */}
-          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-card via-card/80 to-transparent pointer-events-none z-10" />
+            {/* Progress Indicator */}
+            <div className="mt-4">
+              <ProgressIndicator
+                currentStep={currentStep}
+                totalSteps={TOTAL_STEPS}
+                onBack={handleBack}
+                onContinue={handleContinue}
+                isLoading={isSubmitting}
+                isBackVisible={currentStep > 1}
+                continueLabel="التالي"
+                backLabel="السابق"
+                finishLabel={
+                  submitPhase === 'preparing'
+                    ? 'جاري تجهيز المحتوى...'
+                    : submitPhase === 'submitting'
+                      ? 'جاري حفظ التغييرات...'
+                      : submitPhase === 'redirecting'
+                        ? 'جاري التحويل...'
+                        : 'حفظ التغييرات'
+                }
+                disabled={isSubmitting}
+              />
+            </div>
+
+            {/* Loading overlay during submit */}
+            {isSubmitting && (
+              <div
+                className="fixed inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+                aria-hidden
+              >
+                <div className="flex flex-col items-center gap-4 rounded-2xl bg-card border border-border p-6 shadow-lg max-w-sm mx-4">
+                  <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                  <p className="text-sm font-medium text-foreground text-center">
+                    {submitPhase === 'preparing'
+                      ? 'جاري تجهيز المحتوى...'
+                      : submitPhase === 'submitting'
+                        ? 'جاري حفظ التغييرات...'
+                        : 'جاري التحويل...'}
+                  </p>
+                </div>
+              </div>
+            )}
+          </form>
         </div>
       </div>
     </div>

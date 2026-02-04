@@ -122,8 +122,11 @@ export class GoogleSheetsService {
 
   /**
    * Generate Google OAuth URL for Sheets authorization
+   * @param formId - The form ID to connect
+   * @param userId - The user ID
+   * @param userEmail - Optional: User's email to auto-select Google account (login_hint)
    */
-  getAuthUrl(formId: string, userId: string): string {
+  getAuthUrl(formId: string, userId: string, userEmail?: string): string {
     const scopes = [
       'https://www.googleapis.com/auth/spreadsheets',
       'https://www.googleapis.com/auth/drive.file',
@@ -134,12 +137,20 @@ export class GoogleSheetsService {
       'base64',
     );
 
-    return this.oauth2Client.generateAuthUrl({
+    const authOptions: any = {
       access_type: 'offline',
       scope: scopes,
       prompt: 'consent',
       state,
-    });
+    };
+
+    // Add login_hint if user email is provided
+    // This auto-selects the user's Google account without showing account picker
+    if (userEmail) {
+      authOptions.login_hint = userEmail;
+    }
+
+    return this.oauth2Client.generateAuthUrl(authOptions);
   }
 
   /**

@@ -10,6 +10,7 @@ import {
   Request,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import {
@@ -23,10 +24,37 @@ import { UrlShortenerService } from './url-shortener.service';
 import { JwtAuthGuard } from '../../../core/common/guards/auth/jwt-auth.guard';
 import { CreateShortUrlDto } from './dto';
 
+// 🔒 Allowed domains for redirect (prevent Open Redirect attacks)
+const ALLOWED_REDIRECT_DOMAINS = [
+  'rukny.io',
+  'rukny.store',
+  'rukny.xyz',
+  'rukny.work',
+  'localhost',
+  '127.0.0.1',
+];
+
 @ApiTags('URL Shortener')
 @Controller()
 export class UrlShortenerController {
   constructor(private urlShortener: UrlShortenerService) {}
+
+  /**
+   * Validate URL is safe for redirect (prevent Open Redirect attacks)
+   */
+  private isValidRedirectUrl(url: string): boolean {
+    try {
+      const parsedUrl = new URL(url);
+      const hostname = parsedUrl.hostname.toLowerCase();
+      
+      // Check if it's an allowed domain or subdomain
+      return ALLOWED_REDIRECT_DOMAINS.some(domain => 
+        hostname === domain || hostname.endsWith('.' + domain)
+      );
+    } catch {
+      return false;
+    }
+  }
 
   /**
    * Redirect short URL to original URL
@@ -36,17 +64,27 @@ export class UrlShortenerController {
   @ApiParam({ name: 'code', description: 'Short URL code' })
   @ApiResponse({ status: 301, description: 'Redirect to original URL' })
   @ApiResponse({ status: 404, description: 'Short URL not found or expired' })
+  @ApiResponse({ status: 400, description: 'Invalid redirect URL' })
   async redirect(@Param('code') code: string, @Res() res: Response) {
     const url = await this.urlShortener.resolve(code);
 
-    if (url) {
-      return res.redirect(301, url);
+    if (!url) {
+      return res.status(404).json({
+        statusCode: 404,
+        message: 'Short URL not found or has expired',
+      });
     }
 
-    return res.status(404).json({
-      statusCode: 404,
-      message: 'Short URL not found or has expired',
-    });
+    // 🔒 Validate URL to prevent Open Redirect attacks
+    if (!this.isValidRedirectUrl(url)) {
+      console.warn(`⚠️ Blocked potential Open Redirect attack: ${url}`);
+      return res.status(400).json({
+        statusCode: 400,
+        message: 'Invalid redirect URL - only approved domains are allowed',
+      });
+    }
+
+    return res.redirect(301, url);
   }
 
   /**

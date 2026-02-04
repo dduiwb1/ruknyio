@@ -4,10 +4,15 @@ import {
   Param,
   Res,
   NotFoundException,
+  BadRequestException,
   VERSION_NEUTRAL,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { S3Service } from '../../shared/services/s3.service';
+
+// Regex patterns for validation
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SAFE_FILENAME_REGEX = /^[a-zA-Z0-9_-]+\.(webp|jpg|jpeg|png|gif)$/i;
 
 /**
  * Files Controller - Serves S3 assets via presigned URL redirects
@@ -28,7 +33,9 @@ export class FilesController {
     @Param('filename') filename: string,
     @Res() res: Response,
   ) {
-    if (!userId || !filename) throw new NotFoundException();
+    // Path Traversal Protection
+    this.validatePathParams(userId, filename);
+    
     const key = `users/${userId}/profile/avatar/${filename}`;
     const url = await this.s3Service.getPresignedGetUrl(this.bucket, key, 3600);
     return res.redirect(url);
@@ -40,9 +47,41 @@ export class FilesController {
     @Param('filename') filename: string,
     @Res() res: Response,
   ) {
-    if (!userId || !filename) throw new NotFoundException();
+    // Path Traversal Protection
+    this.validatePathParams(userId, filename);
+    
     const key = `users/${userId}/profile/cover/${filename}`;
     const url = await this.s3Service.getPresignedGetUrl(this.bucket, key, 3600);
     return res.redirect(url);
+  }
+
+  /**
+   * Validate path parameters to prevent Path Traversal attacks
+   * - userId must be a valid UUID
+   * - filename must match safe pattern (alphanumeric + allowed extensions)
+   */
+  private validatePathParams(userId: string, filename: string): void {
+    if (!userId || !filename) {
+      throw new NotFoundException('Missing required parameters');
+    }
+
+    // Check for path traversal attempts
+    if (userId.includes('..') || userId.includes('/') || userId.includes('\\')) {
+      throw new BadRequestException('Invalid userId format');
+    }
+
+    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      throw new BadRequestException('Invalid filename format');
+    }
+
+    // Validate UUID format for userId
+    if (!UUID_REGEX.test(userId)) {
+      throw new BadRequestException('Invalid userId format');
+    }
+
+    // Validate safe filename pattern
+    if (!SAFE_FILENAME_REGEX.test(filename)) {
+      throw new BadRequestException('Invalid filename format');
+    }
   }
 }

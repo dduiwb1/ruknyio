@@ -392,7 +392,7 @@ export function useForms() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch forms');
+        throw new Error('فشل في جلب النماذج');
       }
 
       const data = await response.json();
@@ -401,7 +401,6 @@ export function useForms() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'حدث خطأ أثناء جلب النماذج';
       setError(message);
-      console.error('Error fetching forms:', err);
       return [];
     } finally {
       setIsLoading(false);
@@ -420,7 +419,7 @@ export function useForms() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch form');
+        throw new Error('فشل في جلب النموذج');
       }
 
       const data = await response.json();
@@ -437,7 +436,6 @@ export function useForms() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'حدث خطأ أثناء جلب النموذج';
       setError(message);
-      console.error('Error fetching form:', err);
       return null;
     } finally {
       setIsLoading(false);
@@ -456,7 +454,7 @@ export function useForms() {
       });
 
       if (!response.ok) {
-        throw new Error('Form not found');
+        throw new Error('النموذج غير موجود');
       }
 
       const data = await response.json();
@@ -473,7 +471,6 @@ export function useForms() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'النموذج غير موجود';
       setError(message);
-      console.error('Error fetching form by slug:', err);
       return null;
     } finally {
       setIsLoading(false);
@@ -497,8 +494,7 @@ export function useForms() {
         // Handle NestJS validation errors (message can be string or array)
         const errorMessage = Array.isArray(errorData.message) 
           ? errorData.message.join(', ') 
-          : errorData.message || 'Failed to create form';
-        console.error('Create form error:', errorData);
+          : errorData.message || 'فشل في إنشاء النموذج';
         throw new Error(errorMessage);
       }
 
@@ -506,7 +502,6 @@ export function useForms() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'حدث خطأ أثناء إنشاء النموذج';
       setError(message);
-      console.error('Error creating form:', err);
       throw err; // Re-throw to propagate to caller
     } finally {
       setIsLoading(false);
@@ -530,8 +525,7 @@ export function useForms() {
         // Handle NestJS validation errors (message can be string or array)
         const errorMessage = Array.isArray(errorData.message) 
           ? errorData.message.join(', ') 
-          : errorData.message || 'Failed to update form';
-        console.error('Update form error:', errorData);
+          : errorData.message || 'فشل في تحديث النموذج';
         throw new Error(errorMessage);
       }
 
@@ -539,7 +533,6 @@ export function useForms() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث النموذج';
       setError(message);
-      console.error('Error updating form:', err);
       throw err; // Re-throw to propagate to caller
     } finally {
       setIsLoading(false);
@@ -559,14 +552,13 @@ export function useForms() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update form status');
+        throw new Error('فشل في تحديث حالة النموذج');
       }
 
       return true;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث حالة النموذج';
       setError(message);
-      console.error('Error updating form status:', err);
       return false;
     } finally {
       setIsLoading(false);
@@ -585,14 +577,13 @@ export function useForms() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete form');
+        throw new Error('فشل في حذف النموذج');
       }
 
       return true;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'حدث خطأ أثناء حذف النموذج';
       setError(message);
-      console.error('Error deleting form:', err);
       return false;
     } finally {
       setIsLoading(false);
@@ -611,14 +602,13 @@ export function useForms() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to duplicate form');
+        throw new Error('فشل في نسخ النموذج');
       }
 
       return await response.json();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'حدث خطأ أثناء نسخ النموذج';
       setError(message);
-      console.error('Error duplicating form:', err);
       return null;
     } finally {
       setIsLoading(false);
@@ -644,7 +634,7 @@ export function useForms() {
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch submissions');
+        throw new Error('فشل في جلب الإجابات');
       }
 
       const data = await response.json();
@@ -655,7 +645,6 @@ export function useForms() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'حدث خطأ أثناء جلب الإجابات';
       setError(message);
-      console.error('Error fetching submissions:', err);
       return { submissions: [], total: 0 };
     } finally {
       setIsLoading(false);
@@ -679,14 +668,13 @@ export function useForms() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to submit form');
+        throw new Error(errorData.message || 'فشل في إرسال النموذج');
       }
 
       return await response.json();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'حدث خطأ أثناء إرسال النموذج';
       setError(message);
-      console.error('Error submitting form:', err);
       return null;
     } finally {
       setIsLoading(false);
@@ -712,7 +700,7 @@ export function useForms() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to export submissions');
+        throw new Error(errorData.message || 'فشل في تصدير الإجابات');
       }
 
       // Check if response is CSV text
@@ -731,7 +719,6 @@ export function useForms() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'حدث خطأ أثناء تصدير الإجابات';
       setError(message);
-      console.error('Error exporting submissions:', err);
       return null;
     } finally {
       setIsLoading(false);
@@ -750,14 +737,13 @@ export function useForms() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch analytics');
+        throw new Error('فشل في جلب التحليلات');
       }
 
       return await response.json();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'حدث خطأ أثناء جلب التحليلات';
       setError(message);
-      console.error('Error fetching analytics:', err);
       return null;
     } finally {
       setIsLoading(false);
@@ -776,14 +762,13 @@ export function useForms() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch steps');
+        throw new Error('فشل في جلب الخطوات');
       }
 
       return await response.json();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'حدث خطأ أثناء جلب الخطوات';
       setError(message);
-      console.error('Error fetching steps:', err);
       return [];
     } finally {
       setIsLoading(false);
@@ -807,14 +792,13 @@ export function useForms() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to update steps');
+        throw new Error(errorData.message || 'فشل في تحديث الخطوات');
       }
 
       return await response.json();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'حدث خطأ أثناء تحديث الخطوات';
       setError(message);
-      console.error('Error updating steps:', err);
       return null;
     } finally {
       setIsLoading(false);

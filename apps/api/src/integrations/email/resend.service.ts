@@ -650,4 +650,76 @@ export class ResendService {
       html,
     });
   }
+
+  /**
+   * Send auto-response to form submitter
+   */
+  async sendAutoResponse(
+    to: string,
+    formTitle: string,
+    customMessage: string,
+  ): Promise<EmailResult> {
+    const html = this.getBaseTemplate({
+      greeting: 'Thank you!',
+      title: 'Your response has been received',
+      message: `Your submission to "${formTitle}" was successful.`,
+      additionalContent: `
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #e8f5e9; border-radius: 8px; border-left: 4px solid #34a853;">
+          <tr>
+            <td style="padding: 20px;">
+              <p style="margin: 0; font-size: 14px; color: #1b5e20; line-height: 1.6; white-space: pre-wrap;">${customMessage}</p>
+            </td>
+          </tr>
+        </table>
+      `,
+      footerText: `This is an automated response from Rukny.`,
+    });
+
+    return this.sendEmail({
+      to,
+      subject: `✅ Thank you for your submission – ${formTitle}`,
+      html,
+    });
+  }
+
+  /**
+   * Send form created notification with QR code
+   */
+  async sendFormCreatedNotification(
+    to: string,
+    userName: string,
+    formData: {
+      formTitle: string;
+      formSlug: string;
+      formId: string;
+    },
+  ): Promise<EmailResult> {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'https://rukny.store');
+    const formUrl = `${frontendUrl}/f/${formData.formSlug}`;
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(formUrl)}`;
+
+    const html = this.getBaseTemplate({
+      greeting: `Hi ${userName},`,
+      title: 'Your form is ready!',
+      message: `Your form "${formData.formTitle}" has been created successfully.`,
+      buttonText: 'View Form',
+      buttonUrl: formUrl,
+      additionalContent: `
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+          <tr>
+            <td align="center" style="padding: 16px 0;">
+              <p style="margin: 0 0 12px 0; font-size: 12px; color: #5f6368;">Scan to open your form:</p>
+              <img src="${qrCodeUrl}" alt="QR Code" width="120" height="120" style="border-radius: 8px; border: 1px solid #e8eaed;" />
+            </td>
+          </tr>
+        </table>
+      `,
+    });
+
+    return this.sendEmail({
+      to,
+      subject: `Your form "${formData.formTitle}" is ready – Rukny`,
+      html,
+    });
+  }
 }

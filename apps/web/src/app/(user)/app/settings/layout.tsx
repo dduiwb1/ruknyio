@@ -9,9 +9,12 @@ import {
   ChevronRight,
   Settings,
   Info,
+  Smartphone,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SettingsSidebar, settingsSections, type SettingsSection } from "@/components/(app)/settings/SettingsSidebar";
+import { PhonePreview } from "@/components/(app)/shared/PhonePreview";
 
 /** وصف قصير لكل قسم/تاب لعرضه في بطاقة المعلومات على الجوال */
 const tabDescriptions: Record<string, string> = {
@@ -75,6 +78,7 @@ export default function SettingsLayout({
 
   const [mounted, setMounted] = useState(false);
   const [showInfoSheet, setShowInfoSheet] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const infoSheetDragControls = useDragControls();
 
   const headerTitle = currentItemLabel || currentSection?.label || "الإعدادات";
@@ -90,9 +94,18 @@ export default function SettingsLayout({
 
   return (
     <div
-      className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 m-2 md:ms-0 overflow-hidden gap-3"
+      className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 m-2 md:ms-0 gap-4"
       dir="rtl"
     >
+      {/* Phone Preview Toggle Button - Mobile */}
+      <button
+        onClick={() => setShowPreview(!showPreview)}
+        className="fixed left-4 bottom-4 z-50 flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all lg:hidden"
+      >
+        <Smartphone className="w-5 h-5" />
+        <span className="text-sm font-medium">معاينة</span>
+      </button>
+
       <SettingsSidebar />
       <div className="relative flex flex-1 flex-col min-w-0 overflow-hidden bg-card rounded-2xl border border-border/50 shadow-sm">
         {/* Mobile: هيدر يتغير حسب القسم + بطاقة معلومات للقسم الحالي */}
@@ -228,6 +241,32 @@ export default function SettingsLayout({
           <div className="sticky bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card via-card/80 to-transparent pointer-events-none" />
         </div>
       </div>
+
+      {/* Phone Preview Sidebar - Desktop (Separated) */}
+      <div className="hidden lg:flex">
+        <PhonePreview />
+      </div>
+
+      {/* Phone Preview Modal - Mobile */}
+      {showPreview && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 lg:hidden"
+          onClick={() => setShowPreview(false)}
+        >
+          <div 
+            className="relative bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 rounded-3xl p-6 max-w-[340px] w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowPreview(false)}
+              className="absolute top-4 left-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+            </button>
+            <PhonePreview />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

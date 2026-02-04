@@ -105,6 +105,25 @@ export class OrdersController {
     return this.ordersService.getMyOrders(req.user.id, filters);
   }
 
+  /**
+   * Get store orders (alternative route matching frontend expectations)
+   * This route MUST be before :id to prevent 'store' being captured as orderId
+   */
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('store')
+  @ApiOperation({ summary: 'عرض طلبات متجري (كبائع) - مسار بديل' })
+  @ApiResponse({ status: 200, description: 'قائمة طلبات المتجر' })
+  @ApiQuery({ name: 'limit', required: false, description: 'عدد النتائج' })
+  @ApiQuery({ name: 'sortBy', required: false, description: 'ترتيب حسب' })
+  @ApiQuery({ name: 'sortOrder', required: false, description: 'اتجاه الترتيب' })
+  @ApiQuery({ name: 'status', required: false, description: 'تصفية حسب الحالة' })
+  @ApiQuery({ name: 'startDate', required: false, description: 'من تاريخ' })
+  @ApiQuery({ name: 'endDate', required: false, description: 'إلى تاريخ' })
+  async getStoreOrdersAlt(@Request() req, @Query() filters: OrderFiltersDto) {
+    return this.ordersService.getStoreOrders(req.user.id, filters);
+  }
+
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get(':id')

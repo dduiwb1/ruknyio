@@ -7,8 +7,6 @@ import {
   Link2,
   MonitorSmartphone,
   ScrollText,
-  Ban,
-  Smartphone,
   Share2,
   TrendingUp,
   Bell,
@@ -25,6 +23,7 @@ import {
   Sparkles,
   Settings2,
   Globe,
+  Smartphone,
 } from 'lucide-react';
 
 // Loading skeleton component
@@ -522,50 +521,46 @@ function SettingsContent() {
   }
 
   return (
-    <div className="min-h-full">
-      <main className="pb-8">
-        <div className="mx-auto max-w-[1080px] px-4 pt-4 sm:px-6 lg:px-8">
-          {/* Mobile: List view (like reference image) when no tab */}
-          {isListMode && (
-            <div className="lg:hidden animate-in fade-in duration-200">
-              <div className="mb-6">
-                <h1 className="text-xl font-bold text-foreground">الإعدادات</h1>
-                <p className="mt-1 text-sm text-muted-foreground">إدارة حسابك وتفضيلاتك</p>
-              </div>
-              <MobileSettingsList settings={allSettings} onSelect={navigateToTab} />
-            </div>
-          )}
+    <div className="p-4 sm:p-6 space-y-5">
+      {/* Mobile: List view (like reference image) when no tab */}
+      {isListMode && (
+        <div className="lg:hidden animate-in fade-in duration-200">
+          <div className="mb-6">
+            <h1 className="text-xl font-bold text-foreground">الإعدادات</h1>
+            <p className="mt-1 text-sm text-muted-foreground">إدارة حسابك وتفضيلاتك</p>
+          </div>
+          <MobileSettingsList settings={allSettings} onSelect={navigateToTab} />
+        </div>
+      )}
 
-          {/* Mobile: Detail view (back + content) when tab set */}
-          {isMobile === true && !isListMode && (
-            <div className="mb-5 flex items-center gap-3 lg:hidden">
-              <button
-                type="button"
-                onClick={navigateBack}
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
-                aria-label="رجوع"
-              >
-                <ChevronLeft className="h-5 w-5 rotate-180" />
-              </button>
-              {currentCategoryInfo && currentSetting && (
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-base font-bold text-foreground">{currentSetting.label}</p>
-                  <p className="truncate text-xs text-muted-foreground">{currentCategoryInfo.title}</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Content (detail view): hide on mobile list mode */}
-          {!isListMode && (
-            <div key={activeTab} className="min-w-0 flex-1 animate-in fade-in duration-150">
-              <Suspense fallback={<SettingsSkeleton />}>
-                {renderContent()}
-              </Suspense>
+      {/* Mobile: Detail view (back + content) when tab set */}
+      {isMobile === true && !isListMode && (
+        <div className="mb-5 flex items-center gap-3 lg:hidden">
+          <button
+            type="button"
+            onClick={navigateBack}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+            aria-label="رجوع"
+          >
+            <ChevronLeft className="h-5 w-5 rotate-180" />
+          </button>
+          {currentCategoryInfo && currentSetting && (
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-base font-bold text-foreground">{currentSetting.label}</p>
+              <p className="truncate text-xs text-muted-foreground">{currentCategoryInfo.title}</p>
             </div>
           )}
         </div>
-      </main>
+      )}
+
+      {/* Content (detail view): hide on mobile list mode */}
+      {!isListMode && (
+        <div key={activeTab} className="min-w-0 flex-1 animate-in fade-in duration-150">
+          <Suspense fallback={<SettingsSkeleton />}>
+            {renderContent()}
+          </Suspense>
+        </div>
+      )}
     </div>
   );
 }

@@ -1209,6 +1209,9 @@ model UserFile {
   fileSize  BigInt
   category  FileCategory
   entityId  String?
+  blurHash  String?      // BlurHash for progressive image loading
+  width     Int?         // Image width in pixels
+  height    Int?         // Image height in pixels
   createdAt DateTime     @default(now())
   deletedAt DateTime?    // حذف ناعم: الملف يبقى 30 يوم ثم يُحذف نهائياً
   user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)

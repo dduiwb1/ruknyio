@@ -24,19 +24,28 @@ export class GoogleCalendarService {
 
   /**
    * Generate Google OAuth URL for calendar authorization
+   * @param state - Optional state for redirect after auth
+   * @param userEmail - Optional: User's email to auto-select Google account (login_hint)
    */
-  getAuthUrl(state?: string): string {
+  getAuthUrl(state?: string, userEmail?: string): string {
     const scopes = [
       'https://www.googleapis.com/auth/calendar.events',
       'https://www.googleapis.com/auth/calendar',
     ];
 
-    return this.oauth2Client.generateAuthUrl({
+    const authOptions: any = {
       access_type: 'offline',
       scope: scopes,
       prompt: 'consent', // Force to get refresh token
       state: state || 'default', // Pass state for redirect after auth
-    });
+    };
+
+    // Add login_hint if user email is provided
+    if (userEmail) {
+      authOptions.login_hint = userEmail;
+    }
+
+    return this.oauth2Client.generateAuthUrl(authOptions);
   }
 
   /**

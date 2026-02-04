@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useStorage, formatBytes, getCategoryLabel, FileCategory, UserFile } from '@/lib/hooks/settings/useStorage';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { toast } from '@/components/toast-provider';
 import {
   AlertDialog,
   AlertDialogAction,

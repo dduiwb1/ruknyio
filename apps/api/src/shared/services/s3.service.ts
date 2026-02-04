@@ -283,6 +283,59 @@ export class S3Service implements OnModuleInit {
   }
 
   /**
+   * Check if an object exists in S3
+   */
+  async objectExists(bucket: string, key: string): Promise<boolean> {
+    this.validateBucket(bucket);
+    this.validateKey(key);
+
+    try {
+      const { HeadObjectCommand } = await import('@aws-sdk/client-s3');
+      const cmd = new HeadObjectCommand({ Bucket: bucket, Key: key });
+      await this.client.send(cmd);
+      return true;
+    } catch (err: any) {
+      if (err?.name === 'NotFound' || err?.$metadata?.httpStatusCode === 404) {
+        return false;
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Get object content from S3 as Buffer
+   */
+  async getObject(bucket: string, key: string): Promise<Buffer | null> {
+    this.validateBucket(bucket);
+    this.validateKey(key);
+
+    try {
+      const cmd = new GetObjectCommand({ Bucket: bucket, Key: key });
+      const response = await this.client.send(cmd);
+
+      if (!response.Body) {
+        return null;
+      }
+
+      // Convert stream to buffer
+      const stream = response.Body as NodeJS.ReadableStream;
+      const chunks: Buffer[] = [];
+      
+      for await (const chunk of stream) {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      }
+
+      return Buffer.concat(chunks);
+    } catch (err: any) {
+      if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) {
+        return null;
+      }
+      this.logger.warn(`Failed to get S3 object ${bucket}/${key}: ${err?.name || err}`);
+      throw err;
+    }
+  }
+
+  /**
    * Delete an object from S3
    */
   async deleteObject(bucket: string, key: string): Promise<boolean> {

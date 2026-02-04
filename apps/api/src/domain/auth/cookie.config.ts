@@ -346,10 +346,25 @@ export function hasAuthTokens(req: Request): {
 }
 
 /**
- * 🔒 توليد CSRF Token
+ * 🔒 توليد CSRF Token مرتبط بـ Session
+ * يربط الـ CSRF token بـ sessionId للحماية الإضافية
+ * @param sessionId - معرف الجلسة (اختياري - إذا لم يُمرر يُولد token عشوائي)
  */
-export function generateCsrfToken(): string {
-  return require('crypto').randomBytes(32).toString('hex');
+export function generateCsrfToken(sessionId?: string): string {
+  const crypto = require('crypto');
+  const randomPart = crypto.randomBytes(16).toString('hex');
+  
+  if (sessionId) {
+    // 🔒 ربط CSRF بـ sessionId باستخدام HMAC
+    const secret = process.env.JWT_SECRET || 'csrf-secret-key';
+    const hmac = crypto.createHmac('sha256', secret);
+    hmac.update(`${sessionId}:${randomPart}`);
+    const signature = hmac.digest('hex').substring(0, 16);
+    return `${randomPart}.${signature}`;
+  }
+  
+  // Fallback: token عشوائي بدون ربط
+  return crypto.randomBytes(32).toString('hex');
 }
 
 /**

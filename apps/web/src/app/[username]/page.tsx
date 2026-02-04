@@ -44,7 +44,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { api } from '@/lib/api';
 import { AuthClient } from '@/lib/auth/auth-client';
 import { getCsrfToken } from '@/lib/api/client';
-import { toast } from 'sonner';
+import { toast } from '@/components/toast-provider';
 
 // Avatar/Cover URL helpers
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3001';

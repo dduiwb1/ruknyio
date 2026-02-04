@@ -68,7 +68,8 @@ export function useProfileSettings() {
       const formData = new FormData();
       formData.append("file", file);
       const token = getAccessToken();
-      const res = await fetch(buildApiPath("upload/avatar"), {
+      // Use profiles/avatar endpoint which uploads to S3
+      const res = await fetch(buildApiPath("profiles/avatar"), {
         method: "POST",
         body: formData,
         credentials: "include",
@@ -78,8 +79,9 @@ export function useProfileSettings() {
         const j = await res.json();
         throw new Error(j.message ?? "فشل في رفع الصورة");
       }
-      const data = (await res.json()) as { url?: string };
-      return data.url ?? null;
+      const data = (await res.json()) as { avatarUrl?: string; avatar?: string; url?: string };
+      // Return the presigned S3 URL
+      return data.avatarUrl ?? data.url ?? null;
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "حدث خطأ");
       return null;

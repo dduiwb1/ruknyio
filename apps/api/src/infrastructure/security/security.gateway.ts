@@ -71,12 +71,21 @@ export class SecurityGateway
 
   // إرسال سجل أمني جديد لمستخدم معين
   emitSecurityLog(userId: string, log: any) {
+    // 🔒 التحقق من أن المستخدم متصل فعلياً
+    if (!this.userSockets.has(userId)) {
+      this.logger.debug(`User ${userId} not connected, skipping emit`);
+      return;
+    }
     this.server.to(`user:${userId}`).emit('new-security-log', log);
     this.logger.log(`Security log sent to user ${userId}: ${log.action}`);
   }
 
   // إرسال تحديث لإحصائيات الأمان
   emitSecurityStats(userId: string, stats: any) {
+    // 🔒 التحقق من أن المستخدم متصل فعلياً
+    if (!this.userSockets.has(userId)) {
+      return;
+    }
     this.server.to(`user:${userId}`).emit('security-stats-update', stats);
   }
 

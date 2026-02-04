@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Plus, RefreshCw, AlertCircle } from 'lucide-react';
+import { PhonePreview } from '@/components/(app)/shared/PhonePreview';
 import {
   FormsStats,
   FormsFiltersBar,
@@ -153,11 +154,13 @@ export default function FormsPage() {
 
   return (
     <div
-      className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 bg-card m-2 md:ms-0 rounded-2xl border border-border/50 overflow-hidden"
+      className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 gap-4 m-2 md:ms-0"
       dir="rtl"
     >
-      <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        <div className="p-4 sm:p-6 space-y-5">
+      {/* Main Content */}
+      <div className="flex-1 min-w-0 bg-card rounded-2xl border border-border/50 overflow-hidden">
+        <div className="h-full overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="p-4 sm:p-6 space-y-5">
           {/* Page Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -325,7 +328,13 @@ export default function FormsPage() {
 
           {/* Bottom Blur Gradient Effect */}
           <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-card via-card/80 to-transparent pointer-events-none z-10" />
+          </div>
         </div>
+      </div>
+
+      {/* Phone Preview Sidebar - Desktop Only */}
+      <div className="hidden xl:flex">
+        <PhonePreview />
       </div>
 
       <DeleteFormModal

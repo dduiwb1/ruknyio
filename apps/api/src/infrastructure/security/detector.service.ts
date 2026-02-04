@@ -4,6 +4,17 @@ import { EmailService } from '../../integrations/email/email.service';
 import { SecurityLogService } from './log.service';
 import { createHash, randomUUID } from 'crypto';
 
+/**
+ * 🔒 Hash IP address for privacy (one-way hash)
+ * يُستخدم في السجلات بدلاً من IP الفعلي
+ */
+function hashIpAddress(ip: string | undefined): string {
+  if (!ip) return 'unknown';
+  // استخدام salt ثابت للاتساق في البحث
+  const salt = process.env.IP_HASH_SALT || 'rukny-security-salt';
+  return createHash('sha256').update(`${salt}:${ip}`).digest('hex').substring(0, 16);
+}
+
 @Injectable()
 export class SecurityDetectorService {
   constructor(
@@ -75,7 +86,7 @@ export class SecurityDetectorService {
           browser: deviceInfo.browser,
           os: deviceInfo.os,
           deviceType: deviceInfo.deviceType || 'desktop',
-          ipAddress: deviceInfo.ipAddress,
+          ipAddress: hashIpAddress(deviceInfo.ipAddress), // 🔒 Hash IP for privacy
           location: deviceInfo.location,
         },
       });
@@ -86,7 +97,7 @@ export class SecurityDetectorService {
         action: 'NEW_DEVICE_LOGIN',
         status: 'WARNING',
         description: `تسجيل دخول من جهاز جديد: ${this.getDeviceName(deviceInfo)}`,
-        ipAddress: deviceInfo.ipAddress,
+        ipAddress: hashIpAddress(deviceInfo.ipAddress), // 🔒 Hash IP
         location: deviceInfo.location,
         deviceType: deviceInfo.deviceType,
         browser: deviceInfo.browser,

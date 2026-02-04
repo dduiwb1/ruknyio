@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Sidebar, SidebarSkeleton } from '@/components/(app)/sheard/sidebar';
-import { NotificationsSidebar, NotificationsSidebarSkeleton } from '@/components/(app)/sheard/notifications-sidebar';
+import { MobileNavigation, MobileNavigationSkeleton } from '@/components/(app)/sheard/mobile-navigation';
 
 export default function UserLayout({
   children,
@@ -36,6 +36,12 @@ export default function UserLayout({
         {children}
       </main>
 
+      {/* Mobile Navigation - Fixed Bottom */}
+      {!hideSidebar && (
+        <div className="block md:hidden">
+          {mounted ? <MobileNavigation /> : <MobileNavigationSkeleton />}
+        </div>
+      )}
     </div>
   );
 }

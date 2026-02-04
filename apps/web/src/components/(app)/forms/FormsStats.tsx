@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, FileText, Send, Eye, Clock, CheckCircle, FileEdit, XCircle, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, FileText, Send, CheckCircle, FileEdit, LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FormsStats as StatsType } from '@/lib/hooks/useForms';
 
@@ -13,46 +13,59 @@ interface FormsStatsProps {
 interface StatItemConfig {
   key: string;
   title: string;
-  colorVariant: 'primary' | 'success' | 'warning' | 'info' | 'destructive' | 'violet';
-  icon: React.ElementType;
-  isPercentage?: boolean;
-  isComputed?: boolean;
+  subtitle: string;
+  colorVariant: 'indigo' | 'purple' | 'cyan' | 'emerald' | 'amber' | 'violet';
+  icon: LucideIcon;
 }
 
 const statsConfig: StatItemConfig[] = [
-  { key: 'total', title: 'إجمالي النماذج', colorVariant: 'info', icon: FileText },
-  { key: 'published', title: 'المنشورة', colorVariant: 'success', icon: CheckCircle },
-  { key: 'draft', title: 'المسودات', colorVariant: 'violet', icon: FileEdit },
-  { key: 'totalSubmissions', title: 'الإجابات', colorVariant: 'warning', icon: Send },
+  { key: 'total', title: 'إجمالي النماذج', subtitle: 'جميع النماذج', colorVariant: 'indigo', icon: FileText },
+  { key: 'published', title: 'النماذج المنشورة', subtitle: 'نموذج نشط', colorVariant: 'emerald', icon: CheckCircle },
+  { key: 'draft', title: 'المسودات', subtitle: 'قيد التحرير', colorVariant: 'violet', icon: FileEdit },
+  { key: 'totalSubmissions', title: 'إجمالي الإجابات', subtitle: 'استجابة مستلمة', colorVariant: 'amber', icon: Send },
 ];
 
-// Color config matching StatsCard design
+// Color config matching Dashboard StatsCard design
 const colorConfig: Record<string, { 
-  cardBg: string;
+  bg: string;
+  skeleton: string;
+  iconBg: string;
   iconColor: string;
 }> = {
-  primary: { 
-    cardBg: 'bg-primary/5 hover:bg-primary/10 border-primary/20', 
-    iconColor: 'text-primary',
+  indigo: {
+    bg: 'bg-indigo-100/80 dark:bg-indigo-950/30',
+    skeleton: 'bg-indigo-200 dark:bg-indigo-900/40',
+    iconBg: 'bg-indigo-200/80 dark:bg-indigo-900/50',
+    iconColor: 'text-indigo-600 dark:text-indigo-400',
   },
-  success: { 
-    cardBg: 'bg-success/5 hover:bg-success/10 border-success/20', 
-    iconColor: 'text-success',
+  purple: {
+    bg: 'bg-purple-100/80 dark:bg-purple-950/30',
+    skeleton: 'bg-purple-200 dark:bg-purple-900/40',
+    iconBg: 'bg-purple-200/80 dark:bg-purple-900/50',
+    iconColor: 'text-purple-600 dark:text-purple-400',
   },
-  warning: { 
-    cardBg: 'bg-warning/5 hover:bg-warning/10 border-warning/20', 
-    iconColor: 'text-warning',
+  cyan: {
+    bg: 'bg-cyan-100/80 dark:bg-cyan-950/30',
+    skeleton: 'bg-cyan-200 dark:bg-cyan-900/40',
+    iconBg: 'bg-cyan-200/80 dark:bg-cyan-900/50',
+    iconColor: 'text-cyan-600 dark:text-cyan-400',
   },
-  info: { 
-    cardBg: 'bg-info/5 hover:bg-info/10 border-info/20', 
-    iconColor: 'text-info',
+  emerald: {
+    bg: 'bg-emerald-100/80 dark:bg-emerald-950/30',
+    skeleton: 'bg-emerald-200 dark:bg-emerald-900/40',
+    iconBg: 'bg-emerald-200/80 dark:bg-emerald-900/50',
+    iconColor: 'text-emerald-600 dark:text-emerald-400',
   },
-  destructive: { 
-    cardBg: 'bg-destructive/5 hover:bg-destructive/10 border-destructive/20', 
-    iconColor: 'text-destructive',
+  amber: {
+    bg: 'bg-amber-100/80 dark:bg-amber-950/30',
+    skeleton: 'bg-amber-200 dark:bg-amber-900/40',
+    iconBg: 'bg-amber-200/80 dark:bg-amber-900/50',
+    iconColor: 'text-amber-600 dark:text-amber-400',
   },
-  violet: { 
-    cardBg: 'bg-violet-500/5 hover:bg-violet-500/10 border-violet-500/20', 
+  violet: {
+    bg: 'bg-violet-100/80 dark:bg-violet-950/30',
+    skeleton: 'bg-violet-200 dark:bg-violet-900/40',
+    iconBg: 'bg-violet-200/80 dark:bg-violet-900/50',
     iconColor: 'text-violet-600 dark:text-violet-400',
   },
 };
@@ -111,52 +124,39 @@ export function FormsStats({ stats, isLoading }: FormsStatsProps) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
-            className={cn(
-              "rounded-2xl border p-4 sm:p-5 transition-all duration-300",
-              colors.cardBg
-            )}
+            className={cn("rounded-xl p-3 sm:p-4 transition-all duration-200", colors.bg)}
           >
-            {/* Title & Icon */}
-            <div className="flex items-center justify-between mb-3">
-              <span className={cn("text-sm font-medium", colors.iconColor)}>{stat.title}</span>
-              <Icon className={cn("w-4 h-4 opacity-60", colors.iconColor)} />
-            </div>
-
-            {/* Value */}
-            <div className="flex items-baseline gap-2 mb-2">
-              <span className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                {stat.isPercentage ? `${value}%` : formatNumber(value)}
-              </span>
-            </div>
-
-            {/* Change & Trend Line */}
-            <div className="flex items-center justify-between">
+            {/* Header: Icon + Title */}
+            <div className="flex items-center gap-2 mb-3">
               <div className={cn(
-                "flex items-center gap-1 text-xs font-medium",
-                isPositive ? "text-success" : "text-destructive"
+                "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                colors.iconBg
               )}>
-                {isPositive ? (
-                  <TrendingUp className="w-3.5 h-3.5" />
-                ) : (
-                  <TrendingDown className="w-3.5 h-3.5" />
-                )}
-                <span>{change}</span>
+                <Icon className={cn("w-4 h-4", colors.iconColor)} />
               </div>
-              
-              {/* Simple trend line */}
-              <svg className="w-12 h-4 opacity-50" viewBox="0 0 50 20">
-                <path
-                  d={isPositive 
-                    ? "M0 15 Q10 12 20 10 T40 5 L50 3" 
-                    : "M0 5 Q10 8 20 10 T40 15 L50 17"
-                  }
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  className={isPositive ? "text-success" : "text-destructive"}
-                />
-              </svg>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">{stat.title}</p>
+              </div>
+            </div>
+
+            {/* Value & Change Row */}
+            <div className="flex items-end justify-between">
+              <span className="text-xl sm:text-2xl font-bold text-foreground tabular-nums">
+                {formatNumber(value)}
+              </span>
+              <div className="flex items-center gap-0.5">
+                {isPositive ? (
+                  <TrendingUp className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                ) : (
+                  <TrendingDown className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                )}
+                <span className={cn(
+                  "text-xs font-medium",
+                  isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+                )}>
+                  {change}
+                </span>
+              </div>
             </div>
           </motion.div>
         );
@@ -166,18 +166,27 @@ export function FormsStats({ stats, isLoading }: FormsStatsProps) {
 }
 
 export function FormsStatsSkeleton() {
+  const skeletonColors = [
+    colorConfig.indigo,
+    colorConfig.emerald,
+    colorConfig.violet,
+    colorConfig.amber,
+  ];
+
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="rounded-2xl border border-border/50 bg-muted/30 p-4 sm:p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="h-4 w-16 bg-muted rounded animate-pulse" />
-            <div className="h-4 w-4 bg-muted rounded animate-pulse" />
+      {skeletonColors.map((colors, i) => (
+        <div key={i} className={cn("rounded-xl p-3 sm:p-4", colors.bg)}>
+          {/* Header skeleton */}
+          <div className="flex items-center gap-2 mb-3">
+            <div className={cn("w-8 h-8 rounded-full animate-pulse shrink-0", colors.skeleton)} />
+            <div className={cn("h-4 w-20 rounded animate-pulse", colors.skeleton)} />
           </div>
-          <div className="h-8 w-24 bg-muted rounded animate-pulse mb-2" />
-          <div className="flex items-center justify-between">
-            <div className="h-4 w-14 bg-muted rounded animate-pulse" />
-            <div className="h-4 w-12 bg-muted rounded animate-pulse" />
+          
+          {/* Value & Change skeleton */}
+          <div className="flex items-end justify-between">
+            <div className={cn("h-6 w-14 rounded animate-pulse", colors.skeleton)} />
+            <div className={cn("h-4 w-10 rounded animate-pulse", colors.skeleton)} />
           </div>
         </div>
       ))}

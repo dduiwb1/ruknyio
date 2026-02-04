@@ -1510,29 +1510,29 @@ function IndividualTab({ form, submissions, currentIndex, onChangeIndex, onDelet
   }
 
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2 sm:space-y-2.5">
       {/* Navigation Bar */}
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-3"
+        className="bg-white rounded-lg sm:rounded-xl border border-gray-200/80 shadow-sm p-2 sm:p-3"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button 
             onClick={() => onChangeIndex(currentIndex + 1)} 
             disabled={currentIndex === submissions.length - 1} 
             className={cn(
-              "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+              "w-7 h-7 sm:w-8 sm:h-8 rounded-md sm:rounded-lg flex items-center justify-center transition-all",
               currentIndex === submissions.length - 1 
                 ? "text-gray-300 cursor-not-allowed bg-gray-50" 
                 : "text-gray-600 hover:bg-gray-200 bg-gray-100"
             )}
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
           
-          <div className="flex-1 flex items-center justify-center gap-2">
-            <span className="text-xs text-gray-500">الإجابة</span>
+          <div className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2">
+            <span className="text-[10px] sm:text-xs text-gray-500">الإجابة</span>
             <input
               type="number"
               min={1}
@@ -1544,22 +1544,22 @@ function IndividualTab({ form, submissions, currentIndex, onChangeIndex, onDelet
                 const arrayIndex = submissions.length - displayNum;
                 if (arrayIndex >= 0 && arrayIndex < submissions.length) onChangeIndex(arrayIndex);
               }}
-              className="w-16 text-center bg-gray-50 border border-gray-200 rounded-lg py-1.5 text-sm text-gray-900 font-bold focus:outline-none focus:ring-2 focus:ring-gray-400/30 focus:border-gray-400"
+              className="w-12 sm:w-16 text-center bg-gray-50 border border-gray-200 rounded-md sm:rounded-lg py-1 sm:py-1.5 text-xs sm:text-sm text-gray-900 font-bold focus:outline-none focus:ring-2 focus:ring-gray-400/30 focus:border-gray-400"
             />
-            <span className="text-xs text-gray-500">من <span className="font-semibold text-gray-700">{submissions.length}</span></span>
+            <span className="text-[10px] sm:text-xs text-gray-500">من <span className="font-semibold text-gray-700">{submissions.length}</span></span>
           </div>
           
           <button 
             onClick={() => onChangeIndex(currentIndex - 1)} 
             disabled={currentIndex === 0} 
             className={cn(
-              "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+              "w-7 h-7 sm:w-8 sm:h-8 rounded-md sm:rounded-lg flex items-center justify-center transition-all",
               currentIndex === 0 
                 ? "text-gray-300 cursor-not-allowed bg-gray-50" 
                 : "text-gray-600 hover:bg-gray-200 bg-gray-100"
             )}
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
         </div>
       </motion.div>
@@ -1572,27 +1572,27 @@ function IndividualTab({ form, submissions, currentIndex, onChangeIndex, onDelet
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.2 }}
-          className="bg-white mb-12 rounded-xl border border-gray-200/80 shadow-sm overflow-hidden"
+          className="bg-white mb-12 rounded-lg sm:rounded-xl border border-gray-200/80 shadow-sm overflow-hidden"
         >
           {/* User Header */}
-          <div className="p-3 border-b border-gray-100 bg-gray-50/50">
+          <div className="p-2.5 sm:p-3 border-b border-gray-100 bg-gray-50/50">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-gray-200 flex items-center justify-center">
-                  <User className="w-5 h-5 text-gray-600" />
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-gray-200 flex items-center justify-center">
+                  <User className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
                 </div>
                 <div>
-                    <p className="font-semibold text-gray-900 text-sm">Response {submissions.length - currentIndex}</p>                  <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                    <p className="font-semibold text-gray-900 text-xs sm:text-sm">Response {submissions.length - currentIndex}</p>                  <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-gray-500 mt-0.5 flex-wrap">
                     {currentSubmission?.user?.email && (
                       <>
-                        <Mail className="w-3 h-3" />
-                        <span>{currentSubmission.user.email}</span>
-                        <span className="w-1 h-1 rounded-full bg-gray-300" />
+                        <Mail className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                        <span className="truncate max-w-[100px] sm:max-w-none">{currentSubmission.user.email}</span>
+                        <span className="w-0.5 h-0.5 sm:w-1 sm:h-1 rounded-full bg-gray-300" />
                       </>
                     )}
-                    <Calendar className="w-3 h-3" />
+                    <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                     <span>{formatDate(currentSubmission?.submittedAt)}</span>
-                    <Clock className="w-3 h-3" />
+                    <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                     <span>{formatTime(currentSubmission?.submittedAt)}</span>
                   </div>
                 </div>
@@ -1601,23 +1601,23 @@ function IndividualTab({ form, submissions, currentIndex, onChangeIndex, onDelet
                 onClick={() => onDelete(currentSubmission?.id)}
                 disabled={deletingId === currentSubmission?.id}
                 className={cn(
-                  'w-9 h-9 rounded-lg flex items-center justify-center transition-all',
+                  'w-8 h-8 sm:w-9 sm:h-9 rounded-md sm:rounded-lg flex items-center justify-center transition-all',
                   deletingId === currentSubmission?.id 
                     ? 'text-red-300 cursor-not-allowed bg-red-50' 
                     : 'text-red-400 hover:bg-red-100 hover:text-red-600 bg-red-50'
                 )}
               >
                 {deletingId === currentSubmission?.id ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
                 ) : (
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 )}
               </button>
             </div>
           </div>
           
           {/* Fields */}
-          <div className="divide-y divide-gray-100 max-h-[380px] overflow-y-auto custom-scrollbar">
+          <div className="divide-y divide-gray-100 max-h-[320px] sm:max-h-[380px] overflow-y-auto custom-scrollbar">
             {fields.map((field: FormField, idx: number) => {
               const FieldIcon = getFieldIcon(field.type);
               const value = data?.[field.label] || data?.[field.id];
@@ -1626,25 +1626,25 @@ function IndividualTab({ form, submissions, currentIndex, onChangeIndex, onDelet
               return (
                 <div 
                   key={field.id} 
-                  className={cn("p-3 hover:bg-gray-50 transition-colors", isEmpty && "bg-gray-50/40")}
+                  className={cn("p-2.5 sm:p-3 hover:bg-gray-50 transition-colors", isEmpty && "bg-gray-50/40")}
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-2 sm:gap-3">
                     <span className={cn(
-                      "flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold",
+                      "flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 rounded-md sm:rounded-lg flex items-center justify-center text-[10px] sm:text-xs font-bold",
                       isEmpty ? "bg-gray-200 text-gray-400" : "bg-gray-700 text-white"
                     )}>
                       {idx + 1}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <FieldIcon className="w-3.5 h-3.5 text-gray-400" />
-                        <p className="text-xs font-medium text-gray-500">{field.label}</p>
-                        {field.required && <span className="w-1.5 h-1.5 rounded-full bg-red-500" />}
+                      <div className="flex items-center gap-1 sm:gap-1.5 mb-0.5 sm:mb-1">
+                        <FieldIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400" />
+                        <p className="text-[10px] sm:text-xs font-medium text-gray-500 truncate">{field.label}</p>
+                        {field.required && <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-red-500 flex-shrink-0" />}
                       </div>
                       {isEmpty ? (
-                        <p className="text-gray-400 text-sm italic">لم يتم الإجابة</p>
+                        <p className="text-gray-400 text-xs sm:text-sm italic">لم يتم الإجابة</p>
                       ) : (
-                        <div className="text-gray-800 text-sm leading-relaxed break-words">
+                        <div className="text-gray-800 text-xs sm:text-sm leading-relaxed break-words">
                           <FieldValueRenderer value={value} fieldType={field.type} />
                         </div>
                       )}
@@ -1656,7 +1656,7 @@ function IndividualTab({ form, submissions, currentIndex, onChangeIndex, onDelet
           </div>
           
           {/* Footer */}
-          <div className="p-2.5  bg-gray-50/80 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+          <div className="p-2 sm:p-2.5 bg-gray-50/80 border-t border-gray-100 flex items-center justify-between text-[10px] sm:text-xs text-gray-400">
             <span className="font-mono">#{currentSubmission?.id.slice(0, 8)}</span>
             <span>{formatRelativeDate(currentSubmission?.submittedAt)}</span>
           </div>
@@ -1688,35 +1688,35 @@ function DeleteConfirmationModal({ isOpen, onClose, onConfirm, isLoading }: {
         initial={{ scale: 0.9, opacity: 0, y: 20 }} 
         animate={{ scale: 1, opacity: 1, y: 0 }} 
         exit={{ scale: 0.9, opacity: 0, y: 20 }} 
-        className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl" 
+        className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 max-w-[90vw] sm:max-w-sm w-full shadow-2xl" 
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-red-100 flex items-center justify-center">
-          <AlertCircle className="w-7 h-7 text-red-600" />
+        <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 sm:mb-4 rounded-lg sm:rounded-xl bg-red-100 flex items-center justify-center">
+          <AlertCircle className="w-6 h-6 sm:w-7 sm:h-7 text-red-600" />
         </div>
-        <h3 className="text-xl font-bold text-gray-900 text-center mb-2">حذف الإجابة</h3>
-        <p className="text-gray-500 text-center mb-6">
+        <h3 className="text-lg sm:text-xl font-bold text-gray-900 text-center mb-1.5 sm:mb-2">حذف الإجابة</h3>
+        <p className="text-gray-500 text-center text-sm sm:text-base mb-4 sm:mb-6">
           هل أنت متأكد من حذف هذه الإجابة؟
           <br />
-          <span className="text-sm text-gray-400">لا يمكن التراجع عن هذا الإجراء</span>
+          <span className="text-xs sm:text-sm text-gray-400">لا يمكن التراجع عن هذا الإجراء</span>
         </p>
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3">
           <button 
             onClick={onClose} 
             disabled={isLoading} 
-            className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl border border-gray-200 text-gray-700 font-medium text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             إلغاء
           </button>
           <button 
             onClick={onConfirm} 
             disabled={isLoading} 
-            className="flex-1 px-4 py-3 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-red-500 text-white font-medium text-sm hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5 sm:gap-2"
           >
             {isLoading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                جاري الحذف...
+                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" />
+                <span className="text-xs sm:text-sm">جاري الحذف...</span>
               </>
             ) : (
               'حذف'
@@ -2218,7 +2218,7 @@ export default function FormResponsesPage() {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-2 mt-6 lg:grid-cols-4 gap-3 sm:gap-4 mb-4"
+          className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4 mb-4"
         >
           {statsCards.map((stat) => (
             <motion.div
@@ -2226,7 +2226,7 @@ export default function FormResponsesPage() {
               variants={itemVariants}
               whileHover={{ scale: 1.02, y: -2 }}
               className={cn(
-                "relative rounded-2xl p-4 sm:p-5",
+                "relative rounded-xl sm:rounded-2xl p-3 sm:p-4 lg:p-5",
                 "transition-all duration-300",
                 "text-right",
                 stat.bgColor,
@@ -2234,20 +2234,20 @@ export default function FormResponsesPage() {
               )}
             >
               {/* Title */}
-              <p className={cn("text-sm font-medium mb-1", stat.textColor)}>
+              <p className={cn("text-xs sm:text-sm font-medium mb-0.5 sm:mb-1 line-clamp-1", stat.textColor)}>
                 {stat.title}
               </p>
 
               {/* Subtitle */}
-              <p className="text-xs text-gray-500 mb-2">
+              <p className="text-[10px] sm:text-xs text-gray-500 mb-1.5 sm:mb-2 line-clamp-1">
                 {stat.subtitle}
               </p>
 
               {/* Value & Change Row */}
-              <div className="flex items-end justify-between">
+              <div className="flex items-end justify-between gap-1">
                 {/* Value */}
                 <motion.div
-                  className={cn("text-2xl sm:text-3xl font-bold", stat.textColor)}
+                  className={cn("text-lg sm:text-2xl lg:text-3xl font-bold", stat.textColor)}
                   initial={{ scale: 1 }}
                   whileHover={{ scale: 1.02 }}
                 >
@@ -2256,7 +2256,7 @@ export default function FormResponsesPage() {
 
                 {/* Change Indicator */}
                 <div className={cn(
-                  "flex items-center gap-0.5 text-xs font-medium px-2 py-0.5 rounded-full",
+                  "hidden sm:flex items-center gap-0.5 text-[10px] sm:text-xs font-medium px-1.5 sm:px-2 py-0.5 rounded-full",
                   "bg-white/50 text-gray-700"
                 )}>
                   <span>~{stat.change}%</span>
@@ -2271,38 +2271,38 @@ export default function FormResponsesPage() {
           initial={{ opacity: 0, y: -10 }} 
           animate={{ opacity: 1, y: 0 }} 
           transition={{ delay: 0.2 }}
-          className="bg-white  rounded-2xl border border-gray-200/80 shadow-sm mb-4"
+          className="bg-white rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-sm mb-4"
         >
           {/* Top Header */}
-          <div className="p-4 sm:p-5">
-            <div className="flex items-center justify-between gap-3">
+          <div className="p-3 sm:p-4 lg:p-5">
+            <div className="flex items-center justify-between gap-2 sm:gap-3">
               {/* Form Info */}
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
-                  <MessageSquare className="w-5 h-5 text-gray-600" />
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 lg:w-11 lg:h-11 rounded-lg sm:rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                  <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
                 </div>
-                <div className="min-w-0">
-                  <h1 className="text-base sm:text-lg font-bold text-gray-900 truncate">
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-sm sm:text-base lg:text-lg font-bold text-gray-900 truncate">
                     {form.title}
                   </h1>
                   <Link 
                     href={`/app/forms/${formId}`} 
-                    className="text-xs text-gray-400 hover:text-gray-600 transition-colors inline-flex items-center gap-1"
+                    className="text-[10px] sm:text-xs text-gray-400 hover:text-gray-600 transition-colors inline-flex items-center gap-1"
                   >
                     تعديل النموذج
-                    <ExternalLink className="w-3 h-3" />
+                    <ExternalLink className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                   </Link>
                 </div>
               </div>
               
               {/* Actions */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                 {/* Copy Link Button */}
                 <motion.button 
                   whileTap={{ scale: 0.95 }}
                   onClick={copyFormLink} 
                   className={cn(
-                    'h-9 px-3 rounded-lg flex items-center gap-2 text-sm font-medium transition-all border',
+                    'h-8 sm:h-9 px-2 sm:px-3 rounded-lg flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium transition-all border',
                     linkCopied 
                       ? 'bg-gray-900 text-white border-gray-900' 
                       : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
@@ -2310,12 +2310,12 @@ export default function FormResponsesPage() {
                 >
                   {linkCopied ? (
                     <>
-                      <CheckCircle2 className="w-4 h-4" />
+                      <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       <span className="hidden sm:inline">تم النسخ</span>
                     </>
                   ) : (
                     <>
-                      <Copy className="w-4 h-4" />
+                      <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       <span className="hidden sm:inline">نسخ الرابط</span>
                     </>
                   )}
@@ -2325,12 +2325,12 @@ export default function FormResponsesPage() {
                 <motion.button 
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowIntegrationsMenu(true)}
-                  className="h-9 px-3 rounded-lg flex items-center gap-2 text-sm font-medium transition-all border bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                  className="h-8 sm:h-9 px-2 sm:px-3 rounded-lg flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium transition-all border bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
                 >
-                  <Plug className="w-4 h-4" />
-                  <span className="hidden sm:inline">التكاملات</span>
+                  <Plug className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden lg:inline">التكاملات</span>
                   {sheetsStatus?.connected && (
-                    <span className="w-2 h-2 rounded-full bg-green-500" />
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500" />
                   )}
                 </motion.button>
 
@@ -2339,9 +2339,9 @@ export default function FormResponsesPage() {
                   whileTap={{ scale: 0.95 }}
                   onClick={handleExport} 
                   disabled={isExporting || submissions.length === 0} 
-                  className="h-9 px-3 rounded-lg flex items-center gap-2 text-sm font-medium bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="h-8 sm:h-9 px-2 sm:px-3 rounded-lg flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  {isExporting ? <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" /> : <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                   <span className="hidden sm:inline">CSV</span>
                 </motion.button>
                 
@@ -2350,18 +2350,18 @@ export default function FormResponsesPage() {
                   whileTap={{ scale: 0.95 }}
                   onClick={refreshSubmissions} 
                   disabled={isLoadingSubmissions} 
-                  className="h-9 w-9 rounded-lg flex items-center justify-center bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 transition-all disabled:opacity-50"
+                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg flex items-center justify-center bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 transition-all disabled:opacity-50"
                   title="تحديث"
                 >
-                  <RefreshCcw className={cn('w-4 h-4', isLoadingSubmissions && 'animate-spin')} />
+                  <RefreshCcw className={cn('w-3.5 h-3.5 sm:w-4 sm:h-4', isLoadingSubmissions && 'animate-spin')} />
                 </motion.button>
               </div>
             </div>
           </div>
           
           {/* Tabs - Pills Style */}
-          <div className="px-3 pb-3">
-            <div className="flex gap-1.5 p-1 bg-gray-100 rounded-xl">
+          <div className="px-2 sm:px-3 pb-2 sm:pb-3">
+            <div className="flex gap-1 sm:gap-1.5 p-0.5 sm:p-1 bg-gray-100 rounded-lg sm:rounded-xl">
               {tabs.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
@@ -2371,13 +2371,13 @@ export default function FormResponsesPage() {
                     whileHover={{ scale: isActive ? 1 : 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     className={cn(
-                      'flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all',
+                      'flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 rounded-md sm:rounded-lg text-xs sm:text-sm font-semibold transition-all',
                       isActive 
                         ? 'bg-white text-gray-900 shadow-sm' 
                         : 'text-gray-500 hover:text-gray-700'
                     )}
                   >
-                    <tab.icon className="w-4 h-4" />
+                    <tab.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     <span>{tab.label}</span>
                   </motion.button>
                 );

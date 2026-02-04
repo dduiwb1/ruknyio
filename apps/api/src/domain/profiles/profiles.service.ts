@@ -146,29 +146,47 @@ export class ProfilesService {
       let avatarUrl = (profile as any).avatar as string | undefined | null;
       let coverUrl = (profile as any).coverImage as string | undefined | null;
 
+      // Handle legacy local paths (convert to full API URL or clear if invalid)
+      const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:3001';
+      
       if (avatarUrl && !avatarUrl.startsWith('http')) {
-        try {
-          avatarUrl = await this.s3Service.getPresignedGetUrl(
-            this.bucket,
-            avatarUrl,
-            3600,
-          );
-        } catch (e) {
-          this.logger.warn(`Failed to get presigned URL for avatar: ${e}`);
+        // Check if it's a legacy local path
+        if (avatarUrl.startsWith('/uploads/')) {
+          // Legacy local paths are no longer supported, clear them
+          // User needs to upload a new avatar via S3
+          this.logger.warn(`Legacy local avatar path detected for user, clearing: ${avatarUrl}`);
           avatarUrl = null;
+        } else {
+          try {
+            avatarUrl = await this.s3Service.getPresignedGetUrl(
+              this.bucket,
+              avatarUrl,
+              3600,
+            );
+          } catch (e) {
+            this.logger.warn(`Failed to get presigned URL for avatar: ${e}`);
+            avatarUrl = null;
+          }
         }
       }
 
       if (coverUrl && !coverUrl.startsWith('http')) {
-        try {
-          coverUrl = await this.s3Service.getPresignedGetUrl(
-            this.bucket,
-            coverUrl,
-            3600,
-          );
-        } catch (e) {
-          this.logger.warn(`Failed to get presigned URL for coverImage: ${e}`);
+        // Check if it's a legacy local path
+        if (coverUrl.startsWith('/uploads/')) {
+          // Legacy local paths are no longer supported, clear them
+          this.logger.warn(`Legacy local cover path detected for user, clearing: ${coverUrl}`);
           coverUrl = null;
+        } else {
+          try {
+            coverUrl = await this.s3Service.getPresignedGetUrl(
+              this.bucket,
+              coverUrl,
+              3600,
+            );
+          } catch (e) {
+            this.logger.warn(`Failed to get presigned URL for coverImage: ${e}`);
+            coverUrl = null;
+          }
         }
       }
 
@@ -214,19 +232,31 @@ export class ProfilesService {
     try {
       let avatarUrl = (profile as any)?.avatar;
       let coverUrl = (profile as any)?.coverImage;
+      
+      // Handle legacy local paths - clear them since files don't exist
       if (avatarUrl && !avatarUrl.startsWith('http')) {
-        avatarUrl = await this.s3Service.getPresignedGetUrl(
-          this.bucket,
-          avatarUrl,
-          3600,
-        );
+        if (avatarUrl.startsWith('/uploads/')) {
+          this.logger.warn(`Legacy local avatar path detected, clearing: ${avatarUrl}`);
+          avatarUrl = null;
+        } else {
+          avatarUrl = await this.s3Service.getPresignedGetUrl(
+            this.bucket,
+            avatarUrl,
+            3600,
+          );
+        }
       }
       if (coverUrl && !coverUrl.startsWith('http')) {
-        coverUrl = await this.s3Service.getPresignedGetUrl(
-          this.bucket,
-          coverUrl,
-          3600,
-        );
+        if (coverUrl.startsWith('/uploads/')) {
+          this.logger.warn(`Legacy local cover path detected, clearing: ${coverUrl}`);
+          coverUrl = null;
+        } else {
+          coverUrl = await this.s3Service.getPresignedGetUrl(
+            this.bucket,
+            coverUrl,
+            3600,
+          );
+        }
       }
       return this.serializeProfile({
         ...profile,

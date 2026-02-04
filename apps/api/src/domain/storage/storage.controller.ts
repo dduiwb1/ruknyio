@@ -27,6 +27,8 @@ import {
   ApiQuery,
   ApiHeader,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
+import { timingSafeEqual } from 'crypto';
 import { JwtAuthGuard } from '../../core/common/guards/auth/jwt-auth.guard';
 import { StorageService } from './storage.service';
 import { FileCategory } from '@prisma/client';
@@ -38,6 +40,79 @@ export class StorageController {
     private readonly storageService: StorageService,
     private readonly configService: ConfigService,
   ) {}
+
+  // ==================== Direct Upload (Presigned PUT) ====================
+
+  @Post('direct-upload/request')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 requests per minute
+  @ApiOperation({ 
+    summary: 'Request a presigned URL for direct S3 upload',
+    description: 'Get a presigned PUT URL to upload directly to S3 without going through the server'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Presigned upload URL generated',
+    schema: {
+      properties: {
+        uploadUrl: { type: 'string', description: 'Presigned PUT URL' },
+        key: { type: 'string', description: 'S3 key for the file' },
+        expiresIn: { type: 'number', description: 'URL expiration in seconds' },
+      }
+    }
+  })
+  async requestDirectUpload(
+    @Request() req,
+    @Query('category') category: FileCategory,
+    @Query('contentType') contentType: string,
+    @Query('fileName') fileName: string,
+    @Query('entityId') entityId?: string,
+  ) {
+    if (!category || !contentType || !fileName) {
+      throw new BadRequestException('category, contentType, and fileName are required');
+    }
+    return this.storageService.requestDirectUpload(
+      req.user.id,
+      category,
+      contentType,
+      fileName,
+      entityId,
+    );
+  }
+
+  @Post('direct-upload/confirm')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ 
+    summary: 'Confirm direct upload completion',
+    description: 'Call this after successfully uploading to S3 to track the file and generate BlurHash'
+  })
+  @ApiResponse({ status: 200, description: 'Upload confirmed and tracked' })
+  async confirmDirectUpload(
+    @Request() req,
+    @Query('key') key: string,
+    @Query('category') category: FileCategory,
+    @Query('fileName') fileName: string,
+    @Query('fileSize') fileSize: string,
+    @Query('entityId') entityId?: string,
+  ) {
+    if (!key || !category || !fileName || !fileSize) {
+      throw new BadRequestException('key, category, fileName, and fileSize are required');
+    }
+    return this.storageService.confirmDirectUpload(
+      req.user.id,
+      key,
+      category,
+      fileName,
+      BigInt(fileSize),
+      entityId,
+    );
+  }
+
+  // ==================== Storage Usage ====================
 
   @Get('usage')
   @UseGuards(JwtAuthGuard)
@@ -81,6 +156,7 @@ export class StorageController {
   @Post('avatar')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 uploads per minute
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload profile avatar to S3' })
@@ -100,6 +176,7 @@ export class StorageController {
   @Post('cover')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 uploads per minute
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload cover image to S3' })
@@ -116,6 +193,7 @@ export class StorageController {
   @Post('forms/:formId/cover')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 uploads per minute
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload form cover image' })
@@ -141,6 +219,7 @@ export class StorageController {
   @Post('events/:eventId/cover')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 uploads per minute
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload event cover image' })
@@ -169,6 +248,7 @@ export class StorageController {
   @Post('products/:productId/image')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 uploads per minute for products
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload product image' })
@@ -259,9 +339,24 @@ export class StorageController {
   @ApiResponse({ status: 401, description: 'Invalid or missing X-Cron-Secret' })
   async cronPurgeExpired(@Headers('x-cron-secret') secret: string) {
     const expected = this.configService.get<string>('CRON_SECRET');
-    if (!expected || secret !== expected) {
+    
+    // Constant-time comparison to prevent timing attacks
+    if (!expected || !secret) {
       throw new UnauthorizedException('Invalid or missing X-Cron-Secret');
     }
+    
+    const secretBuffer = Buffer.from(secret);
+    const expectedBuffer = Buffer.from(expected);
+    
+    // Ensure same length before comparison
+    if (secretBuffer.length !== expectedBuffer.length) {
+      throw new UnauthorizedException('Invalid or missing X-Cron-Secret');
+    }
+    
+    if (!timingSafeEqual(secretBuffer, expectedBuffer)) {
+      throw new UnauthorizedException('Invalid or missing X-Cron-Secret');
+    }
+    
     return this.storageService.purgeExpiredDeletedFiles();
   }
 }

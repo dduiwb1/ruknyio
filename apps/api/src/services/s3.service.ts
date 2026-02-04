@@ -160,6 +160,129 @@ export class S3Service implements OnModuleInit {
       keys.map((key) => this.getPresignedGetUrl(bucket, key, expiresInSeconds)),
     );
   }
+
+  /**
+   * Get object from S3
+   */
+  async getObject(bucket: string, key: string): Promise<Buffer> {
+    try {
+      const cmd = new GetObjectCommand({ Bucket: bucket, Key: key });
+      const response = await this.client.send(cmd);
+      const stream = response.Body as any;
+      
+      // Convert stream to buffer
+      const chunks: Buffer[] = [];
+      for await (const chunk of stream) {
+        chunks.push(Buffer.from(chunk));
+      }
+      return Buffer.concat(chunks);
+    } catch (err: any) {
+      this.logger.error(`Failed to get S3 object ${key}: ${err?.message}`);
+      throw err;
+    }
+  }
+
+  /**
+   * List objects in bucket with prefix
+   */
+  async listObjects(bucket: string, prefix: string): Promise<any[]> {
+    try {
+      const { ListObjectsV2Command } = await import('@aws-sdk/client-s3');
+      const cmd = new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix });
+      const response = await this.client.send(cmd);
+      return response.Contents || [];
+    } catch (err: any) {
+      this.logger.error(`Failed to list S3 objects: ${err?.message}`);
+      return [];
+    }
+  }
+
+  /**
+   * Create multipart upload
+   */
+  async createMultipartUpload(bucket: string, key: string, contentType: string): Promise<string> {
+    try {
+      const { CreateMultipartUploadCommand } = await import('@aws-sdk/client-s3');
+      const cmd = new CreateMultipartUploadCommand({
+        Bucket: bucket,
+        Key: key,
+        ContentType: contentType,
+      });
+      const response = await this.client.send(cmd);
+      return response.UploadId || '';
+    } catch (err: any) {
+      this.logger.error(`Failed to create multipart upload: ${err?.message}`);
+      throw err;
+    }
+  }
+
+  /**
+   * Upload part
+   */
+  async uploadPart(
+    bucket: string,
+    key: string,
+    uploadId: string,
+    partNumber: number,
+    body: Buffer,
+  ): Promise<string> {
+    try {
+      const { UploadPartCommand } = await import('@aws-sdk/client-s3');
+      const cmd = new UploadPartCommand({
+        Bucket: bucket,
+        Key: key,
+        UploadId: uploadId,
+        PartNumber: partNumber,
+        Body: body,
+      });
+      const response = await this.client.send(cmd);
+      return response.ETag || '';
+    } catch (err: any) {
+      this.logger.error(`Failed to upload part: ${err?.message}`);
+      throw err;
+    }
+  }
+
+  /**
+   * Complete multipart upload
+   */
+  async completeMultipartUpload(
+    bucket: string,
+    key: string,
+    uploadId: string,
+    parts: { PartNumber: number; ETag: string }[],
+  ): Promise<void> {
+    try {
+      const { CompleteMultipartUploadCommand } = await import('@aws-sdk/client-s3');
+      const cmd = new CompleteMultipartUploadCommand({
+        Bucket: bucket,
+        Key: key,
+        UploadId: uploadId,
+        MultipartUpload: { Parts: parts },
+      });
+      await this.client.send(cmd);
+    } catch (err: any) {
+      this.logger.error(`Failed to complete multipart upload: ${err?.message}`);
+      throw err;
+    }
+  }
+
+  /**
+   * Abort multipart upload
+   */
+  async abortMultipartUpload(bucket: string, key: string, uploadId: string): Promise<void> {
+    try {
+      const { AbortMultipartUploadCommand } = await import('@aws-sdk/client-s3');
+      const cmd = new AbortMultipartUploadCommand({
+        Bucket: bucket,
+        Key: key,
+        UploadId: uploadId,
+      });
+      await this.client.send(cmd);
+    } catch (err: any) {
+      this.logger.error(`Failed to abort multipart upload: ${err?.message}`);
+    }
+  }
 }
 
 export default S3Service;

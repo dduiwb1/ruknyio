@@ -46,10 +46,12 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 60, ttl: 60000 } }) // 60 requests per minute
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get current user' })
   @ApiResponse({ status: 200, description: 'Current user retrieved' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 429, description: 'Too many requests' })
   async getMe(@CurrentUser() user: any) {
     return user;
   }
@@ -59,9 +61,11 @@ export class AuthController {
    */
   @Get('activity')
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 30, ttl: 60000 } }) // 30 requests per minute
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get current user activity log (security log)' })
   @ApiResponse({ status: 200, description: 'Activity log retrieved' })
+  @ApiResponse({ status: 429, description: 'Too many requests' })
   async getActivity(
     @CurrentUser() user: any,
     @Query('page') page?: string,
@@ -78,6 +82,7 @@ export class AuthController {
 
   @Get('ws-token')
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 20, ttl: 60000 } }) // 20 requests per minute
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get WebSocket authentication token' })
   @ApiResponse({ status: 200, description: 'WebSocket token generated' })
@@ -179,9 +184,11 @@ export class AuthController {
    */
   @Get('sessions')
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 30, ttl: 60000 } }) // 30 requests per minute
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get user active sessions' })
   @ApiResponse({ status: 200, description: 'Active sessions retrieved' })
+  @ApiResponse({ status: 429, description: 'Too many requests' })
   async getActiveSessions(@CurrentUser() user: any) {
     return this.tokenService.getUserActiveSessions(user.id);
   }
@@ -191,18 +198,33 @@ export class AuthController {
    */
   @Post('logout-all')
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 requests per minute (sensitive action)
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Logout from all devices' })
   @ApiResponse({ status: 200, description: 'Logged out from all devices' })
+  @ApiResponse({ status: 429, description: 'Too many requests' })
   async logoutAll(
     @CurrentUser() user: any,
     @Res({ passthrough: true }) res: Response,
+    @Req() req: Request,
   ) {
     const count = await this.tokenService.revokeAllUserSessions(
       user.id,
       'User requested logout from all devices',
     );
+
+    // 🔒 تسجيل النشاط الأمني
+    const userAgent = req.headers['user-agent'];
+    const ipAddress = req.ip || req.socket.remoteAddress;
+    await this.securityLogService.createLog({
+      userId: user.id,
+      action: 'LOGOUT_ALL_DEVICES' as any,
+      status: 'SUCCESS' as any,
+      description: `تسجيل الخروج من جميع الأجهزة (${count} جلسات)`,
+      ipAddress,
+      userAgent,
+    });
 
     // 🔒 مسح جميع Auth Cookies
     clearAuthCookies(res);
@@ -219,10 +241,12 @@ export class AuthController {
    */
   @Delete('sessions/:sessionId')
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 requests per minute
   @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Revoke a specific session' })
   @ApiResponse({ status: 200, description: 'Session revoked successfully' })
+  @ApiResponse({ status: 429, description: 'Too many requests' })
   async revokeSession(
     @CurrentUser() user: any,
     @Param('sessionId') sessionId: string,

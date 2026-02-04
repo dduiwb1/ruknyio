@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../core/database/prisma/prisma.service';
 import { S3Service } from '../../shared/services/s3.service';
 import { FileCategory } from '@prisma/client';
@@ -8,6 +8,14 @@ import { fileTypeFromBuffer } from 'file-type';
 import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { Readable } from 'stream';
+import { encode } from 'blurhash';
+
+// Dangerous file extensions that should be blocked
+const BLOCKED_EXTENSIONS = [
+  '.exe', '.bat', '.cmd', '.sh', '.php', '.asp', '.aspx', '.jsp',
+  '.cgi', '.pl', '.py', '.rb', '.js', '.mjs', '.ts', '.ps1',
+  '.vbs', '.wsf', '.hta', '.scr', '.pif', '.com', '.jar', '.war',
+];
 
 /**
  * Storage Service
@@ -44,6 +52,116 @@ export class StorageService {
     private readonly prisma: PrismaService,
     private readonly s3Service: S3Service,
   ) {}
+
+  // ==================== Entity Ownership Validation ====================
+
+  /**
+   * Validate that a form belongs to the user
+   */
+  private async validateFormOwnership(userId: string, formId: string): Promise<void> {
+    const form = await this.prisma.form.findFirst({
+      where: { id: formId, userId },
+      select: { id: true },
+    });
+    if (!form) {
+      throw new ForbiddenException('ليس لديك صلاحية الوصول لهذا النموذج');
+    }
+  }
+
+  /**
+   * Validate that an event belongs to the user
+   */
+  private async validateEventOwnership(userId: string, eventId: string): Promise<void> {
+    const event = await this.prisma.event.findFirst({
+      where: { id: eventId, userId },
+      select: { id: true },
+    });
+    if (!event) {
+      throw new ForbiddenException('ليس لديك صلاحية الوصول لهذا الحدث');
+    }
+  }
+
+  /**
+   * Validate that a product belongs to the user (via store)
+   */
+  private async validateProductOwnership(userId: string, productId: string): Promise<void> {
+    const product = await this.prisma.products.findFirst({
+      where: { 
+        id: productId,
+        stores: { userId },
+      },
+      select: { id: true },
+    });
+    if (!product) {
+      throw new ForbiddenException('ليس لديك صلاحية الوصول لهذا المنتج');
+    }
+  }
+
+  /**
+   * Validate file extension is not dangerous
+   */
+  private validateFileExtension(filename: string): void {
+    if (!filename) return;
+    const lowerName = filename.toLowerCase();
+    for (const ext of BLOCKED_EXTENSIONS) {
+      if (lowerName.endsWith(ext)) {
+        throw new BadRequestException(`امتداد الملف ${ext} غير مسموح به`);
+      }
+    }
+  }
+
+  // ==================== BlurHash Generation ====================
+
+  /**
+   * Generate BlurHash from image buffer for progressive loading
+   * BlurHash is a compact representation of a placeholder for an image
+   * @param buffer - Image buffer
+   * @returns BlurHash string (e.g., "LEHV6nWB2yk8pyo0adR*.7kCMdnj")
+   */
+  private async generateBlurHash(buffer: Buffer): Promise<string | null> {
+    try {
+      // Resize to small size for faster BlurHash computation
+      const { data, info } = await sharp(buffer)
+        .resize(32, 32, { fit: 'inside' })
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+
+      // BlurHash components (4x3 is a good balance of quality vs size)
+      const componentX = 4;
+      const componentY = 3;
+
+      const blurHash = encode(
+        new Uint8ClampedArray(data),
+        info.width,
+        info.height,
+        componentX,
+        componentY,
+      );
+
+      return blurHash;
+    } catch (error) {
+      this.logger.warn(`Failed to generate BlurHash: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Get image dimensions from buffer
+   */
+  private async getImageDimensions(buffer: Buffer): Promise<{ width: number; height: number } | null> {
+    try {
+      const metadata = await sharp(buffer).metadata();
+      return {
+        width: metadata.width || 0,
+        height: metadata.height || 0,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  // ==================== Storage Usage ====================
 
   /**
    * Get user's storage usage and limit.
@@ -107,6 +225,239 @@ export class StorageService {
     return fileSize <= available;
   }
 
+  // ==================== Direct S3 Upload ====================
+
+  /**
+   * Request a presigned PUT URL for direct S3 upload
+   * This allows clients to upload directly to S3 without going through the server
+   */
+  async requestDirectUpload(
+    userId: string,
+    category: FileCategory,
+    contentType: string,
+    fileName: string,
+    entityId?: string,
+  ): Promise<{
+    uploadUrl: string;
+    key: string;
+    expiresIn: number;
+    maxFileSize: number;
+  }> {
+    // Validate content type
+    if (!this.ALLOWED_IMAGE_TYPES.includes(contentType)) {
+      throw new BadRequestException('نوع الملف غير مسموح');
+    }
+
+    // Validate file extension
+    this.validateFileExtension(fileName);
+
+    // Validate entity ownership if entityId provided
+    if (entityId) {
+      await this.validateEntityOwnership(userId, category, entityId);
+    }
+
+    // Check storage limit (use MAX_FILE_SIZE as estimate)
+    const hasSpace = await this.checkStorageLimit(userId, this.MAX_FILE_SIZE);
+    if (!hasSpace) {
+      throw new BadRequestException('لا توجد مساحة تخزين كافية');
+    }
+
+    // Generate unique key based on category
+    const filename = `${uuidv4()}.${this.getExtensionFromMime(contentType)}`;
+    const key = this.generateKeyForCategory(userId, category, filename, entityId);
+
+    // Generate presigned PUT URL (15 minutes expiry)
+    const expiresIn = 900;
+    const uploadUrl = await this.s3Service.getPresignedPutUrl(
+      this.bucket,
+      key,
+      contentType,
+      expiresIn,
+    );
+
+    return {
+      uploadUrl,
+      key,
+      expiresIn,
+      maxFileSize: this.MAX_FILE_SIZE,
+    };
+  }
+
+  /**
+   * Confirm direct upload completion and track the file
+   */
+  async confirmDirectUpload(
+    userId: string,
+    key: string,
+    category: FileCategory,
+    fileName: string,
+    fileSize: bigint,
+    entityId?: string,
+  ): Promise<{
+    id: string;
+    key: string;
+    url: string;
+    blurHash: string | null;
+    width: number | null;
+    height: number | null;
+  }> {
+    // Verify the file exists in S3
+    const exists = await this.s3Service.objectExists(this.bucket, key);
+    if (!exists) {
+      throw new BadRequestException('الملف غير موجود في S3');
+    }
+
+    // Check storage limit with actual file size
+    const hasSpace = await this.checkStorageLimit(userId, Number(fileSize));
+    if (!hasSpace) {
+      // Delete the uploaded file since user doesn't have space
+      await this.s3Service.deleteObject(this.bucket, key);
+      throw new BadRequestException('لا توجد مساحة تخزين كافية');
+    }
+
+    // Download file to generate BlurHash
+    let blurHash: string | null = null;
+    let width: number | null = null;
+    let height: number | null = null;
+
+    try {
+      const buffer = await this.s3Service.getObject(this.bucket, key);
+      if (buffer) {
+        const [hash, dims] = await Promise.all([
+          this.generateBlurHash(buffer),
+          this.getImageDimensions(buffer),
+        ]);
+        blurHash = hash;
+        width = dims?.width ?? null;
+        height = dims?.height ?? null;
+      }
+    } catch (error) {
+      this.logger.warn(`Failed to process uploaded file for BlurHash: ${error.message}`);
+    }
+
+    // Delete old file if single-file category
+    if (category === FileCategory.AVATAR || category === FileCategory.COVER) {
+      await this.deleteFileByCategory(userId, category);
+    } else if (entityId && (category === FileCategory.FORM_COVER || category === FileCategory.EVENT_COVER)) {
+      await this.deleteFileByEntityAndCategory(userId, entityId, category);
+    }
+
+    // Track file in database
+    const fileRecord = await this.prisma.$transaction(async (tx) => {
+      const record = await tx.userFile.create({
+        data: {
+          userId,
+          key,
+          fileName,
+          fileType: this.getMimeFromKey(key),
+          fileSize,
+          category,
+          entityId,
+          blurHash,
+          width,
+          height,
+        },
+      });
+
+      await tx.profile.update({
+        where: { userId },
+        data: { storageUsed: { increment: fileSize } },
+      });
+
+      return record;
+    });
+
+    const url = await this.getPresignedUrl(key);
+
+    return {
+      id: fileRecord.id,
+      key,
+      url,
+      blurHash,
+      width,
+      height,
+    };
+  }
+
+  /**
+   * Validate entity ownership based on category
+   */
+  private async validateEntityOwnership(
+    userId: string,
+    category: FileCategory,
+    entityId: string,
+  ): Promise<void> {
+    switch (category) {
+      case FileCategory.FORM_COVER:
+      case FileCategory.FORM_BANNER:
+        await this.validateFormOwnership(userId, entityId);
+        break;
+      case FileCategory.EVENT_COVER:
+        await this.validateEventOwnership(userId, entityId);
+        break;
+      case FileCategory.PRODUCT_IMAGE:
+        await this.validateProductOwnership(userId, entityId);
+        break;
+    }
+  }
+
+  /**
+   * Generate S3 key based on category
+   */
+  private generateKeyForCategory(
+    userId: string,
+    category: FileCategory,
+    filename: string,
+    entityId?: string,
+  ): string {
+    switch (category) {
+      case FileCategory.AVATAR:
+        return this.s3Service.getAvatarKey(userId, filename);
+      case FileCategory.COVER:
+        return this.s3Service.getCoverKey(userId, filename);
+      case FileCategory.FORM_COVER:
+        return this.s3Service.getFormFileKey(userId, entityId!, 'cover', filename);
+      case FileCategory.FORM_BANNER:
+        return this.s3Service.getFormFileKey(userId, entityId!, 'banner', filename);
+      case FileCategory.EVENT_COVER:
+        return this.s3Service.getEventFileKey(userId, entityId!, 'cover', filename);
+      case FileCategory.PRODUCT_IMAGE:
+        return this.s3Service.getProductFileKey(userId, entityId!, filename);
+      default:
+        return `users/${userId}/files/${filename}`;
+    }
+  }
+
+  /**
+   * Get file extension from MIME type
+   */
+  private getExtensionFromMime(mime: string): string {
+    const map: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+      'image/gif': 'gif',
+    };
+    return map[mime] || 'bin';
+  }
+
+  /**
+   * Get MIME type from S3 key
+   */
+  private getMimeFromKey(key: string): string {
+    const ext = key.split('.').pop()?.toLowerCase();
+    const map: Record<string, string> = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      webp: 'image/webp',
+      gif: 'image/gif',
+    };
+    return map[ext || ''] || 'application/octet-stream';
+  }
+
+  // ==================== File Upload Methods ====================
+
   /**
    * Upload avatar to S3 with processing
    */
@@ -114,6 +465,9 @@ export class StorageService {
     userId: string,
     file: Express.Multer.File,
   ): Promise<string> {
+    // Validate file extension
+    this.validateFileExtension(file?.originalname);
+
     // Normalize file buffer (supports memory/disk/stream shapes)
     const buffer = await this.normalizeFileToBuffer(file);
 
@@ -140,14 +494,21 @@ export class StorageService {
       );
     }
 
-    // Process image with sharp
+    // Process image with sharp - removes EXIF metadata by default
     const processedImage = await sharp(buffer)
+      .rotate() // Auto-rotate based on EXIF orientation before stripping
       .resize(this.AVATAR_SIZE, this.AVATAR_SIZE, {
         fit: 'cover',
         position: 'center',
       })
       .webp({ quality: 90 })
       .toBuffer();
+
+    // Generate BlurHash and get dimensions
+    const [blurHash, dimensions] = await Promise.all([
+      this.generateBlurHash(processedImage),
+      this.getImageDimensions(processedImage),
+    ]);
 
     // Generate S3 key
     const filename = `${uuidv4()}.webp`;
@@ -171,6 +532,9 @@ export class StorageService {
       fileType: 'image/webp',
       fileSize: BigInt(processedImage.length),
       category: FileCategory.AVATAR,
+      blurHash,
+      width: dimensions?.width,
+      height: dimensions?.height,
     });
 
     this.logger.log(`Avatar uploaded for user ${userId}: ${key}`);
@@ -184,7 +548,9 @@ export class StorageService {
     userId: string,
     file: Express.Multer.File,
   ): Promise<string> {
-    // Validate file size
+    // Validate file extension
+    this.validateFileExtension(file?.originalname);
+
     // Normalize buffer
     const buffer = await this.normalizeFileToBuffer(file);
 
@@ -209,14 +575,21 @@ export class StorageService {
       );
     }
 
-    // Process image with sharp
+    // Process image with sharp - removes EXIF metadata by default
     const processedImage = await sharp(buffer)
+      .rotate() // Auto-rotate based on EXIF orientation before stripping
       .resize(this.COVER_WIDTH, this.COVER_HEIGHT, {
         fit: 'cover',
         position: 'center',
       })
       .webp({ quality: 85 })
       .toBuffer();
+
+    // Generate BlurHash and get dimensions
+    const [blurHash, dimensions] = await Promise.all([
+      this.generateBlurHash(processedImage),
+      this.getImageDimensions(processedImage),
+    ]);
 
     // Generate S3 key
     const filename = `${uuidv4()}.webp`;
@@ -240,6 +613,9 @@ export class StorageService {
       fileType: 'image/webp',
       fileSize: BigInt(processedImage.length),
       category: FileCategory.COVER,
+      blurHash,
+      width: dimensions?.width,
+      height: dimensions?.height,
     });
 
     this.logger.log(`Cover uploaded for user ${userId}: ${key}`);
@@ -254,6 +630,10 @@ export class StorageService {
     formId: string,
     file: Express.Multer.File,
   ): Promise<string> {
+    // Validate ownership and file extension
+    await this.validateFormOwnership(userId, formId);
+    this.validateFileExtension(file?.originalname);
+
     const buffer = await this.normalizeFileToBuffer(file);
     const incomingSize =
       (file && (file.size ?? buffer.length)) || buffer.length;
@@ -272,10 +652,18 @@ export class StorageService {
       throw new BadRequestException('نوع الملف غير مسموح');
     }
 
+    // Process image with sharp - removes EXIF metadata
     const processedImage = await sharp(buffer)
+      .rotate() // Auto-rotate based on EXIF orientation
       .resize(1200, 630, { fit: 'cover', position: 'center' })
       .webp({ quality: 85 })
       .toBuffer();
+
+    // Generate BlurHash and get dimensions
+    const [blurHash, dimensions] = await Promise.all([
+      this.generateBlurHash(processedImage),
+      this.getImageDimensions(processedImage),
+    ]);
 
     const filename = `${uuidv4()}.webp`;
     const key = this.s3Service.getFormFileKey(
@@ -306,6 +694,9 @@ export class StorageService {
       fileSize: BigInt(processedImage.length),
       category: FileCategory.FORM_COVER,
       entityId: formId,
+      blurHash,
+      width: dimensions?.width,
+      height: dimensions?.height,
     });
 
     return key;
@@ -319,9 +710,15 @@ export class StorageService {
     formId: string,
     files: Express.Multer.File[],
   ): Promise<string[]> {
+    // Validate ownership
+    await this.validateFormOwnership(userId, formId);
+
     const keys: string[] = [];
 
     for (const file of files) {
+      // Validate file extension
+      this.validateFileExtension(file?.originalname);
+
       const buffer = await this.normalizeFileToBuffer(file);
       const incomingSize =
         (file && (file.size ?? buffer.length)) || buffer.length;
@@ -340,10 +737,18 @@ export class StorageService {
         continue; // Skip invalid files
       }
 
+      // Process image with sharp - removes EXIF metadata
       const processedImage = await sharp(buffer)
+        .rotate() // Auto-rotate based on EXIF orientation
         .resize(1400, 400, { fit: 'cover', position: 'center' })
         .webp({ quality: 85 })
         .toBuffer();
+
+      // Generate BlurHash and get dimensions
+      const [blurHash, dimensions] = await Promise.all([
+        this.generateBlurHash(processedImage),
+        this.getImageDimensions(processedImage),
+      ]);
 
       const filename = `${uuidv4()}.webp`;
       const key = this.s3Service.getFormFileKey(
@@ -367,6 +772,9 @@ export class StorageService {
         fileSize: BigInt(processedImage.length),
         category: FileCategory.FORM_BANNER,
         entityId: formId,
+        blurHash,
+        width: dimensions?.width,
+        height: dimensions?.height,
       });
 
       keys.push(key);
@@ -383,6 +791,10 @@ export class StorageService {
     eventId: string,
     file: Express.Multer.File,
   ): Promise<string> {
+    // Validate ownership and file extension
+    await this.validateEventOwnership(userId, eventId);
+    this.validateFileExtension(file?.originalname);
+
     const buffer = await this.normalizeFileToBuffer(file);
     const incomingSize =
       (file && (file.size ?? buffer.length)) || buffer.length;
@@ -401,10 +813,18 @@ export class StorageService {
       throw new BadRequestException('نوع الملف غير مسموح');
     }
 
+    // Process image with sharp - removes EXIF metadata
     const processedImage = await sharp(buffer)
+      .rotate() // Auto-rotate based on EXIF orientation
       .resize(1200, 630, { fit: 'cover', position: 'center' })
       .webp({ quality: 85 })
       .toBuffer();
+
+    // Generate BlurHash and get dimensions
+    const [blurHash, dimensions] = await Promise.all([
+      this.generateBlurHash(processedImage),
+      this.getImageDimensions(processedImage),
+    ]);
 
     const filename = `${uuidv4()}.webp`;
     const key = this.s3Service.getEventFileKey(
@@ -434,6 +854,9 @@ export class StorageService {
       fileSize: BigInt(processedImage.length),
       category: FileCategory.EVENT_COVER,
       entityId: eventId,
+      blurHash,
+      width: dimensions?.width,
+      height: dimensions?.height,
     });
 
     return key;
@@ -447,6 +870,10 @@ export class StorageService {
     productId: string,
     file: Express.Multer.File,
   ): Promise<string> {
+    // Validate ownership and file extension
+    await this.validateProductOwnership(userId, productId);
+    this.validateFileExtension(file?.originalname);
+
     const buffer = await this.normalizeFileToBuffer(file);
     const incomingSize =
       (file && (file.size ?? buffer.length)) || buffer.length;
@@ -465,10 +892,18 @@ export class StorageService {
       throw new BadRequestException('نوع الملف غير مسموح');
     }
 
+    // Process image with sharp - removes EXIF metadata
     const processedImage = await sharp(buffer)
+      .rotate() // Auto-rotate based on EXIF orientation
       .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 85 })
       .toBuffer();
+
+    // Generate BlurHash and get dimensions
+    const [blurHash, dimensions] = await Promise.all([
+      this.generateBlurHash(processedImage),
+      this.getImageDimensions(processedImage),
+    ]);
 
     const filename = `${uuidv4()}.webp`;
     const key = this.s3Service.getProductFileKey(userId, productId, filename);
@@ -487,6 +922,9 @@ export class StorageService {
       fileSize: BigInt(processedImage.length),
       category: FileCategory.PRODUCT_IMAGE,
       entityId: productId,
+      blurHash,
+      width: dimensions?.width,
+      height: dimensions?.height,
     });
 
     return key;
@@ -587,27 +1025,36 @@ export class StorageService {
       fileSize: bigint;
       category: FileCategory;
       entityId?: string;
+      blurHash?: string | null;
+      width?: number | null;
+      height?: number | null;
     },
   ): Promise<void> {
-    // Create file record
-    await this.prisma.userFile.create({
-      data: {
-        userId,
-        key: data.key,
-        fileName: data.fileName,
-        fileType: data.fileType,
-        fileSize: data.fileSize,
-        category: data.category,
-        entityId: data.entityId,
-      },
-    });
+    // Use transaction to ensure atomicity
+    await this.prisma.$transaction(async (tx) => {
+      // Create file record
+      await tx.userFile.create({
+        data: {
+          userId,
+          key: data.key,
+          fileName: data.fileName,
+          fileType: data.fileType,
+          fileSize: data.fileSize,
+          category: data.category,
+          entityId: data.entityId,
+          blurHash: data.blurHash,
+          width: data.width,
+          height: data.height,
+        },
+      });
 
-    // Update storage usage
-    await this.prisma.profile.update({
-      where: { userId },
-      data: {
-        storageUsed: { increment: data.fileSize },
-      },
+      // Update storage usage
+      await tx.profile.update({
+        where: { userId },
+        data: {
+          storageUsed: { increment: data.fileSize },
+        },
+      });
     });
   }
 

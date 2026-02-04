@@ -159,30 +159,6 @@ export function FormsFiltersBar({
 
       {/* Second Row: View Toggle & Results */}
       <div className="flex items-center justify-between">
-        {/* View Mode Toggle */}
-        {onViewModeChange && (
-          <div className="flex items-center bg-card rounded-full border border-border/50 p-1">
-            <button
-              onClick={() => onViewModeChange('list')}
-              className={cn(
-                "p-2 rounded-full transition-colors",
-                viewMode === 'list' ? "bg-muted" : "hover:bg-muted/50"
-              )}
-            >
-              <List className={cn("w-4 h-4", viewMode === 'list' ? "text-foreground" : "text-muted-foreground")} />
-            </button>
-            <button
-              onClick={() => onViewModeChange('grid')}
-              className={cn(
-                "p-2 rounded-full transition-colors",
-                viewMode === 'grid' ? "bg-foreground text-background" : "hover:bg-muted/50"
-              )}
-            >
-              <LayoutGrid className={cn("w-4 h-4", viewMode === 'grid' ? "text-background" : "text-muted-foreground")} />
-            </button>
-          </div>
-        )}
-
         {/* Results Count */}
         <span className="text-sm text-muted-foreground">
           {resultsCount} نموذج

@@ -21,6 +21,7 @@ export class GoogleCalendarController {
   /**
    * Start Google Calendar OAuth flow
    * GET /api/v1/google/calendar/auth?returnUrl=/app/events/create
+   * Uses login_hint to auto-select the user's Google account
    */
   @Get('auth')
   @UseGuards(JwtAuthGuard)
@@ -29,7 +30,9 @@ export class GoogleCalendarController {
     const state = returnUrl
       ? Buffer.from(returnUrl).toString('base64')
       : 'default';
-    const authUrl = this.googleCalendarService.getAuthUrl(state);
+    // Pass user's email as login_hint to skip account selection
+    const userEmail = req.user?.email;
+    const authUrl = this.googleCalendarService.getAuthUrl(state, userEmail);
     return {
       success: true,
       authUrl,

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { buildApiPath } from "@/lib/config";
 import { secureFetch } from "@/lib/api/api-client";
+import { PhonePreview } from "@/components/(app)/shared/PhonePreview";
 
 import {
   StatsCard,
@@ -252,28 +253,30 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 bg-card m-2 md:ms-0 rounded-2xl border border-border/50 overflow-hidden" dir="rtl">
-      <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        <div className="p-4 sm:p-6 space-y-5">
-          {/* Header */}
-          {loading ? (
-            <DashboardHeaderSkeleton />
-          ) : (
-            <DashboardHeader
-              storeName={storeStats?.storeName}
-              hasStore={storeStats?.hasStore}
-              dateRange={dateRange}
-              onDateRangeChange={setDateRange}
-            />
-          )}
+    <div className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 gap-4 m-2 md:ms-0" dir="rtl">
+      {/* Main Content */}
+      <div className="flex-1 min-w-0 bg-card rounded-2xl border border-border/50 overflow-hidden">
+        <div className="h-full overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="p-4 sm:p-6 space-y-5 pb-28 md:pb-6">
+            {/* Header */}
+            {loading ? (
+              <DashboardHeaderSkeleton />
+            ) : (
+              <DashboardHeader
+                storeName={storeStats?.storeName}
+                hasStore={storeStats?.hasStore}
+                dateRange={dateRange}
+                onDateRangeChange={setDateRange}
+              />
+            )}
 
-          {/* Stats Cards - القسم الأول */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            {loading
-              ? Array.from({ length: 4 }).map((_, i) => <StatsCardSkeleton key={i} />)
-              : statsData.map((stat, index) => (
-                  <StatsCard key={index} {...stat} />
-                ))}
+            {/* Stats Cards - القسم الأول */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {loading
+                ? Array.from({ length: 4 }).map((_, i) => <StatsCardSkeleton key={i} />)
+                : statsData.map((stat, index) => (
+                    <StatsCard key={index} {...stat} />
+                  ))}
           </div>
 
           {/* Stats Cards - القسم الثاني */}
@@ -331,9 +334,13 @@ export default function DashboardPage() {
           ) : (
             <RecentActivities activities={recentActivities} />
           )}
-
-          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-card via-card/80 to-transparent pointer-events-none z-10" />
+          </div>
         </div>
+      </div>
+
+      {/* Phone Preview Sidebar - Desktop Only */}
+      <div className="hidden xl:flex">
+        <PhonePreview />
       </div>
     </div>
   );

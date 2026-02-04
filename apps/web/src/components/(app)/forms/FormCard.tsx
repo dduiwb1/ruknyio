@@ -32,7 +32,7 @@ import {
   FORM_STATUS_CONFIG,
   FORM_TYPE_LABELS
 } from '@/lib/hooks/useForms';
-import { toast } from 'sonner';
+import { toast } from '@/components/toast-provider';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -97,7 +97,7 @@ export function FormCardComponent({
       exit={{ opacity: 0, y: -10 }}
       whileHover={{ y: -2 }}
       transition={{ duration: 0.2 }}
-      className="bg-white rounded-4xl border border-gray-200 p-3 group cursor-pointer hover:shadow-lg transition-all duration-200"
+      className="h-full bg-white rounded-4xl border border-gray-200 p-3 group cursor-pointer hover:shadow-lg transition-all duration-200 flex flex-col"
       onClick={() => onView?.(form)}
     >
       {/* Image/Icon Section */}
@@ -158,10 +158,10 @@ export function FormCardComponent({
               <button
                 onClick={(e) => e.stopPropagation()}
                 className={cn(
-                  "w-7 h-7 rounded-lg bg-white/90 backdrop-blur-sm flex items-center justify-center",
-                  "text-gray-500 hover:text-gray-900 hover:bg-white",
-                  "transition-all duration-200 shadow-sm",
-                  "opacity-0 group-hover:opacity-100",
+                  "w-8 h-8 rounded-xl bg-white/95 backdrop-blur-sm flex items-center justify-center",
+                  "text-gray-600 hover:text-gray-900 hover:bg-white",
+                  "transition-all duration-200 shadow-md border border-gray-100",
+                  "sm:opacity-0 sm:group-hover:opacity-100",
                   "data-[state=open]:opacity-100"
                 )}
               >
@@ -171,72 +171,77 @@ export function FormCardComponent({
             <DropdownMenuContent 
               align="end" 
               side="top" 
-              sideOffset={4}
-              className="min-w-[120px] rounded-xl"
+              sideOffset={8}
+              className="min-w-[130px] rounded-xl p-1 shadow-xl border border-gray-100 bg-white"
               onClick={(e) => e.stopPropagation()}
             >
               {onView && (
                 <DropdownMenuItem
                   onClick={(e) => { e.stopPropagation(); onView(form); }}
-                  className="flex items-center gap-2 px-3 py-2 text-[12px] cursor-pointer"
+                  className="flex items-center gap-2 px-2.5 py-2 text-[12px] rounded-lg cursor-pointer text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 >
-                  <Eye className="w-3.5 h-3.5" />
-                  عرض
+                  <Eye className="w-3.5 h-3.5 text-blue-500" />
+                  <span>عرض</span>
                 </DropdownMenuItem>
               )}
               {onEdit && (
                 <DropdownMenuItem
                   onClick={(e) => { e.stopPropagation(); onEdit(form); }}
-                  className="flex items-center gap-2 px-3 py-2 text-[12px] cursor-pointer"
+                  className="flex items-center gap-2 px-2.5 py-2 text-[12px] rounded-lg cursor-pointer text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 >
-                  <Edit2 className="w-3.5 h-3.5" />
-                  تحرير
+                  <Edit2 className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>تحرير</span>
                 </DropdownMenuItem>
               )}
               {onViewResponses && (
                 <DropdownMenuItem
                   onClick={(e) => { e.stopPropagation(); onViewResponses(form); }}
-                  className="flex items-center gap-2 px-3 py-2 text-[12px] cursor-pointer"
+                  className="flex items-center gap-2 px-2.5 py-2 text-[12px] rounded-lg cursor-pointer text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 >
-                  <BarChart3 className="w-3.5 h-3.5" />
-                  الردود ({submissionsCount})
+                  <BarChart3 className="w-3.5 h-3.5 text-violet-500" />
+                  <span>الردود</span>
+                  {submissionsCount > 0 && (
+                    <span className="mr-auto text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-600 font-semibold">
+                      {submissionsCount}
+                    </span>
+                  )}
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem
                 onClick={(e) => { e.stopPropagation(); copyFormLink(e); }}
-                className="flex items-center gap-2 px-3 py-2 text-[12px] cursor-pointer"
+                className="flex items-center gap-2 px-2.5 py-2 text-[12px] rounded-lg cursor-pointer text-gray-600 hover:text-gray-900 hover:bg-gray-50"
               >
-                <Link2 className="w-3.5 h-3.5" />
-                نسخ الرابط
+                <Link2 className="w-3.5 h-3.5 text-cyan-500" />
+                <span>نسخ الرابط</span>
               </DropdownMenuItem>
               {form.status === FormStatus.PUBLISHED && (
                 <DropdownMenuItem
                   onClick={(e) => { e.stopPropagation(); openFormPage(e); }}
-                  className="flex items-center gap-2 px-3 py-2 text-[12px] cursor-pointer"
+                  className="flex items-center gap-2 px-2.5 py-2 text-[12px] rounded-lg cursor-pointer text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  فتح النموذج
+                  <ExternalLink className="w-3.5 h-3.5 text-indigo-500" />
+                  <span>فتح النموذج</span>
                 </DropdownMenuItem>
               )}
               {onDuplicate && (
                 <DropdownMenuItem
                   onClick={(e) => { e.stopPropagation(); onDuplicate(form); }}
-                  className="flex items-center gap-2 px-3 py-2 text-[12px] cursor-pointer"
+                  className="flex items-center gap-2 px-2.5 py-2 text-[12px] rounded-lg cursor-pointer text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 >
-                  <Copy className="w-3.5 h-3.5" />
-                  نسخ
+                  <Copy className="w-3.5 h-3.5 text-amber-500" />
+                  <span>نسخ</span>
                 </DropdownMenuItem>
               )}
               {onDelete && (
                 <>
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator className="my-1 bg-gray-100" />
                   <DropdownMenuItem
                     onClick={(e) => { e.stopPropagation(); onDelete(form); }}
                     variant="destructive"
-                    className="flex items-center gap-2 px-3 py-2 text-[12px] cursor-pointer"
+                    className="flex items-center gap-2 px-2.5 py-2 text-[12px] rounded-lg cursor-pointer text-red-500 hover:text-red-600 hover:bg-red-50"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    حذف
+                    <span>حذف</span>
                   </DropdownMenuItem>
                 </>
               )}
@@ -246,7 +251,7 @@ export function FormCardComponent({
       </div>
 
       {/* Content Section */}
-      <div className="text-right">
+      <div className="text-right flex-1 flex flex-col">
         {/* Name & Type Row */}
         <div className="flex items-center justify-between gap-2 mb-2">
           <h3 className="font-bold text-gray-900 text-[14px] leading-tight line-clamp-1 flex-1 min-w-0">
@@ -261,12 +266,12 @@ export function FormCardComponent({
         </div>
 
         {/* Description */}
-        <p className="text-[12px] text-gray-400 line-clamp-2 mb-3 leading-relaxed">
+        <p className="text-[12px] text-gray-400 line-clamp-2 mb-3 leading-relaxed min-h-[2.5rem] flex-1">
           {form.description || 'بدون وصف'}
         </p>
 
         {/* Tags Row */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap mt-auto">
           {/* Responses Tag */}
           <span className={cn(
             "flex items-center gap-1 text-[11px]",
@@ -299,12 +304,12 @@ export function FormCardComponent({
 // Skeleton loader for FormCard
 export function FormCardSkeleton() {
   return (
-    <div className="bg-white rounded-4xl border border-gray-200 p-3 animate-pulse">
+    <div className="h-full bg-white rounded-4xl border border-gray-200 p-3 animate-pulse flex flex-col">
       {/* Image Skeleton */}
       <div className="relative aspect-[4/3] bg-gray-200 rounded-3xl mb-3" />
       
       {/* Content Skeleton */}
-      <div className="text-right">
+      <div className="text-right flex-1 flex flex-col">
         {/* Name & Type Row */}
         <div className="flex items-center justify-between gap-2 mb-2">
           <div className="h-4 bg-gray-200 rounded flex-1" />
@@ -312,13 +317,13 @@ export function FormCardSkeleton() {
         </div>
         
         {/* Description */}
-        <div className="space-y-1.5 mb-3">
+        <div className="space-y-1.5 mb-3 min-h-[2.5rem] flex-1">
           <div className="h-3 bg-gray-100 rounded w-full" />
           <div className="h-3 bg-gray-100 rounded w-3/4" />
         </div>
         
         {/* Tags */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mt-auto">
           <div className="h-3 w-12 bg-gray-100 rounded" />
           <div className="h-3 w-14 bg-gray-100 rounded" />
           <div className="h-3 w-10 bg-gray-100 rounded" />

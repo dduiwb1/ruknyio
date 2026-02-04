@@ -62,11 +62,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(req: any, payload: any) {
+    // 🔒 التحقق من نوع التوكن (يجب أن يكون access وليس refresh)
+    if (payload.type !== 'access') {
+      throw new UnauthorizedException('Invalid token type: expected access token');
+    }
+
     // 🔒 التحقق من وجود sid في JWT
     const sessionId = payload.sid;
     if (!sessionId) {
       throw new UnauthorizedException('Invalid token: missing session ID');
     }
+
+    // 🔒 التحقق من انتهاء صلاحية JWT (exp claim)
+    const now = Math.floor(Date.now() / 1000);
+    const jwtExpired = payload.exp && payload.exp < now;
 
     // 🔒 البحث عن الجلسة باستخدام sessionId من JWT
     const session = await this.prisma.session.findUnique({
@@ -109,21 +118,23 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       );
     }
 
-    const now = new Date();
+    const nowDate = new Date();
 
-    // 🔒 انتهاء expiresAt (30 دقيقة) لا يُسجّل خروجاً إذا كان refresh token ما زال صالحاً
-    // نمدد الجلسة تلقائياً لتقليل تسجيل الخروج المفاجئ بعد فترة قصيرة من عدم النشاط
-    if (session.expiresAt && session.expiresAt < now) {
+    // 🔒 التحقق من انتهاء JWT و Session
+    // إذا انتهى JWT (exp) أو Session (expiresAt)، نتحقق من refresh token
+    const sessionExpired = session.expiresAt && session.expiresAt < nowDate;
+    
+    if (jwtExpired || sessionExpired) {
       const refreshStillValid =
-        session.refreshExpiresAt && session.refreshExpiresAt > now;
+        session.refreshExpiresAt && session.refreshExpiresAt > nowDate;
       if (refreshStillValid) {
         // تمديد الجلسة بدلاً من تسجيل الخروج (await لضمان حفظ التمديد قبل متابعة الطلب)
-        const newExpiresAt = new Date(now.getTime() + 30 * 60 * 1000);
+        const newExpiresAt = new Date(nowDate.getTime() + 30 * 60 * 1000);
         await this.prisma.session.update({
           where: { id: session.id },
           data: {
             expiresAt: newExpiresAt,
-            lastActivity: now,
+            lastActivity: nowDate,
           },
         });
         // متابعة التحقق دون رمي 401
@@ -137,7 +148,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // 🔒 التحقق من Idle Timeout (24 ساعة من عدم النشاط)
     const IDLE_TIMEOUT_MS = 24 * 60 * 60 * 1000; // 24 ساعة
     const lastActivity = session.lastActivity || session.createdAt;
-    const timeSinceLastActivity = now.getTime() - lastActivity.getTime();
+    const timeSinceLastActivity = nowDate.getTime() - lastActivity.getTime();
 
     if (timeSinceLastActivity > IDLE_TIMEOUT_MS) {
       throw new UnauthorizedException(
@@ -148,17 +159,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // ⚡ Performance: In-memory throttle to prevent concurrent DB updates
     // This eliminates 770ms+ slow queries caused by concurrent writes
     const lastUpdate = lastActivityUpdateCache.get(session.id) || 0;
-    const timeSinceLastUpdate = now.getTime() - lastUpdate;
+    const timeSinceLastUpdate = nowDate.getTime() - lastUpdate;
 
     if (
       timeSinceLastActivity > ACTIVITY_UPDATE_INTERVAL_MS &&
       timeSinceLastUpdate > ACTIVITY_UPDATE_INTERVAL_MS
     ) {
       // Set cache FIRST to prevent concurrent updates
-      lastActivityUpdateCache.set(session.id, now.getTime());
+      lastActivityUpdateCache.set(session.id, nowDate.getTime());
 
       // 🔒 حساب expiresAt جديد (30 دقيقة من الآن) لتمديد الجلسة
-      const newExpiresAt = new Date(now.getTime() + 30 * 60 * 1000);
+      const newExpiresAt = new Date(nowDate.getTime() + 30 * 60 * 1000);
 
       this.prisma.$executeRaw`
         UPDATE sessions 
