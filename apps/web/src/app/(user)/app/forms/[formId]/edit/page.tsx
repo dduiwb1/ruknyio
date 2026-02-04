@@ -439,7 +439,7 @@ export default function EditFormPage() {
   const handleAddField = (type: FieldType) => {
     const newField: FormFieldInput = {
       id: `field-${Date.now()}`,
-      label: FIELD_TYPE_LABELS[type],
+      label: type === FieldType.RECAPTCHA ? 'حماية reCAPTCHA' : '', // عنوان افتراضي لـ reCAPTCHA
       type,
       order: fields.length,
       required: false,
@@ -452,7 +452,22 @@ export default function EditFormPage() {
     };
     setFields(prev => [...prev, newField]);
     setShowFieldSelector(false);
-    setEditingFieldId(newField.id);
+    // Only open editor on mobile - desktop handles editing inside FieldTypeSelector
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    if (isMobile) {
+      setEditingFieldId(newField.id);
+    }
+  };
+
+  // Add complete field (from desktop FieldTypeSelector with all data)
+  const handleAddCompleteField = (field: FormFieldInput) => {
+    const newField: FormFieldInput = {
+      ...field,
+      id: `field-${Date.now()}`,
+      order: fields.length,
+    };
+    setFields(prev => [...prev, newField]);
+    setShowFieldSelector(false);
   };
 
   // Update field
@@ -871,15 +886,29 @@ export default function EditFormPage() {
               </div>
             )}
 
-            {/* Field Editor Dialog */}
+            {/* Field Editor - Desktop uses FieldTypeSelector, Mobile uses FieldEditorDialog */}
             {editingFieldId && (
-              <FieldEditorDialog
-                field={fields.find(f => f.id === editingFieldId) ?? null}
-                open={editingFieldId !== null}
-                onOpenChange={(open) => !open && setEditingFieldId(null)}
-                onUpdate={(updates) => editingFieldId && handleUpdateField(editingFieldId, updates)}
-                onSave={() => setEditingFieldId(null)}
-              />
+              <>
+                {/* Desktop: FieldTypeSelector */}
+                <AnimatePresence>
+                  <FieldTypeSelector
+                    onSelect={() => {}}
+                    onClose={() => setEditingFieldId(null)}
+                    editingField={fields.find(f => f.id === editingFieldId) ?? null}
+                    onUpdateField={(updates) => editingFieldId && handleUpdateField(editingFieldId, updates)}
+                    onSaveField={() => setEditingFieldId(null)}
+                    mode="edit"
+                  />
+                </AnimatePresence>
+                {/* Mobile: FieldEditorDialog (auto-hides on desktop) */}
+                <FieldEditorDialog
+                  field={fields.find(f => f.id === editingFieldId) ?? null}
+                  open={editingFieldId !== null}
+                  onOpenChange={(open) => !open && setEditingFieldId(null)}
+                  onUpdate={(updates) => editingFieldId && handleUpdateField(editingFieldId, updates)}
+                  onSave={() => setEditingFieldId(null)}
+                />
+              </>
             )}
 
             {/* Add Field Button */}
@@ -897,6 +926,7 @@ export default function EditFormPage() {
               {showFieldSelector && (
                 <FieldTypeSelector
                   onSelect={handleAddField}
+                  onSelectField={handleAddCompleteField}
                   onClose={() => setShowFieldSelector(false)}
                 />
               )}

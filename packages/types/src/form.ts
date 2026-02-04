@@ -30,6 +30,7 @@ export interface Form {
  * Form field type enum
  */
 export type FormFieldType =
+  // Input fields
   | 'TEXT'
   | 'TEXTAREA'
   | 'NUMBER'
@@ -48,9 +49,24 @@ export type FormFieldType =
   | 'RATING'
   | 'SCALE'
   | 'SIGNATURE'
+  | 'TOGGLE'
+  | 'MATRIX'
+  | 'RANKING'
+  // Layout blocks
   | 'HEADING'
   | 'PARAGRAPH'
-  | 'DIVIDER';
+  | 'DIVIDER'
+  | 'TITLE'
+  | 'LABEL'
+  // Embed blocks
+  | 'VIDEO'
+  | 'AUDIO'
+  | 'EMBED'
+  // Advanced blocks
+  | 'CONDITIONAL_LOGIC'
+  | 'CALCULATED'
+  | 'HIDDEN'
+  | 'RECAPTCHA';
 
 /**
  * Form field

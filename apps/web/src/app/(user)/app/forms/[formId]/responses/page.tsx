@@ -598,6 +598,12 @@ const getFieldIcon = (type: FieldType) => {
       return Mail;
     case FieldType.NUMBER:
       return Hash;
+    case FieldType.MULTISELECT:
+    case FieldType.RANKING:
+    case FieldType.SELECT:
+    case FieldType.RADIO:
+    case FieldType.CHECKBOX:
+      return FileText;
     default:
       return FileText;
   }
@@ -620,7 +626,7 @@ function SummaryQuestionCard({ question, qIndex, submissions, defaultExpanded = 
 
   // For text questions, get all responses with user info
   const textResponses = useMemo(() => {
-    if ([FieldType.SELECT, FieldType.RADIO, FieldType.CHECKBOX, FieldType.RATING, FieldType.SCALE, FieldType.TOGGLE].includes(question.type)) {
+    if ([FieldType.SELECT, FieldType.RADIO, FieldType.CHECKBOX, FieldType.RATING, FieldType.SCALE, FieldType.TOGGLE, FieldType.MULTISELECT, FieldType.RANKING].includes(question.type)) {
       return [];
     }
     return submissions.map((sub, index) => {
@@ -637,7 +643,7 @@ function SummaryQuestionCard({ question, qIndex, submissions, defaultExpanded = 
     (currentPage + 1) * ITEMS_PER_PAGE
   );
 
-  const isChoiceType = [FieldType.SELECT, FieldType.RADIO, FieldType.CHECKBOX, FieldType.RATING, FieldType.SCALE].includes(question.type);
+  const isChoiceType = [FieldType.SELECT, FieldType.RADIO, FieldType.CHECKBOX, FieldType.RATING, FieldType.SCALE, FieldType.MULTISELECT, FieldType.RANKING].includes(question.type);
   const isToggleType = question.type === FieldType.TOGGLE;
   const isTextType = !isChoiceType && !isToggleType;
 

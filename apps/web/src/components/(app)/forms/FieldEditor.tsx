@@ -25,6 +25,38 @@ export interface FormFieldInput {
   allowedFileTypes?: string[];
   maxFileSize?: number;
   maxFiles?: number;
+  // Embed blocks settings
+  imageUrl?: string;
+  imageAlt?: string;
+  imageWidth?: 'full' | 'medium' | 'small';
+  imageAlign?: 'right' | 'center' | 'left';
+  imageLink?: string;
+  videoUrl?: string;
+  videoSource?: 'youtube' | 'vimeo' | 'direct';
+  videoAutoplay?: boolean;
+  videoControls?: boolean;
+  videoLoop?: boolean;
+  audioUrl?: string;
+  audioAutoplay?: boolean;
+  audioControls?: boolean;
+  embedCode?: string;
+  embedHeight?: number;
+  // Advanced fields settings
+  conditionalLogic?: {
+    action: 'show' | 'hide';
+    rules: Array<{
+      fieldId: string;
+      operator: 'equals' | 'not_equals' | 'contains' | 'is_empty' | 'is_not_empty';
+      value?: string;
+    }>;
+    operator: 'and' | 'or';
+  };
+  formula?: string;
+  formulaFields?: string[];
+  formulaFormat?: 'number' | 'currency' | 'percentage';
+  hiddenValue?: string;
+  hiddenSource?: 'static' | 'url_param' | 'cookie';
+  hiddenParamName?: string;
 }
 
 interface FieldEditorProps {
@@ -34,9 +66,11 @@ interface FieldEditorProps {
 }
 
 export function FieldEditor({ field, onUpdate, onClose }: FieldEditorProps) {
-  const hasOptions = field.type === FieldType.SELECT || field.type === FieldType.RADIO || field.type === FieldType.CHECKBOX;
+  const hasOptions = field.type === FieldType.SELECT || field.type === FieldType.RADIO || field.type === FieldType.CHECKBOX || field.type === FieldType.MULTISELECT || field.type === FieldType.RANKING;
   const hasScale = field.type === FieldType.RATING || field.type === FieldType.SCALE;
   const isFileType = field.type === FieldType.FILE;
+  const isLayoutBlock = field.type === FieldType.HEADING || field.type === FieldType.PARAGRAPH || field.type === FieldType.DIVIDER || field.type === FieldType.TITLE || field.type === FieldType.LABEL;
+  const isEmbedBlock = field.type === FieldType.IMAGE || field.type === FieldType.VIDEO || field.type === FieldType.AUDIO || field.type === FieldType.EMBED;
 
   // Common file type presets
   const fileTypePresets = [
@@ -125,7 +159,8 @@ export function FieldEditor({ field, onUpdate, onClose }: FieldEditorProps) {
           field.type === FieldType.TEXTAREA || 
           field.type === FieldType.EMAIL || 
           field.type === FieldType.PHONE ||
-          field.type === FieldType.NUMBER) && (
+          field.type === FieldType.NUMBER ||
+          field.type === FieldType.URL) && (
           <div>
             <Label htmlFor={`${field.id}-placeholder`}>نص توضيحي (Placeholder)</Label>
             <Input

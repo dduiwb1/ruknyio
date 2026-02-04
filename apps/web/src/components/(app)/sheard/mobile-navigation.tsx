@@ -32,7 +32,6 @@ type NavTabItem = NavItem | Separator;
 
 const navItems: NavTabItem[] = [
   { id: "dashboard", title: "الرئيسية", icon: LayoutGrid, href: "/app" },
-  { id: "events", title: "الفعاليات", icon: Calendar, href: "/app/events" },
   { id: "forms", title: "النماذج", icon: FileText, href: "/app/forms" },
   { type: "separator" },
   { id: "store", title: "المتجر", icon: Store, href: "/app/store" },

@@ -437,13 +437,13 @@ function SettingsContent() {
 
   const renderStoreContent = useCallback(() => {
     return (
-      <div className="bg-white border border-gray-100 rounded-2xl p-8">
+      <div className="bg-card border border-border rounded-4xl p-8">
         <div className="text-center py-16">
           <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-info/20 to-info/5 flex items-center justify-center">
             <Store className="w-12 h-12 text-info" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-3">إعدادات المتجر</h3>
-          <p className="text-gray-500 mb-8 max-w-sm mx-auto">نعمل على تطوير أدوات متقدمة لإدارة متجرك</p>
+          <h3 className="text-2xl font-bold text-foreground mb-3">إعدادات المتجر</h3>
+          <p className="text-muted-foreground mb-8 max-w-sm mx-auto">نعمل على تطوير أدوات متقدمة لإدارة متجرك</p>
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-info/10 text-info rounded-full text-sm font-semibold">
             <Sparkles className="w-4 h-4" />
             قريباً
@@ -455,13 +455,13 @@ function SettingsContent() {
 
   const renderFormsContent = useCallback(() => {
     return (
-      <div className="bg-white border border-gray-100 rounded-2xl p-8">
+      <div className="bg-card border border-border rounded-4xl p-8">
         <div className="text-center py-16">
           <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-destructive/20 to-destructive/5 flex items-center justify-center">
             <FileText className="w-12 h-12 text-destructive" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-3">إعدادات النماذج</h3>
-          <p className="text-gray-500 mb-8 max-w-sm mx-auto">نعمل على تطوير أدوات متقدمة لإدارة نماذجك</p>
+          <h3 className="text-2xl font-bold text-foreground mb-3">إعدادات النماذج</h3>
+          <p className="text-muted-foreground mb-8 max-w-sm mx-auto">نعمل على تطوير أدوات متقدمة لإدارة نماذجك</p>
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-destructive/10 text-destructive rounded-full text-sm font-semibold">
             <Sparkles className="w-4 h-4" />
             قريباً
@@ -473,13 +473,13 @@ function SettingsContent() {
 
   const renderEventsContent = useCallback(() => {
     return (
-      <div className="bg-white border border-gray-100 rounded-2xl p-8">
+      <div className="bg-card border border-border rounded-4xl p-8">
         <div className="text-center py-16">
           <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-warning/30 to-warning/10 flex items-center justify-center">
             <Calendar className="w-12 h-12 text-warning-filled" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-3">إعدادات الأحداث</h3>
-          <p className="text-gray-500 mb-8 max-w-sm mx-auto">نعمل على تطوير أدوات متقدمة لإدارة فعالياتك</p>
+          <h3 className="text-2xl font-bold text-foreground mb-3">إعدادات الأحداث</h3>
+          <p className="text-muted-foreground mb-8 max-w-sm mx-auto">نعمل على تطوير أدوات متقدمة لإدارة فعالياتك</p>
           <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-warning/20 text-warning-filled rounded-full text-sm font-semibold">
             <Sparkles className="w-4 h-4" />
             قريباً
@@ -533,26 +533,6 @@ function SettingsContent() {
         </div>
       )}
 
-      {/* Mobile: Detail view (back + content) when tab set */}
-      {isMobile === true && !isListMode && (
-        <div className="mb-5 flex items-center gap-3 lg:hidden">
-          <button
-            type="button"
-            onClick={navigateBack}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
-            aria-label="رجوع"
-          >
-            <ChevronLeft className="h-5 w-5 rotate-180" />
-          </button>
-          {currentCategoryInfo && currentSetting && (
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-base font-bold text-foreground">{currentSetting.label}</p>
-              <p className="truncate text-xs text-muted-foreground">{currentCategoryInfo.title}</p>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Content (detail view): hide on mobile list mode */}
       {!isListMode && (
         <div key={activeTab} className="min-w-0 flex-1 animate-in fade-in duration-150">
@@ -572,7 +552,7 @@ export default function SettingsPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="relative">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-primary-hover flex items-center justify-center mx-auto mb-5 shadow-xl shadow-primary/20">
+            <div className="w-20 h-20 rounded-2xl bg-[#ffffff] flex items-center justify-center mx-auto mb-5 shadow-xl shadow-primary/20">
               <Settings2 className="w-10 h-10 text-white" />
             </div>
             <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 translate-y-2">

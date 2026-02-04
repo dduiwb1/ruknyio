@@ -106,17 +106,18 @@ function CreateFormContent() {
       <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <div className="p-4 sm:p-6 space-y-5">
           
-          {/* Back Link */}
+          {/* Sticky Back Link with Glass Effect */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
+            className="sticky top-4 z-20 mb-1"
           >
             <Link 
               href="/app/forms" 
-              className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+              className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-background/30 dark:bg-background/20 backdrop-blur-xl border border-white/15 dark:border-white/5 shadow-lg shadow-black/5 text-muted-foreground hover:text-foreground hover:bg-background/50 dark:hover:bg-background/30 hover:border-white/25 dark:hover:border-white/10 transition-all duration-200"
             >
               <ArrowRight className="w-4 h-4" />
-              <span>العودة للنماذج</span>
+              <span className="text-sm font-medium">العودة للنماذج</span>
             </Link>
           </motion.div>
 

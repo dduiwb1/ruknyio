@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { SettingsSidebar, settingsSections, type SettingsSection } from "@/components/(app)/settings/SettingsSidebar";
 import { PhonePreview } from "@/components/(app)/shared/PhonePreview";
+import { SettingsBreadcrumb } from "@/components/(app)/settings/SettingsBreadcrumb";
 
 /** وصف قصير لكل قسم/تاب لعرضه في بطاقة المعلومات على الجوال */
 const tabDescriptions: Record<string, string> = {
@@ -94,143 +95,140 @@ export default function SettingsLayout({
 
   return (
     <div
-      className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 m-2 md:ms-0 gap-4"
+      className="relative flex h-[calc(100%-0.75rem)] flex-1 min-w-0 m-1.5 md:m-2 md:ms-0 gap-3 md:gap-4"
       dir="rtl"
     >
-      {/* Phone Preview Toggle Button - Mobile */}
-      <button
-        onClick={() => setShowPreview(!showPreview)}
-        className="fixed left-4 bottom-4 z-50 flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all lg:hidden"
-      >
-        <Smartphone className="w-5 h-5" />
-        <span className="text-sm font-medium">معاينة</span>
-      </button>
-
       <SettingsSidebar />
-      <div className="relative flex flex-1 flex-col min-w-0 overflow-hidden bg-card rounded-2xl border border-border/50 shadow-sm">
-        {/* Mobile: هيدر يتغير حسب القسم + بطاقة معلومات للقسم الحالي */}
-        <header className="sticky top-0 z-30 mx-3 mt-2 lg:mx-0 lg:mt-0 lg:relative lg:z-auto lg:hidden">
-          <div className="bg-card/90 backdrop-blur-md rounded-2xl border border-border/60 px-4 py-3.5 flex items-center justify-between gap-3 shadow-sm">
+      <div className="relative flex flex-1 flex-col min-w-0 overflow-hidden bg-white border border-gray-200 rounded-2xl shadow-sm">
+        {/* Mobile: Clean Simple Header */}
+        <header className="sticky top-0 z-30 lg:hidden bg-white border-b border-gray-200">
+          <div className="flex items-center justify-between px-4 py-4">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <Link
                 href="/app"
-                className="p-2 rounded-lg hover:bg-muted/50 transition-colors flex-shrink-0"
-                aria-label="العودة"
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
+                aria-label="عودة"
               >
-                <ArrowRight className="w-5 h-5 text-muted-foreground" />
+                <ArrowRight className="w-5 h-5 text-gray-600" />
               </Link>
-              <div className="flex items-center gap-3 min-w-0">
-                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0", headerIconBg)}>
-                  <HeaderIcon className={cn("w-5 h-5", headerIconColor)} />
-                </div>
-                <h1 className="text-base font-semibold text-foreground truncate">{headerTitle}</h1>
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <HeaderIcon className="w-5 h-5 text-primary" />
               </div>
+              <h1 className="text-lg font-semibold text-gray-900 truncate">{headerTitle}</h1>
             </div>
             <button
               type="button"
               onClick={() => setShowInfoSheet(!showInfoSheet)}
               className={cn(
-                "w-10 h-10 flex items-center justify-center rounded-xl transition-colors flex-shrink-0",
-                showInfoSheet ? "bg-primary/15 text-primary" : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                "p-2.5 rounded-xl transition-colors flex-shrink-0",
+                showInfoSheet 
+                  ? "bg-primary/10 text-primary" 
+                  : "hover:bg-gray-100 text-gray-500"
               )}
-              aria-label="معلومات هذا القسم"
-              aria-expanded={showInfoSheet}
             >
               <Info className="w-5 h-5" />
             </button>
           </div>
-
-          {/* بطاقة المعلومات — تظهر وصف القسم الحالي وعناصره (للجوال فقط) */}
-          <AnimatePresence>
-            {showInfoSheet && (
-              <>
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px] lg:hidden"
-                  onClick={() => setShowInfoSheet(false)}
-                  aria-hidden
-                />
-                <motion.div
-                  drag="y"
-                  dragControls={infoSheetDragControls}
-                  dragConstraints={{ top: 0, bottom: 0 }}
-                  dragElastic={{ top: 0, bottom: 0.25 }}
-                  dragMomentum={false}
-                  onDragEnd={(_, { offset, velocity }) => {
-                    if (offset.y > 50 || velocity.y > 200) setShowInfoSheet(false);
-                  }}
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ type: "spring", damping: 32, stiffness: 320 }}
-                  className="absolute top-full left-0 right-0 mt-2 z-50 rounded-2xl overflow-hidden bg-card shadow-xl border border-border/80 lg:hidden"
-                >
-                  <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-border/50">
-                    <button
-                      type="button"
-                      onClick={() => setShowInfoSheet(false)}
-                      className="w-10 h-10 rounded-full flex items-center justify-center bg-muted border border-border text-muted-foreground hover:bg-muted/80 hover:text-foreground transition-colors flex-shrink-0"
-                      aria-label="إغلاق"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </button>
-                    <span className="px-4 py-2 rounded-full bg-primary/15 text-primary text-sm font-medium">
-                      {headerTitle}
-                    </span>
-                  </div>
-                  <div className="mx-4 my-4 rounded-2xl overflow-hidden bg-muted/30 border border-border/50">
-                    <div className="p-4 space-y-3">
-                      <p className="text-sm text-foreground leading-relaxed">
-                        {sheetDescription}
-                      </p>
-                      {sheetSectionItems.length > 0 && (
-                        <ul className="space-y-2.5 text-sm text-muted-foreground">
-                          {sheetSectionItems.map((item: SettingsSection['items'][0]) => {
-                            const Icon = item.icon;
-                            return (
-                              <li key={item.href} className="flex items-center gap-2.5">
-                                <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-muted", currentSection?.iconBg)}>
-                                  <Icon className={cn("w-4 h-4", currentSection?.iconColor)} />
-                                </div>
-                                <span className="text-foreground/90">{item.label}</span>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      )}
-                    </div>
-                  </div>
-                  <div
-                    className="py-2.5 flex justify-center cursor-grab active:cursor-grabbing touch-none border-t border-border/50"
-                    onPointerDown={(e) => infoSheetDragControls.start(e)}
-                    aria-hidden
-                  >
-                    <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
-                  </div>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
+          <div className="px-4 pb-3">
+            <SettingsBreadcrumb />
+          </div>
         </header>
 
-        {/* Desktop: شريط علوي بسيط */}
-        <header className="hidden lg:flex items-center justify-between gap-4 px-4 py-3 border-b border-border/40">
-          <div className="flex items-center gap-3">
-            <Link href="/app" className="p-2 rounded-xl hover:bg-muted/60 transition-colors">
-              <ArrowRight className="w-4 h-4 text-muted-foreground" />
-            </Link>
-            <div className="flex items-center gap-3">
-              <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center", headerIconBg)}>
-                <HeaderIcon className={cn("w-4.5 h-4.5", headerIconColor)} />
-              </div>
-              <div>
-                <h1 className="text-sm font-semibold text-foreground">{headerTitle}</h1>
-                {currentSection && <p className="text-xs text-muted-foreground">{currentSection.label}</p>}
+        {/* Mobile Info Sheet */}
+        <AnimatePresence>
+          {showInfoSheet && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+                onClick={() => setShowInfoSheet(false)}
+                aria-hidden
+              />
+              <motion.div
+                drag="y"
+                dragControls={infoSheetDragControls}
+                dragConstraints={{ top: 0, bottom: 0 }}
+                dragElastic={{ top: 0, bottom: 0.25 }}
+                dragMomentum={false}
+                onDragEnd={(_, { offset, velocity }) => {
+                  if (offset.y > 50 || velocity.y > 200) setShowInfoSheet(false);
+                }}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ type: "spring", damping: 32, stiffness: 320 }}
+                className="absolute top-full left-0 right-0 mt-3 mx-2 z-50 rounded-2xl overflow-hidden bg-white border border-gray-200 shadow-xl lg:hidden"
+              >
+                <div className="flex items-center gap-4 px-5 pt-5 pb-4 border-b border-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowInfoSheet(false)}
+                    className="w-11 h-11 rounded-xl flex items-center justify-center bg-gray-50 border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200 flex-shrink-0"
+                    aria-label="إغلاق"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                  <div className="px-4 py-2.5 rounded-xl bg-primary/10 border border-primary/20 text-primary font-medium">
+                    {headerTitle}
+                  </div>
+                </div>
+                <div className="mx-5 my-5 rounded-2xl overflow-hidden bg-gray-50 border border-gray-100">
+                  <div className="p-5 space-y-4">
+                    <p className="text-sm text-gray-700 leading-relaxed line-height-6">
+                      {sheetDescription}
+                    </p>
+                    {sheetSectionItems.length > 0 && (
+                      <ul className="space-y-3 text-sm">
+                        {sheetSectionItems.map((item: SettingsSection['items'][0]) => {
+                          const Icon = item.icon;
+                          return (
+                            <li key={item.href} className="flex items-center gap-3.5">
+                              <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
+                                <Icon className="w-4 h-4 text-primary" />
+                              </div>
+                              <span className="text-gray-800 font-medium">{item.label}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+                <div
+                  className="py-4 flex justify-center cursor-grab active:cursor-grabbing touch-none border-t border-gray-100 bg-gray-50"
+                  onPointerDown={(e) => infoSheetDragControls.start(e)}
+                  aria-hidden
+                >
+                  <div className="w-12 h-1.5 rounded-full bg-gray-300" />
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Desktop: Clean Professional Header */}
+        <header className="hidden lg:block border-b border-gray-200 bg-white">
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <HeaderIcon className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-semibold text-gray-900">{headerTitle}</h1>
+                    {currentSection && (
+                      <p className="text-sm text-gray-600">{currentSection.label}</p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
+            
+            <SettingsBreadcrumb />
           </div>
         </header>
 
@@ -238,7 +236,7 @@ export default function SettingsLayout({
         <div className="relative flex-1 overflow-y-auto min-h-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {children}
           {/* Bottom Blur Gradient Effect - matches dashboard */}
-          <div className="sticky bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card via-card/80 to-transparent pointer-events-none" />
+          <div className="sticky bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white via-white/80 to-transparent pointer-events-none" />
         </div>
       </div>
 
@@ -247,24 +245,29 @@ export default function SettingsLayout({
         <PhonePreview />
       </div>
 
-      {/* Phone Preview Modal - Mobile */}
+      {/* Phone Preview Modal - Mobile مع Glass Effect */}
       {showPreview && (
         <div 
-          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 lg:hidden"
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 lg:hidden"
           onClick={() => setShowPreview(false)}
         >
-          <div 
-            className="relative bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 rounded-3xl p-6 max-w-[340px] w-full shadow-2xl"
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative bg-white border border-gray-200 rounded-3xl p-6 max-w-[360px] w-full shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setShowPreview(false)}
-              className="absolute top-4 left-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+              className="absolute top-4 left-4 p-2.5 hover:bg-gray-100 rounded-xl transition-all duration-200 z-10"
+              aria-label="إغلاق المعاينة"
             >
-              <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              <X className="w-5 h-5 text-gray-500" />
             </button>
             <PhonePreview />
-          </div>
+          </motion.div>
         </div>
       )}
     </div>

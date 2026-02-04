@@ -86,11 +86,11 @@ export class QueryCacheService implements OnModuleInit {
   async get<T>(key: string): Promise<T | null> {
     try {
       const fullKey = this.buildKey(key);
-      const cached = await this.redis.get(fullKey);
+      const cached = await this.redis.get<T>(fullKey);
 
       if (cached) {
         this.logger.debug(`Cache HIT: ${key}`);
-        return JSON.parse(cached) as T;
+        return cached;
       }
 
       this.logger.debug(`Cache MISS: ${key}`);

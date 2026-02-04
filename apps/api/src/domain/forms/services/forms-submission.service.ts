@@ -16,6 +16,7 @@ import { SecureIds } from '../../../core/common/utils/secure-id.util';
 import { NotificationsGateway } from '../../notifications/notifications.gateway';
 import { NotificationType } from '@prisma/client';
 import { GoogleDriveService } from '../../../integrations/google-drive/google-drive.service';
+import { RecaptchaEnterpriseService } from '../../../infrastructure/security/recaptcha-enterprise.service';
 
 /**
  * 📨 Forms Submission Service
@@ -32,6 +33,7 @@ export class FormsSubmissionService {
     private conditionalLogicService: ConditionalLogicService,
     private webhookService: WebhookService,
     private notificationsGateway: NotificationsGateway,
+    private recaptchaService: RecaptchaEnterpriseService,
     @Inject(forwardRef(() => GoogleDriveService))
     private googleDriveService: GoogleDriveService,
   ) {}
@@ -53,6 +55,40 @@ export class FormsSubmissionService {
 
     // Validate submission
     await this.validateSubmission(form, userId);
+
+    // Verify reCAPTCHA Enterprise if token is provided
+    if (submitFormDto.data?.recaptchaToken) {
+      try {
+        const recaptchaResult = await this.recaptchaService.verifyToken(
+          submitFormDto.data.recaptchaToken,
+          'FORM_SUBMIT'
+        );
+        
+        if (!recaptchaResult.success) {
+          throw new BadRequestException({
+            message: 'reCAPTCHA verification failed',
+            code: 'RECAPTCHA_FAILED',
+            details: {
+              score: recaptchaResult.score,
+              error: recaptchaResult.error
+            }
+          });
+        }
+        
+        // Remove reCAPTCHA token from form data before processing
+        delete submitFormDto.data.recaptchaToken;
+        
+      } catch (error) {
+        if (error instanceof BadRequestException) {
+          throw error;
+        }
+        throw new BadRequestException({
+          message: 'reCAPTCHA verification failed',
+          code: 'RECAPTCHA_ERROR',
+          details: error.message
+        });
+      }
+    }
 
     // Apply conditional logic
     const { visibleFieldIds, requiredFieldIds } =

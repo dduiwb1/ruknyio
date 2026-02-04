@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useMemo, Fragment, ReactNode } from 'react';
+import { useState, useEffect, useMemo, useCallback, Fragment, ReactNode, useRef } from 'react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useRecaptchaEnterprise, RecaptchaActions } from '@/lib/hooks/useRecaptchaEnterprise';
 import {
   FileText,
   Send,
@@ -47,6 +48,12 @@ import {
   FieldType,
   FormStatus,
 } from '@/lib/hooks/useForms';
+import {
+  useAdvancedFormFields,
+  calculateFormula,
+  formatCalculatedValue,
+  getHiddenFieldValue,
+} from '@/lib/hooks/useAdvancedFormFields';
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3001';
@@ -69,6 +76,7 @@ export default function PublicFormPage() {
   const params = useParams();
   const slug = params.slug as string;
   const { getFormBySlug, submitForm } = useForms();
+  const { executeRecaptcha } = useRecaptchaEnterprise();
 
   const [form, setForm] = useState<Form | null>(null);
   const [loading, setLoading] = useState(true);
@@ -115,14 +123,51 @@ export default function PublicFormPage() {
     if (slug) fetchForm();
   }, [slug, getFormBySlug]);
 
-  // Get current fields
+  const handleFieldChange = useCallback((fieldId: string, value: any) => {
+    setResponses(prev => ({ ...prev, [fieldId]: value }));
+    setValidationErrors(prev => {
+      if (prev[fieldId]) {
+        const newErrors = { ...prev };
+        delete newErrors[fieldId];
+        return newErrors;
+      }
+      return prev;
+    });
+  }, []);
+
+  // Advanced form fields logic (conditional, calculated, hidden) - Must be before currentFields
+  const {
+    visibleFields: filteredByLogic,
+    calculatedValues,
+    formattedCalculatedValues,
+    hiddenFieldValues,
+    isFieldVisible,
+    getCalculatedDisplay,
+  } = useAdvancedFormFields({
+    fields: (form?.fields || []) as any,
+    responses,
+    onResponseChange: handleFieldChange,
+  });
+
+  // Get current fields with conditional logic applied
   const currentFields = useMemo(() => {
     if (!form) return [];
+    
+    let fields: FormField[] = [];
     if (form.isMultiStep && form.steps?.length) {
-      return form.steps[currentStep]?.fields || [];
+      fields = form.steps[currentStep]?.fields || [];
+    } else {
+      fields = form.fields || [];
     }
-    return form.fields || [];
-  }, [form, currentStep]);
+    
+    // Filter out hidden fields and apply conditional logic
+    return fields.filter(field => {
+      // Hidden fields are never shown but still processed
+      if (field.type === FieldType.HIDDEN) return false;
+      // Check conditional visibility
+      return isFieldVisible(field.id);
+    });
+  }, [form, currentStep, isFieldVisible]);
 
   const totalSteps = form?.isMultiStep ? (form.steps?.length || 1) : 1;
 
@@ -180,27 +225,29 @@ export default function PublicFormPage() {
     if (!validateCurrentFields()) return;
     setIsSubmitting(true);
     try {
-      const result = await submitForm(slug, responses);
+      // Execute reCAPTCHA Enterprise before form submission
+      const recaptchaToken = await executeRecaptcha(RecaptchaActions.FORM_SUBMIT);
+      
+      // Submit form with reCAPTCHA token
+      const result = await submitForm(slug, { 
+        ...responses,
+        recaptchaToken 
+      });
+      
       if (result) {
         setIsSubmitted(true);
       } else {
         setError('فشل في إرسال النموذج');
       }
-    } catch {
-      setError('حدث خطأ أثناء الإرسال');
+    } catch (error: any) {
+      console.error('Form submission error:', error);
+      if (error.message?.includes('reCAPTCHA')) {
+        setError('فشل في التحقق الأمني. يرجى المحاولة مرة أخرى.');
+      } else {
+        setError('حدث خطأ أثناء الإرسال');
+      }
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleFieldChange = (fieldId: string, value: any) => {
-    setResponses(prev => ({ ...prev, [fieldId]: value }));
-    if (validationErrors[fieldId]) {
-      setValidationErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[fieldId];
-        return newErrors;
-      });
     }
   };
 
@@ -220,26 +267,26 @@ export default function PublicFormPage() {
     const ariaDescribedBy = [field.description ? descId : null, hasError ? errorId : null].filter(Boolean).join(' ') || undefined;
 
     const inputClass = cn(
-      "w-full min-h-[44px] h-12 px-4 bg-gray-50/50 border rounded-xl transition-all text-sm outline-none",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300/80 focus-visible:ring-offset-0",
-      "dark:bg-gray-800/30 dark:border-gray-600",
+      "w-full min-h-[48px] h-12 px-4 bg-muted/30 border rounded-2xl transition-all text-sm outline-none",
+      "placeholder:text-muted-foreground/60",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-0 focus-visible:border-primary/50",
       hasError
-        ? "border-red-300 focus-visible:border-red-400 focus-visible:ring-red-100 dark:border-red-500/50"
-        : "border-gray-200 focus-visible:border-gray-400 dark:border-gray-600"
+        ? "border-destructive/50 focus-visible:border-destructive focus-visible:ring-destructive/20"
+        : "border-border hover:border-border/80"
     );
 
     // Field label and description
     const fieldLabel = (
-      <div className="space-y-1 mb-1.5">
+      <div className="space-y-1.5 mb-2">
         <Label
           htmlFor={field.type !== FieldType.RADIO && field.type !== FieldType.CHECKBOX && field.type !== FieldType.TOGGLE ? fieldId : undefined}
-          className={cn("text-sm font-medium", hasError ? "text-red-600" : "text-gray-700 dark:text-gray-300")}
+          className={cn("text-sm font-semibold", hasError ? "text-destructive" : "text-foreground")}
         >
           {field.label}
-          {field.required && <span className="text-red-500 mr-1">*</span>}
+          {field.required && <span className="text-destructive mr-1">*</span>}
         </Label>
         {field.description && (
-          <p id={descId} className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          <p id={descId} className="text-xs text-muted-foreground leading-relaxed">
             {field.description}
           </p>
         )}
@@ -248,8 +295,8 @@ export default function PublicFormPage() {
 
     // Error message
     const errorMessage = hasError && (
-      <p id={errorId} className="text-xs text-red-500 flex items-center gap-1 mt-1.5" role="alert">
-        <AlertCircle className="w-3 h-3 flex-shrink-0" />
+      <p id={errorId} className="text-xs text-destructive flex items-center gap-1.5 mt-2" role="alert">
+        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
         {validationErrors[field.id]}
       </p>
     );
@@ -284,7 +331,7 @@ export default function PublicFormPage() {
               onChange={(e) => handleFieldChange(field.id, e.target.value)}
               placeholder={field.placeholder || 'أدخل النص...'}
               rows={4}
-              className={cn(inputClass, "h-auto min-h-[100px] max-h-40 py-3 resize-y")}
+              className={cn(inputClass, "h-auto min-h-[120px] max-h-48 py-3.5 resize-y leading-relaxed")}
               aria-invalid={hasError}
               aria-required={field.required}
               aria-describedby={ariaDescribedBy}
@@ -298,14 +345,14 @@ export default function PublicFormPage() {
           <div className="space-y-1">
             {fieldLabel}
             <div className="relative">
-              <Mail className={cn("absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors", hasError ? "text-red-400" : "text-gray-400")} aria-hidden />
+              <Mail className={cn("absolute right-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 transition-colors", hasError ? "text-destructive/60" : "text-muted-foreground/50")} aria-hidden />
               <input
                 id={fieldId}
                 type="email"
                 value={value || ''}
                 onChange={(e) => handleFieldChange(field.id, e.target.value)}
                 placeholder={field.placeholder || 'example@email.com'}
-                className={cn(inputClass, "pr-11")}
+                className={cn(inputClass, "pr-12")}
                 dir="ltr"
                 aria-invalid={hasError}
                 aria-required={field.required}
@@ -321,14 +368,14 @@ export default function PublicFormPage() {
           <div className="space-y-1">
             {fieldLabel}
             <div className="relative">
-              <Phone className={cn("absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors", hasError ? "text-red-400" : "text-gray-400")} aria-hidden />
+              <Phone className={cn("absolute right-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 transition-colors", hasError ? "text-destructive/60" : "text-muted-foreground/50")} aria-hidden />
               <input
                 id={fieldId}
                 type="tel"
                 value={value || ''}
                 onChange={(e) => handleFieldChange(field.id, e.target.value)}
                 placeholder={field.placeholder || '+964 XXX XXX XXXX'}
-                className={cn(inputClass, "pr-11")}
+                className={cn(inputClass, "pr-12")}
                 dir="ltr"
                 aria-invalid={hasError}
                 aria-required={field.required}
@@ -344,7 +391,7 @@ export default function PublicFormPage() {
           <div className="space-y-1">
             {fieldLabel}
             <div className="relative">
-              <Hash className={cn("absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors", hasError ? "text-red-400" : "text-gray-400")} aria-hidden />
+              <Hash className={cn("absolute right-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 transition-colors", hasError ? "text-destructive/60" : "text-muted-foreground/50")} aria-hidden />
               <input
                 id={fieldId}
                 type="number"
@@ -353,7 +400,7 @@ export default function PublicFormPage() {
                 placeholder={field.placeholder || '0'}
                 min={field.minValue}
                 max={field.maxValue}
-                className={cn(inputClass, "pr-11")}
+                className={cn(inputClass, "pr-12")}
                 dir="ltr"
                 aria-invalid={hasError}
                 aria-required={field.required}
@@ -369,13 +416,13 @@ export default function PublicFormPage() {
           <div className="space-y-1">
             {fieldLabel}
             <div className="relative">
-              <Calendar className={cn("absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors", hasError ? "text-red-400" : "text-gray-400")} aria-hidden />
+              <Calendar className={cn("absolute right-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 transition-colors", hasError ? "text-destructive/60" : "text-muted-foreground/50")} aria-hidden />
               <input
                 id={fieldId}
                 type="date"
                 value={value || ''}
                 onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                className={cn(inputClass, "pr-11")}
+                className={cn(inputClass, "pr-12")}
                 dir="ltr"
                 aria-invalid={hasError}
                 aria-required={field.required}
@@ -391,13 +438,13 @@ export default function PublicFormPage() {
           <div className="space-y-1">
             {fieldLabel}
             <div className="relative">
-              <Clock className={cn("absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors", hasError ? "text-red-400" : "text-gray-400")} aria-hidden />
+              <Clock className={cn("absolute right-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 transition-colors", hasError ? "text-destructive/60" : "text-muted-foreground/50")} aria-hidden />
               <input
                 id={fieldId}
                 type="time"
                 value={value || ''}
                 onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                className={cn(inputClass, "pr-11")}
+                className={cn(inputClass, "pr-12")}
                 dir="ltr"
                 aria-invalid={hasError}
                 aria-required={field.required}
@@ -434,7 +481,11 @@ export default function PublicFormPage() {
             <Select value={value || ''} onValueChange={(v) => handleFieldChange(field.id, v)}>
               <SelectTrigger
                 id={fieldId}
-                className={cn(inputClass, "h-12")}
+                className={cn(
+                  "w-full min-h-[48px] h-12 px-4 bg-muted/30 border rounded-2xl transition-all text-sm",
+                  "focus:ring-2 focus:ring-primary/20 focus:ring-offset-0 focus:border-primary/50",
+                  hasError ? "border-destructive/50" : "border-border hover:border-border/80"
+                )}
                 aria-invalid={hasError}
                 aria-required={field.required}
                 aria-describedby={ariaDescribedBy}
@@ -459,7 +510,7 @@ export default function PublicFormPage() {
         return (
           <div className="space-y-1" role="group" aria-labelledby={`${fieldId}-label`} aria-describedby={ariaDescribedBy} aria-invalid={hasError} aria-required={field.required}>
             <div id={`${fieldId}-label`}>{fieldLabel}</div>
-            <div className="space-y-2 mt-1">
+            <div className="space-y-2.5 mt-2">
               {(field.options || []).map((opt, i) => {
                 const optValue = typeof opt === 'string' ? opt : opt.value;
                 const optLabel = typeof opt === 'string' ? opt : opt.label;
@@ -470,9 +521,10 @@ export default function PublicFormPage() {
                     key={i}
                     htmlFor={optId}
                     className={cn(
-                      "flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all min-h-[44px]",
-                      "dark:border-gray-600 dark:hover:border-gray-500",
-                      isSelected ? "border-gray-900 bg-gray-100 ring-1 ring-gray-900/10 dark:bg-gray-800/50 dark:border-gray-500" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
+                      "flex items-center gap-3.5 p-4 rounded-2xl border cursor-pointer transition-all min-h-[52px]",
+                      isSelected 
+                        ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
+                        : "border-border hover:border-primary/30 hover:bg-muted/30"
                     )}
                   >
                     <input
@@ -485,12 +537,12 @@ export default function PublicFormPage() {
                       aria-describedby={ariaDescribedBy}
                     />
                     <div className={cn(
-                      "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0",
-                      isSelected ? "border-gray-900 bg-gray-900 dark:bg-gray-100 dark:border-gray-100" : "border-gray-300 dark:border-gray-500"
+                      "w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors",
+                      isSelected ? "border-primary bg-primary" : "border-muted-foreground/40"
                     )}>
-                      {isSelected && <div className="w-2 h-2 rounded-full bg-white dark:bg-gray-900" />}
+                      {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
                     </div>
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{optLabel}</span>
+                    <span className="text-sm font-medium text-foreground">{optLabel}</span>
                   </label>
                 );
               })}
@@ -499,12 +551,12 @@ export default function PublicFormPage() {
           </div>
         );
 
-      case FieldType.CHECKBOX:
+      case FieldType.CHECKBOX: {
         const selectedValues = Array.isArray(value) ? value : [];
         return (
           <div className="space-y-1" role="group" aria-labelledby={`${fieldId}-label`} aria-describedby={ariaDescribedBy} aria-invalid={hasError} aria-required={field.required}>
             <div id={`${fieldId}-label`}>{fieldLabel}</div>
-            <div className="space-y-2 mt-1">
+            <div className="space-y-2.5 mt-2">
               {(field.options || []).map((opt, i) => {
                 const optValue = typeof opt === 'string' ? opt : opt.value;
                 const optLabel = typeof opt === 'string' ? opt : opt.label;
@@ -515,9 +567,10 @@ export default function PublicFormPage() {
                     key={i}
                     htmlFor={optId}
                     className={cn(
-                      "flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all min-h-[44px]",
-                      "dark:border-gray-600 dark:hover:border-gray-500",
-                      isSelected ? "border-gray-900 bg-gray-100 ring-1 ring-gray-900/10 dark:bg-gray-800/50 dark:border-gray-500" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50/50"
+                      "flex items-center gap-3.5 p-4 rounded-2xl border cursor-pointer transition-all min-h-[52px]",
+                      isSelected 
+                        ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
+                        : "border-border hover:border-primary/30 hover:bg-muted/30"
                     )}
                   >
                     <input
@@ -534,12 +587,12 @@ export default function PublicFormPage() {
                       }}
                     />
                     <div className={cn(
-                      "w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0",
-                      isSelected ? "border-gray-900 bg-gray-900 dark:bg-gray-100 dark:border-gray-100" : "border-gray-300 dark:border-gray-500"
+                      "w-5 h-5 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition-colors",
+                      isSelected ? "border-primary bg-primary" : "border-muted-foreground/40"
                     )}>
-                      {isSelected && <Check className="w-3 h-3 text-white dark:text-gray-900" />}
+                      {isSelected && <Check className="w-3 h-3 text-white" />}
                     </div>
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{optLabel}</span>
+                    <span className="text-sm font-medium text-foreground">{optLabel}</span>
                   </label>
                 );
               })}
@@ -547,28 +600,46 @@ export default function PublicFormPage() {
             {errorMessage}
           </div>
         );
+      }
 
       case FieldType.TOGGLE:
         return (
           <div className="space-y-1">
             {fieldLabel}
-            <div
-              className={cn(
-                "flex items-center justify-between p-3.5 rounded-xl border min-h-[44px] transition-colors",
-                "dark:border-gray-600",
-                value ? "border-gray-900 bg-gray-100 dark:bg-gray-800/50 dark:border-gray-500" : "border-gray-200 hover:bg-gray-50/50"
-              )}
-              role="switch"
-              aria-checked={!!value}
-              aria-invalid={hasError}
-              aria-describedby={ariaDescribedBy}
-            >
-              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{value ? 'نعم' : 'لا'}</span>
-              <Switch
-                checked={value || false}
-                onCheckedChange={(checked) => handleFieldChange(field.id, checked)}
-                aria-label={field.label}
-              />
+            <div className="flex gap-3" role="radiogroup" aria-label={field.label}>
+              {/* Yes Button */}
+              <button
+                type="button"
+                onClick={() => handleFieldChange(field.id, true)}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 transition-all font-medium text-sm",
+                  value === true
+                    ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 ring-2 ring-emerald-500/20"
+                    : "border-border bg-muted/30 text-muted-foreground hover:border-emerald-300 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20"
+                )}
+                role="radio"
+                aria-checked={value === true}
+              >
+                <Check className={cn("w-5 h-5", value === true ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground/50")} />
+                <span>نعم</span>
+              </button>
+              
+              {/* No Button */}
+              <button
+                type="button"
+                onClick={() => handleFieldChange(field.id, false)}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 transition-all font-medium text-sm",
+                  value === false
+                    ? "border-red-500 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 ring-2 ring-red-500/20"
+                    : "border-border bg-muted/30 text-muted-foreground hover:border-red-300 hover:bg-red-50/50 dark:hover:bg-red-950/20"
+                )}
+                role="radio"
+                aria-checked={value === false}
+              >
+                <X className={cn("w-5 h-5", value === false ? "text-red-600 dark:text-red-400" : "text-muted-foreground/50")} />
+                <span>لا</span>
+              </button>
             </div>
             {errorMessage}
           </div>
@@ -581,7 +652,7 @@ export default function PublicFormPage() {
           <div className="space-y-1">
             {fieldLabel}
             <div
-              className="flex items-center gap-1 mt-1"
+              className="flex items-center gap-1.5 mt-2 p-3 bg-muted/30 rounded-2xl border border-border"
               role="group"
               aria-label={field.label}
               aria-describedby={ariaDescribedBy}
@@ -591,20 +662,20 @@ export default function PublicFormPage() {
                   key={i}
                   type="button"
                   onClick={() => handleFieldChange(field.id, i + 1)}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  className="p-1.5 rounded-xl hover:bg-muted transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                   aria-label={`${i + 1} من ${maxRating}`}
                   aria-pressed={i + 1 === currentRating}
                 >
                   <Star
                     className={cn(
-                      "w-8 h-8 transition-colors",
-                      i < currentRating ? "fill-amber-400 text-amber-400" : "text-gray-200 dark:text-gray-600"
+                      "w-7 h-7 transition-colors",
+                      i < currentRating ? "fill-warning text-warning" : "text-muted-foreground/30"
                     )}
                   />
                 </button>
               ))}
               {currentRating > 0 && (
-                <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">{currentRating}/{maxRating}</span>
+                <span className="text-sm font-medium text-muted-foreground mr-2">{currentRating}/{maxRating}</span>
               )}
             </div>
             {errorMessage}
@@ -617,12 +688,12 @@ export default function PublicFormPage() {
         return (
           <div className="space-y-1">
             {fieldLabel}
-            <div className="space-y-2 mt-1" role="group" aria-label={field.label} aria-describedby={ariaDescribedBy}>
-              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+            <div className="space-y-3 mt-2" role="group" aria-label={field.label} aria-describedby={ariaDescribedBy}>
+              <div className="flex justify-between text-xs font-medium text-muted-foreground px-1">
                 <span>{field.minLabel || min}</span>
                 <span>{field.maxLabel || max}</span>
               </div>
-              <div className="flex gap-1">
+              <div className="flex gap-1.5">
                 {Array.from({ length: max - min + 1 }).map((_, i) => {
                   const num = min + i;
                   return (
@@ -631,9 +702,10 @@ export default function PublicFormPage() {
                       type="button"
                       onClick={() => handleFieldChange(field.id, num)}
                       className={cn(
-                        "flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px]",
-                        "dark:border dark:border-transparent",
-                        value === num ? "bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900" : "bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
+                        "flex-1 py-3 rounded-xl text-sm font-semibold transition-all min-h-[48px]",
+                        value === num 
+                          ? "bg-primary text-primary-foreground shadow-sm" 
+                          : "bg-muted/50 hover:bg-muted text-foreground border border-border"
                       )}
                       aria-pressed={value === num}
                       aria-label={String(num)}
@@ -653,15 +725,16 @@ export default function PublicFormPage() {
           <div className="space-y-1">
             {fieldLabel}
             <div
-              className="border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-xl p-6 text-center hover:border-gray-300 dark:hover:border-gray-500 transition-colors min-h-[120px] flex flex-col items-center justify-center"
+              className="border-2 border-dashed border-border rounded-2xl p-8 text-center hover:border-primary/50 hover:bg-muted/30 transition-colors min-h-[140px] flex flex-col items-center justify-center cursor-pointer"
               role="button"
               tabIndex={0}
               aria-label="رفع الملفات"
               aria-describedby={ariaDescribedBy}
               onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLElement).click()}
             >
-              <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400 dark:text-gray-500" aria-hidden />
-              <p className="text-sm text-gray-500 dark:text-gray-400">اضغط لرفع الملفات</p>
+              <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" aria-hidden />
+              <p className="text-sm font-medium text-foreground mb-1">اضغط لرفع الملفات</p>
+              <p className="text-xs text-muted-foreground">أو اسحب وأفلت الملفات هنا</p>
             </div>
             {errorMessage}
           </div>
@@ -671,12 +744,362 @@ export default function PublicFormPage() {
         return (
           <div className="space-y-1">
             {fieldLabel}
-            <div className="border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-xl p-6 text-center min-h-[100px] flex items-center justify-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400">التوقيع غير متاح حالياً</p>
+            <div className="border-2 border-dashed border-border rounded-2xl p-8 text-center min-h-[120px] flex items-center justify-center bg-muted/20">
+              <p className="text-sm text-muted-foreground">التوقيع غير متاح حالياً</p>
             </div>
             {errorMessage}
           </div>
         );
+
+      // ==================== NEW FIELD TYPES ====================
+
+      case FieldType.URL:
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <div className="relative">
+              <input
+                id={fieldId}
+                type="url"
+                inputMode="url"
+                value={value || ''}
+                onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                placeholder={field.placeholder || 'https://example.com'}
+                className={cn(inputClass, "pl-10")}
+                dir="ltr"
+                aria-invalid={hasError}
+                aria-required={field.required}
+                aria-describedby={ariaDescribedBy}
+              />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                🔗
+              </span>
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.MULTISELECT: {
+        const multiselectOptions = Array.isArray(field.options) ? field.options : [];
+        const selectedValues = Array.isArray(value) ? value : [];
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <div className="space-y-2" role="group" aria-label={field.label} aria-describedby={ariaDescribedBy}>
+              {multiselectOptions.map((option, i) => {
+                const optionValue = typeof option === 'string' ? option : option.value;
+                const optionLabel = typeof option === 'string' ? option : option.label;
+                const isChecked = selectedValues.includes(optionValue);
+                return (
+                  <label
+                    key={i}
+                    className={cn(
+                      "flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all min-h-[52px]",
+                      isChecked 
+                        ? "border-primary bg-primary/5 ring-1 ring-primary/20" 
+                        : "border-border hover:bg-muted/30"
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => {
+                        const newValue = isChecked
+                          ? selectedValues.filter(v => v !== optionValue)
+                          : [...selectedValues, optionValue];
+                        handleFieldChange(field.id, newValue);
+                      }}
+                      className="w-5 h-5 rounded-md accent-primary"
+                    />
+                    <span className="text-sm font-medium text-foreground">{optionLabel}</span>
+                  </label>
+                );
+              })}
+            </div>
+            {errorMessage}
+          </div>
+        );
+      }
+
+      case FieldType.RANKING:
+        const rankingOptions = Array.isArray(field.options) ? field.options : [];
+        const rankedItems = Array.isArray(value) ? value : rankingOptions.map(o => typeof o === 'string' ? o : o.value);
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <div className="space-y-2" role="list" aria-label={field.label} aria-describedby={ariaDescribedBy}>
+              {rankedItems.map((item, i) => {
+                const itemLabel = typeof item === 'string' ? item : (rankingOptions.find(o => (typeof o === 'string' ? o : o.value) === item) as any)?.label || item;
+                return (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 p-4 bg-muted/30 border border-border rounded-2xl min-h-[52px] cursor-move"
+                    role="listitem"
+                  >
+                    <span className="w-8 h-8 bg-primary/10 text-primary rounded-lg flex items-center justify-center text-sm font-bold">
+                      {i + 1}
+                    </span>
+                    <span className="text-sm font-medium text-foreground flex-1">{itemLabel}</span>
+                    <span className="text-muted-foreground/50">⋮⋮</span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">اسحب العناصر لترتيبها حسب الأفضلية</p>
+            {errorMessage}
+          </div>
+        );
+
+      // Layout blocks - Display only, no input
+      case FieldType.HEADING:
+        return (
+          <div className="py-2">
+            <h2 className="text-xl font-bold text-foreground">{field.label}</h2>
+            {field.description && (
+              <p className="text-sm text-muted-foreground mt-1">{field.description}</p>
+            )}
+          </div>
+        );
+
+      case FieldType.TITLE:
+        return (
+          <div className="py-3">
+            <h3 className="text-lg font-semibold text-foreground">{field.label}</h3>
+            {field.description && (
+              <p className="text-sm text-muted-foreground mt-1">{field.description}</p>
+            )}
+          </div>
+        );
+
+      case FieldType.PARAGRAPH:
+        return (
+          <div className="py-2">
+            <p className="text-sm text-muted-foreground leading-relaxed">{field.label}</p>
+          </div>
+        );
+
+      case FieldType.LABEL:
+        return (
+          <div className="py-1">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{field.label}</span>
+          </div>
+        );
+
+      case FieldType.DIVIDER:
+        return (
+          <div className="py-4">
+            <hr className="border-border" />
+          </div>
+        );
+
+      // Embed blocks
+      case FieldType.IMAGE:
+        const imgUrl = (field as any).imageUrl || field.defaultValue || field.placeholder;
+        const imgAlt = (field as any).imageAlt || field.label || 'صورة';
+        const imgWidth = (field as any).imageWidth || 'full';
+        const imgAlign = (field as any).imageAlign || 'center';
+        const imgLink = (field as any).imageLink;
+        
+        const widthClass = imgWidth === 'full' ? 'w-full' : imgWidth === 'medium' ? 'w-2/3' : 'w-1/3';
+        const alignClass = imgAlign === 'right' ? 'mr-0 ml-auto' : imgAlign === 'left' ? 'ml-0 mr-auto' : 'mx-auto';
+        
+        const imageElement = imgUrl ? (
+          <img 
+            src={imgUrl} 
+            alt={imgAlt} 
+            className={cn("rounded-2xl border border-border object-cover max-h-80", widthClass, alignClass)}
+          />
+        ) : (
+          <div className={cn("h-48 bg-muted rounded-2xl border border-border flex items-center justify-center", widthClass, alignClass)}>
+            <span className="text-muted-foreground">🖼️ صورة</span>
+          </div>
+        );
+        
+        return (
+          <div className="py-2">
+            {field.label && <p className="text-sm font-medium text-foreground mb-2">{field.label}</p>}
+            {imgLink ? (
+              <a href={imgLink} target="_blank" rel="noopener noreferrer" className="block hover:opacity-90 transition-opacity">
+                {imageElement}
+              </a>
+            ) : imageElement}
+            {field.description && (
+              <p className="text-xs text-muted-foreground mt-2">{field.description}</p>
+            )}
+          </div>
+        );
+
+      case FieldType.VIDEO:
+        const vidUrl = (field as any).videoUrl || field.defaultValue || field.placeholder;
+        const vidSource = (field as any).videoSource || 'youtube';
+        const vidAutoplay = (field as any).videoAutoplay || false;
+        const vidControls = (field as any).videoControls !== false;
+        const vidLoop = (field as any).videoLoop || false;
+        
+        // Convert YouTube/Vimeo URLs to embed URLs
+        let embedVidUrl = vidUrl;
+        if (vidUrl) {
+          if (vidSource === 'youtube' || vidUrl.includes('youtube.com') || vidUrl.includes('youtu.be')) {
+            const videoId = vidUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&\n?#]+)/)?.[1];
+            if (videoId) {
+              embedVidUrl = `https://www.youtube.com/embed/${videoId}?${vidAutoplay ? 'autoplay=1&' : ''}${vidLoop ? 'loop=1&playlist=' + videoId + '&' : ''}${!vidControls ? 'controls=0' : ''}`;
+            }
+          } else if (vidSource === 'vimeo' || vidUrl.includes('vimeo.com')) {
+            const vimeoId = vidUrl.match(/vimeo\.com\/(\d+)/)?.[1];
+            if (vimeoId) {
+              embedVidUrl = `https://player.vimeo.com/video/${vimeoId}?${vidAutoplay ? 'autoplay=1&' : ''}${vidLoop ? 'loop=1&' : ''}`;
+            }
+          }
+        }
+        
+        return (
+          <div className="py-2">
+            {field.label && <p className="text-sm font-medium text-foreground mb-2">{field.label}</p>}
+            {embedVidUrl ? (
+              vidSource === 'direct' ? (
+                <video
+                  src={vidUrl}
+                  className="w-full rounded-2xl border border-border"
+                  controls={vidControls}
+                  autoPlay={vidAutoplay}
+                  loop={vidLoop}
+                  playsInline
+                />
+              ) : (
+                <div className="aspect-video rounded-2xl overflow-hidden border border-border">
+                  <iframe
+                    src={embedVidUrl}
+                    className="w-full h-full"
+                    allowFullScreen
+                    allow="autoplay; fullscreen; picture-in-picture"
+                    title={field.label || 'فيديو'}
+                  />
+                </div>
+              )
+            ) : (
+              <div className="aspect-video bg-muted rounded-2xl border border-border flex items-center justify-center">
+                <span className="text-muted-foreground">🎬 فيديو</span>
+              </div>
+            )}
+            {field.description && (
+              <p className="text-xs text-muted-foreground mt-2">{field.description}</p>
+            )}
+          </div>
+        );
+
+      case FieldType.AUDIO:
+        const audUrl = (field as any).audioUrl || field.defaultValue || field.placeholder;
+        const audAutoplay = (field as any).audioAutoplay || false;
+        const audControls = (field as any).audioControls !== false;
+        
+        return (
+          <div className="py-2">
+            {field.label && <p className="text-sm font-medium text-foreground mb-2">{field.label}</p>}
+            {audUrl ? (
+              <audio 
+                controls={audControls} 
+                autoPlay={audAutoplay}
+                className="w-full rounded-xl"
+              >
+                <source src={audUrl} />
+                متصفحك لا يدعم تشغيل الصوت
+              </audio>
+            ) : (
+              <div className="h-16 bg-muted rounded-2xl border border-border flex items-center justify-center">
+                <span className="text-muted-foreground">🔊 ملف صوتي</span>
+              </div>
+            )}
+            {field.description && (
+              <p className="text-xs text-muted-foreground mt-2">{field.description}</p>
+            )}
+          </div>
+        );
+
+      case FieldType.EMBED:
+        const embCode = (field as any).embedCode;
+        const embHeight = (field as any).embedHeight || 400;
+        const embUrl = field.defaultValue || field.placeholder;
+        
+        return (
+          <div className="py-2">
+            {field.label && <p className="text-sm font-medium text-foreground mb-2">{field.label}</p>}
+            {embCode ? (
+              <div 
+                className="rounded-2xl overflow-hidden border border-border"
+                style={{ height: embHeight }}
+                dangerouslySetInnerHTML={{ __html: embCode }}
+              />
+            ) : embUrl ? (
+              <div 
+                className="rounded-2xl overflow-hidden border border-border"
+                style={{ height: embHeight }}
+              >
+                <iframe
+                  src={embUrl}
+                  className="w-full h-full"
+                  title={field.label || 'محتوى مضمن'}
+                />
+              </div>
+            ) : (
+              <div 
+                className="bg-muted rounded-2xl border border-border flex items-center justify-center"
+                style={{ height: embHeight }}
+              >
+                <span className="text-muted-foreground">📦 محتوى مضمن</span>
+              </div>
+            )}
+            {field.description && (
+              <p className="text-xs text-muted-foreground mt-2">{field.description}</p>
+            )}
+          </div>
+        );
+
+      // Advanced blocks
+      case FieldType.HIDDEN:
+        // Hidden fields are not rendered
+        return null;
+
+      case FieldType.CALCULATED:
+        const calculatedDisplay = getCalculatedDisplay(field.id);
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <div className="p-4 bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 rounded-2xl min-h-[52px] flex items-center">
+              <span className="text-lg font-bold text-primary">{calculatedDisplay}</span>
+            </div>
+          </div>
+        );
+
+      case FieldType.RECAPTCHA:
+        // reCAPTCHA Enterprise - يتم التعامل معها في handleSubmit
+        return (
+          <div className="py-4 flex flex-col items-center justify-center gap-3">
+            {field.label && field.label !== 'حماية reCAPTCHA' && (
+              <p className="text-sm font-medium text-foreground">{field.label}</p>
+            )}
+            
+            {/* Enterprise reCAPTCHA Visual Indicator */}
+            <div className="p-6 bg-gradient-to-br from-emerald-50 to-green-100/50 dark:from-emerald-900/20 dark:to-green-900/10 rounded-2xl border border-emerald-200/50 dark:border-emerald-700/30 flex flex-col items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                <svg className="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">محمي بتقنية Google reCAPTCHA Enterprise</p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-500">حماية متقدمة من البوتات والسبام</p>
+              </div>
+            </div>
+            
+            {hasError && (
+              <p className="text-xs text-destructive">فشل في التحقق من الحماية، يرجى المحاولة مرة أخرى</p>
+            )}
+          </div>
+        );
+
+      case FieldType.CONDITIONAL_LOGIC:
+        // This is a logic block, not a visible field
+        return null;
 
       default:
         return (
@@ -702,10 +1125,10 @@ export default function PublicFormPage() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-gray-400 mx-auto mb-3" />
-          <p className="text-sm text-gray-500">جاري التحميل...</p>
+          <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-sm font-medium text-muted-foreground">جاري التحميل...</p>
         </div>
       </div>
     );
@@ -714,14 +1137,14 @@ export default function PublicFormPage() {
   // Error state
   if (error || !form) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-8 h-8 text-gray-400" />
+          <div className="w-20 h-20 bg-destructive/10 rounded-3xl flex items-center justify-center mx-auto mb-5">
+            <AlertCircle className="w-10 h-10 text-destructive" />
           </div>
-          <h1 className="text-lg font-semibold text-gray-900 mb-2">النموذج غير موجود</h1>
-          <p className="text-sm text-gray-500 mb-4">{error || 'لم نتمكن من العثور على هذا النموذج'}</p>
-          <a href="/" className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm">
+          <h1 className="text-xl font-bold text-foreground mb-2">النموذج غير موجود</h1>
+          <p className="text-sm text-muted-foreground mb-6">{error || 'لم نتمكن من العثور على هذا النموذج'}</p>
+          <a href="/" className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors">
             <ArrowRight className="w-4 h-4" />
             العودة للرئيسية
           </a>
@@ -733,14 +1156,14 @@ export default function PublicFormPage() {
   // Closed state
   if (form.status !== FormStatus.PUBLISHED) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Lock className="w-8 h-8 text-gray-400" />
+          <div className="w-20 h-20 bg-warning/10 rounded-3xl flex items-center justify-center mx-auto mb-5">
+            <Lock className="w-10 h-10 text-warning" />
           </div>
-          <h1 className="text-lg font-semibold text-gray-900 mb-2">النموذج مغلق</h1>
-          <p className="text-sm text-gray-500 mb-4">هذا النموذج لا يقبل إجابات جديدة</p>
-          <a href="/" className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm">
+          <h1 className="text-xl font-bold text-foreground mb-2">النموذج مغلق</h1>
+          <p className="text-sm text-muted-foreground mb-6">هذا النموذج لا يقبل إجابات جديدة</p>
+          <a href="/" className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors">
             <ArrowRight className="w-4 h-4" />
             العودة للرئيسية
           </a>
@@ -752,23 +1175,23 @@ export default function PublicFormPage() {
   // Success state
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="text-center max-w-sm"
         >
-          <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Check className="w-8 h-8 text-green-600" />
+          <div className="w-20 h-20 bg-success/10 rounded-3xl flex items-center justify-center mx-auto mb-5">
+            <Check className="w-10 h-10 text-success" />
           </div>
-          <h1 className="text-xl font-semibold text-gray-900 mb-2">تم الإرسال بنجاح!</h1>
-          <p className="text-sm text-gray-500 mb-6">شكراً لمشاركتك في "{form.title}"</p>
+          <h1 className="text-2xl font-bold text-foreground mb-2">تم الإرسال بنجاح!</h1>
+          <p className="text-sm text-muted-foreground mb-6">شكراً لمشاركتك في "{form.title}"</p>
           {form.autoResponseMessage && (
-            <div className="bg-white border border-gray-200 rounded-xl p-4 text-right mb-6">
-              <p className="text-sm text-gray-600">{form.autoResponseMessage}</p>
+            <div className="bg-card border border-border rounded-2xl p-4 text-right mb-6">
+              <p className="text-sm text-foreground leading-relaxed">{form.autoResponseMessage}</p>
             </div>
           )}
-          <a href="/" className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg text-sm">
+          <a href="/" className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors">
             <ArrowRight className="w-4 h-4" />
             العودة للرئيسية
           </a>
@@ -781,13 +1204,13 @@ export default function PublicFormPage() {
   const ownerName = form.user?.profile?.name || form.user?.email?.split('@')[0] || 'مستخدم';
 
   return (
-    <div className="min-h-screen bg-[#ffffff]" dir="rtl">
+    <div className="min-h-screen bg-background" dir="rtl">
       {/* Simple Header + بطاقة المعلومات تنبثق من هنا */}
       <header className="sticky top-2 z-40 mx-4 sm:mx-auto max-w-2xl relative">
-        <div className="bg-white/90 backdrop-blur-md rounded-4xl border border-gray-100 px-4 py-3 flex items-center justify-between gap-3">
+        <div className="bg-card/95 backdrop-blur-md rounded-4xl border border-border px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
           {/* Form Title */}
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <h1 className="text-sm font-semibold text-gray-900 truncate">ركني</h1>
+            <h1 className="text-sm font-semibold text-foreground truncate">ركني</h1>
           </div>
 
           {/* Actions */}
@@ -796,7 +1219,7 @@ export default function PublicFormPage() {
               onClick={() => setShowInfoSheet(!showInfoSheet)}
               className={cn(
                 "w-9 h-9 flex items-center justify-center rounded-xl transition-colors",
-                showInfoSheet ? "bg-teal-100 text-teal-700" : "hover:bg-gray-100 text-gray-600"
+                showInfoSheet ? "bg-primary/15 text-primary" : "hover:bg-muted text-muted-foreground"
               )}
               aria-label="معلومات"
               aria-expanded={showInfoSheet}
@@ -805,17 +1228,17 @@ export default function PublicFormPage() {
             </button>
             <button
               onClick={() => setShowModal('share')}
-              className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 rounded-xl transition-colors"
+              className="w-9 h-9 flex items-center justify-center hover:bg-muted rounded-xl transition-colors text-muted-foreground"
               aria-label="مشاركة"
             >
-              <Share2 className="w-4 h-4 text-gray-600" />
+              <Share2 className="w-4 h-4" />
             </button>
             <button
               onClick={() => setShowModal('qr')}
-              className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 rounded-xl transition-colors"
+              className="w-9 h-9 flex items-center justify-center hover:bg-muted rounded-xl transition-colors text-muted-foreground"
               aria-label="QR Code"
             >
-              <QrCode className="w-4 h-4 text-gray-600" />
+              <QrCode className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -846,25 +1269,25 @@ export default function PublicFormPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ type: 'spring', damping: 32, stiffness: 320 }}
-                className="absolute top-full left-0 right-0 sm:left-auto sm:right-0 sm:w-[340px] mt-2 z-50 rounded-4xl overflow-hidden bg-white shadow-xl border border-gray-200/90"
+                className="absolute top-full left-0 right-0 sm:left-auto sm:right-0 sm:w-[340px] mt-2 z-50 rounded-4xl overflow-hidden bg-card shadow-xl border border-border"
               >
                 {/* شريط علوي: زر رجوع دائري أبيض + حبة خضراء (مثل المرجع) */}
                 <div className="flex items-center gap-3 px-4 pt-4 pb-3">
                   <button
                     onClick={() => setShowInfoSheet(false)}
-                    className="w-9 h-9 rounded-full flex items-center justify-center bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors flex-shrink-0 shadow-sm"
+                    className="w-9 h-9 rounded-full flex items-center justify-center bg-card border border-border text-muted-foreground hover:bg-muted transition-colors flex-shrink-0 shadow-sm"
                     aria-label="إغلاق"
                   >
                     <ChevronRight className="w-5 h-5" />
                   </button>
-                  <span className="px-4 py-1.5 rounded-full bg-green-800 text-white text-sm font-medium">
+                  <span className="px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium">
                     معلومات النموذج
                   </span>
                 </div>
 
                 {/* صورة النموذج — منفصلة عن المعلومات */}
                 {form.bannerImages?.[0] && (
-                  <div className="mx-4 mb-3 rounded-4xl overflow-hidden aspect-video bg-gray-100">
+                  <div className="mx-4 mb-3 rounded-4xl overflow-hidden aspect-video bg-muted">
                     <img
                       src={form.bannerImages[0]}
                       alt={form.title}
@@ -873,41 +1296,41 @@ export default function PublicFormPage() {
                   </div>
                 )}
 
-                {/* المحتوى الرئيسي — خلفية خضراء غامقة ونص أبيض (مثل المرجع) */}
-                <div className="mx-4 mb-4 rounded-4xl overflow-hidden bg-green-800 border border-green-700/50">
+                {/* المحتوى الرئيسي — خلفية primary */}
+                <div className="mx-4 mb-4 rounded-4xl overflow-hidden bg-primary">
                   <div className="p-4 space-y-4">
                     {form.description && (
-                      <p className="text-white text-base leading-relaxed line-clamp-3">
+                      <p className="text-primary-foreground text-base leading-relaxed line-clamp-3">
                         {form.description}
                       </p>
                     )}
-                    <p className="text-green-100 text-sm">
+                    <p className="text-primary-foreground/70 text-sm">
                       {form.title} — ركني
                     </p>
 
                     {/* اسم المنشئ + توثيق + زر الملف الشخصي */}
                     <div className="flex items-center gap-3">
                       <div className="relative flex-shrink-0">
-                        <Avatar className="w-10 h-10 rounded-full ring-2 ring-white/30">
+                        <Avatar className="w-10 h-10 rounded-full ring-2 ring-primary-foreground/30">
                           {form.user?.profile?.avatar && (
                             <AvatarImage src={getAvatarUrl(form.user.profile.avatar)} alt={ownerName} />
                           )}
-                          <AvatarFallback className="bg-green-700 text-white text-sm rounded-full">
+                          <AvatarFallback className="bg-primary-foreground/20 text-primary-foreground text-sm rounded-full">
                             {getInitials(ownerName)}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-white rounded-full border-2 border-green-800 flex items-center justify-center" title="موثق">
-                          <Check className="w-2.5 h-2.5 text-green-700" strokeWidth={2.5} />
+                        <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-primary-foreground rounded-full border-2 border-primary flex items-center justify-center" title="موثق">
+                          <Check className="w-2.5 h-2.5 text-primary" strokeWidth={2.5} />
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-white font-medium truncate">{ownerName}</p>
-                        <span className="text-green-200 text-xs">موثق</span>
+                        <p className="text-primary-foreground font-medium truncate">{ownerName}</p>
+                        <span className="text-primary-foreground/70 text-xs">موثق</span>
                       </div>
                       {form.user?.profile?.username && (
                         <Link
                           href={`/${form.user.profile.username}`}
-                          className="w-9 h-9 rounded-full flex items-center justify-center bg-white/15 text-white border border-white/30 hover:bg-white/25 transition-colors flex-shrink-0"
+                          className="w-9 h-9 rounded-full flex items-center justify-center bg-primary-foreground/15 text-primary-foreground border border-primary-foreground/30 hover:bg-primary-foreground/25 transition-colors flex-shrink-0"
                           title="عرض الملف الشخصي"
                           aria-label="عرض الملف الشخصي"
                         >
@@ -921,7 +1344,7 @@ export default function PublicFormPage() {
                       href={formUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block text-green-100 text-sm truncate hover:text-white transition-colors"
+                      className="block text-primary-foreground/70 text-sm truncate hover:text-primary-foreground transition-colors"
                     >
                       {formUrl}
                     </a>
@@ -930,11 +1353,11 @@ export default function PublicFormPage() {
 
                 {/* مقبض سحب في الأسفل */}
                 <div
-                  className="py-2 flex justify-center cursor-grab active:cursor-grabbing touch-none border-t border-gray-100"
+                  className="py-2 flex justify-center cursor-grab active:cursor-grabbing touch-none border-t border-border"
                   onPointerDown={(e) => infoSheetDragControls.start(e)}
                   aria-hidden
                 >
-                  <div className="w-8 h-1 rounded-full bg-gray-200" />
+                  <div className="w-8 h-1 rounded-full bg-muted-foreground/30" />
                 </div>
               </motion.div>
             </>
@@ -943,13 +1366,13 @@ export default function PublicFormPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-2xl  mx-auto px-4 py-6">
+      <main className="max-w-2xl mx-auto px-4 py-6">
         {/* Cover Image */}
         {form.bannerImages?.[0] && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 rounded-4xl border border-gray-100 overflow-hidden"
+            className="mb-6 rounded-4xl border border-border overflow-hidden"
           >
             <img 
               src={form.bannerImages[0]} 
@@ -963,26 +1386,26 @@ export default function PublicFormPage() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-4xl border border-gray-100 p-5 mb-6"
+          className="bg-card rounded-4xl border border-border p-5 mb-6"
         >
           {/* Owner */}
-          <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-100">
+          <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
             <Avatar className="w-10 h-10 flex-shrink-0">
               {form.user?.profile?.avatar && (
                 <AvatarImage src={getAvatarUrl(form.user.profile.avatar)} alt={ownerName} />
               )}
-              <AvatarFallback className="bg-gray-900 text-white text-sm">
+              <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                 {getInitials(ownerName)}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">{ownerName}</p>
-              <p className="text-xs text-gray-500">منشئ النموذج</p>
+              <p className="text-sm font-medium text-foreground truncate">{ownerName}</p>
+              <p className="text-xs text-muted-foreground">منشئ النموذج</p>
             </div>
             {form.user?.profile?.username && (
               <Link
                 href={`/${form.user.profile.username}`}
-                className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors flex-shrink-0"
+                className="w-9 h-9 rounded-full flex items-center justify-center bg-muted text-muted-foreground hover:bg-muted/80 transition-colors flex-shrink-0"
                 title="عرض الملف الشخصي"
                 aria-label="عرض الملف الشخصي"
               >
@@ -993,13 +1416,13 @@ export default function PublicFormPage() {
 
           {/* Title & Description */}
           <div className="flex items-start gap-3">
-            <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0">
-              <FileText className="w-5 h-5 text-gray-600" />
+            <div className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center flex-shrink-0">
+              <FileText className="w-5 h-5 text-muted-foreground" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-gray-900">{form.title}</h1>
+              <h1 className="text-lg font-semibold text-foreground">{form.title}</h1>
               {form.description && (
-                <p className="text-sm text-gray-500 mt-1">{form.description}</p>
+                <p className="text-sm text-muted-foreground mt-1">{form.description}</p>
               )}
             </div>
           </div>
@@ -1018,20 +1441,20 @@ export default function PublicFormPage() {
                   key={index}
                   className={cn(
                     "flex-1 h-1 rounded-full transition-colors",
-                    index <= currentStep ? "bg-gray-900" : "bg-gray-200"
+                    index <= currentStep ? "bg-primary" : "bg-muted"
                   )}
                 />
               ))}
             </div>
-            <div className="bg-white rounded-xl border border-gray-100 p-4">
+            <div className="bg-card rounded-2xl border border-border p-4">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gray-900 text-white rounded-lg flex items-center justify-center text-sm font-semibold">
+                <div className="w-8 h-8 bg-primary text-primary-foreground rounded-lg flex items-center justify-center text-sm font-semibold">
                   {currentStep + 1}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{form.steps[currentStep].title}</p>
+                  <p className="text-sm font-medium text-foreground">{form.steps[currentStep].title}</p>
                   {form.steps[currentStep].description && (
-                    <p className="text-xs text-gray-500">{form.steps[currentStep].description}</p>
+                    <p className="text-xs text-muted-foreground">{form.steps[currentStep].description}</p>
                   )}
                 </div>
               </div>
@@ -1044,7 +1467,7 @@ export default function PublicFormPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-4xl"
+          className="bg-card rounded-4xl border border-border"
         >
           <div className="p-5 space-y-5">
             {currentFields.map((field, index) => (
@@ -1053,11 +1476,11 @@ export default function PublicFormPage() {
           </div>
 
           {/* Actions */}
-          <div className="p-5 border-t border-gray-100 flex items-center justify-between gap-3">
+          <div className="p-5 border-t border-border flex items-center justify-between gap-3">
             {form.isMultiStep && currentStep > 0 ? (
               <button
                 onClick={handlePrevious}
-                className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2 px-4 py-2.5 border border-border rounded-xl text-sm font-medium text-foreground hover:bg-muted transition-colors"
               >
                 <ChevronRight className="w-4 h-4" />
                 السابق
@@ -1069,7 +1492,7 @@ export default function PublicFormPage() {
             {form.isMultiStep && currentStep < totalSteps - 1 ? (
               <button
                 onClick={handleNext}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors"
               >
                 التالي
                 <ChevronLeft className="w-4 h-4" />
@@ -1080,7 +1503,7 @@ export default function PublicFormPage() {
                 onClick={handleSubmit}
                 disabled={isSubmitting}
                 aria-busy={isSubmitting}
-                className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 shadow-sm min-h-[44px]"
+                className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 shadow-sm min-h-[44px]"
               >
                 {isSubmitting ? (
                   <>
@@ -1099,17 +1522,17 @@ export default function PublicFormPage() {
         </motion.div>
 
         {/* Footer */}
-        <footer className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
+        <footer className="mt-8 pt-6 border-t border-border">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 text-center">
-            <span className="text-xs text-gray-500 dark:text-gray-400">مدعوم من</span>
+            <span className="text-xs text-muted-foreground">مدعوم من</span>
             <a
               href="/"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors hover:underline underline-offset-2"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary transition-colors hover:underline underline-offset-2"
             >
               ركني
             </a>
           </div>
-          <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-2">
+          <p className="text-center text-xs text-muted-foreground/70 mt-2">
             © {new Date().getFullYear()} Rukny
           </p>
         </footer>
@@ -1130,18 +1553,18 @@ export default function PublicFormPage() {
               animate={{ scale: 1 }}
               exit={{ scale: 0.95 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl p-6 max-w-xs w-full"
+              className="bg-card rounded-2xl p-6 max-w-xs w-full border border-border"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold">QR Code</h3>
-                <button onClick={() => setShowModal(null)} className="p-1 hover:bg-gray-100 rounded-lg">
+                <h3 className="font-semibold text-foreground">QR Code</h3>
+                <button onClick={() => setShowModal(null)} className="p-1 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="flex justify-center p-4 bg-gray-50 rounded-xl">
+              <div className="flex justify-center p-4 bg-muted rounded-xl">
                 <QRCodeSVG value={formUrl} size={180} />
               </div>
-              <p className="text-center text-sm text-gray-500 mt-4">امسح للوصول للنموذج</p>
+              <p className="text-center text-sm text-muted-foreground mt-4">امسح للوصول للنموذج</p>
             </motion.div>
           </motion.div>
         )}
@@ -1162,29 +1585,29 @@ export default function PublicFormPage() {
               animate={{ scale: 1 }}
               exit={{ scale: 0.95 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl p-6 max-w-sm w-full"
+              className="bg-card rounded-2xl p-6 max-w-sm w-full border border-border"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold">مشاركة النموذج</h3>
-                <button onClick={() => setShowModal(null)} className="p-1 hover:bg-gray-100 rounded-lg">
+                <h3 className="font-semibold text-foreground">مشاركة النموذج</h3>
+                <button onClick={() => setShowModal(null)} className="p-1 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
               
               {/* Copy Link */}
-              <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl mb-4">
+              <div className="flex items-center gap-2 p-3 bg-muted rounded-xl mb-4">
                 <input
                   type="text"
                   value={formUrl}
                   readOnly
-                  className="flex-1 bg-transparent text-sm text-gray-600 outline-none truncate"
+                  className="flex-1 bg-transparent text-sm text-foreground outline-none truncate"
                   dir="ltr"
                 />
                 <button
                   onClick={handleCopyLink}
                   className={cn(
                     "p-2 rounded-lg transition-colors",
-                    copied ? "bg-green-100 text-green-600" : "bg-gray-200 hover:bg-gray-300"
+                    copied ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400" : "bg-background hover:bg-muted/80 text-muted-foreground"
                   )}
                 >
                   {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -1198,14 +1621,14 @@ export default function PublicFormPage() {
                   href={`https://wa.me/?text=${encodeURIComponent(form.title + ' ' + formUrl)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-colors"
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted transition-colors"
                 >
                   <div className="w-12 h-12 bg-[#25D366] rounded-full flex items-center justify-center">
                     <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                     </svg>
                   </div>
-                  <span className="text-xs text-gray-600">واتساب</span>
+                  <span className="text-xs text-muted-foreground">واتساب</span>
                 </a>
 
                 {/* X (Twitter) */}
@@ -1213,14 +1636,14 @@ export default function PublicFormPage() {
                   href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(formUrl)}&text=${encodeURIComponent(form.title)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-colors"
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted transition-colors"
                 >
                   <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center">
                     <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                     </svg>
                   </div>
-                  <span className="text-xs text-gray-600">X</span>
+                  <span className="text-xs text-muted-foreground">X</span>
                 </a>
 
                 {/* Telegram */}
@@ -1228,14 +1651,14 @@ export default function PublicFormPage() {
                   href={`https://t.me/share/url?url=${encodeURIComponent(formUrl)}&text=${encodeURIComponent(form.title)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-colors"
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted transition-colors"
                 >
                   <div className="w-12 h-12 bg-[#0088cc] rounded-full flex items-center justify-center">
                     <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
                     </svg>
                   </div>
-                  <span className="text-xs text-gray-600">تيليجرام</span>
+                  <span className="text-xs text-muted-foreground">تيليجرام</span>
                 </a>
 
                 {/* Email */}
@@ -1243,12 +1666,12 @@ export default function PublicFormPage() {
                   href={`mailto:?subject=${encodeURIComponent(form.title)}&body=${encodeURIComponent(formUrl)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 transition-colors"
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted transition-colors"
                 >
-                  <div className="w-12 h-12 bg-gray-600 rounded-full flex items-center justify-center">
-                    <Mail className="w-5 h-5 text-white" />
+                  <div className="w-12 h-12 bg-muted-foreground rounded-full flex items-center justify-center">
+                    <Mail className="w-5 h-5 text-background" />
                   </div>
-                  <span className="text-xs text-gray-600">بريد</span>
+                  <span className="text-xs text-muted-foreground">بريد</span>
                 </a>
               </div>
             </motion.div>

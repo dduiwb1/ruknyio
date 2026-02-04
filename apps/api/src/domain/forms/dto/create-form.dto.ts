@@ -43,6 +43,7 @@ export enum FieldType {
   TIME = 'TIME',
   DATETIME = 'DATETIME',
   SELECT = 'SELECT',
+  MULTISELECT = 'MULTISELECT',
   RADIO = 'RADIO',
   CHECKBOX = 'CHECKBOX',
   FILE = 'FILE',
@@ -51,6 +52,24 @@ export enum FieldType {
   TOGGLE = 'TOGGLE',
   MATRIX = 'MATRIX',
   SIGNATURE = 'SIGNATURE',
+  URL = 'URL',
+  RANKING = 'RANKING',
+  // Layout blocks
+  HEADING = 'HEADING',
+  PARAGRAPH = 'PARAGRAPH',
+  DIVIDER = 'DIVIDER',
+  TITLE = 'TITLE',
+  LABEL = 'LABEL',
+  // Embed blocks
+  IMAGE = 'IMAGE',
+  VIDEO = 'VIDEO',
+  AUDIO = 'AUDIO',
+  EMBED = 'EMBED',
+  // Advanced blocks
+  CONDITIONAL_LOGIC = 'CONDITIONAL_LOGIC',
+  CALCULATED = 'CALCULATED',
+  HIDDEN = 'HIDDEN',
+  RECAPTCHA = 'RECAPTCHA',
 }
 
 export class CreateFormStepDto {

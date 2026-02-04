@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { FieldType, FIELD_TYPE_LABELS } from '@/lib/hooks/useForms';
 import { FieldTypeSelector } from './FieldTypeSelector';
 import { FieldEditor, type FormFieldInput } from './FieldEditor';
+import { FieldEditorDialog } from './FieldEditorDialog';
 
 export interface FormStepInput {
   id: string;
@@ -106,7 +107,7 @@ export function StepEditor({ steps, onStepsChange }: StepEditorProps) {
 
     const newField: FormFieldInput = {
       id: `field-${Date.now()}`,
-      label: FIELD_TYPE_LABELS[fieldType],
+      label: fieldType === FieldType.RECAPTCHA ? 'حماية reCAPTCHA' : '', // عنوان افتراضي لـ reCAPTCHA
       type: fieldType,
       order: step.fields.length,
       required: false,
@@ -122,7 +123,28 @@ export function StepEditor({ steps, onStepsChange }: StepEditorProps) {
       fields: [...step.fields, newField],
     });
     setShowFieldSelectorForStep(null);
-    setEditingFieldId(newField.id);
+    // Only open editor on mobile - desktop handles editing inside FieldTypeSelector
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    if (isMobile) {
+      setEditingFieldId(newField.id);
+    }
+  };
+
+  // Add complete field to step (from desktop FieldTypeSelector with all data)
+  const handleAddCompleteField = (stepId: string, field: FormFieldInput) => {
+    const step = steps.find(s => s.id === stepId);
+    if (!step) return;
+
+    const newField: FormFieldInput = {
+      ...field,
+      id: `field-${Date.now()}`,
+      order: step.fields.length,
+    };
+
+    handleUpdateStep(stepId, {
+      fields: [...step.fields, newField],
+    });
+    setShowFieldSelectorForStep(null);
   };
 
   // Update field in step
@@ -404,14 +426,28 @@ export function StepEditor({ steps, onStepsChange }: StepEditorProps) {
                             </Reorder.Group>
                           )}
 
-                          {/* Field Editor */}
+                          {/* Field Editor - Desktop uses FieldTypeSelector, Mobile uses FieldEditorDialog */}
                           <AnimatePresence>
                             {editingField && expandedStepId === step.id && (
-                              <FieldEditor
-                                field={editingField}
-                                onUpdate={(updates) => handleUpdateField(step.id, editingField.id, updates)}
-                                onClose={() => setEditingFieldId(null)}
-                              />
+                              <>
+                                {/* Desktop: FieldTypeSelector (auto-hides on mobile) */}
+                                <FieldTypeSelector
+                                  onSelect={() => {}}
+                                  onClose={() => setEditingFieldId(null)}
+                                  editingField={editingField}
+                                  onUpdateField={(updates) => handleUpdateField(step.id, editingField.id, updates)}
+                                  onSaveField={() => setEditingFieldId(null)}
+                                  mode="edit"
+                                />
+                                {/* Mobile: FieldEditorDialog (auto-hides on desktop) */}
+                                <FieldEditorDialog
+                                  field={editingField}
+                                  open={editingFieldId !== null}
+                                  onOpenChange={(open) => !open && setEditingFieldId(null)}
+                                  onUpdate={(updates) => handleUpdateField(step.id, editingField.id, updates)}
+                                  onSave={() => setEditingFieldId(null)}
+                                />
+                              </>
                             )}
                           </AnimatePresence>
                         </div>
@@ -430,6 +466,7 @@ export function StepEditor({ steps, onStepsChange }: StepEditorProps) {
         {showFieldSelectorForStep && (
           <FieldTypeSelector
             onSelect={(type) => handleAddField(showFieldSelectorForStep, type)}
+            onSelectField={(field) => handleAddCompleteField(showFieldSelectorForStep, field)}
             onClose={() => setShowFieldSelectorForStep(null)}
           />
         )}

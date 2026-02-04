@@ -1458,15 +1458,18 @@ enum DiscountType {
 }
 
 enum FieldType {
+  // Input fields
   TEXT
   TEXTAREA
   NUMBER
   EMAIL
   PHONE
+  URL
   DATE
   TIME
   DATETIME
   SELECT
+  MULTISELECT
   RADIO
   CHECKBOX
   FILE
@@ -1475,6 +1478,23 @@ enum FieldType {
   TOGGLE
   MATRIX
   SIGNATURE
+  RANKING
+  // Layout blocks
+  HEADING
+  PARAGRAPH
+  DIVIDER
+  TITLE
+  LABEL
+  // Embed blocks
+  IMAGE
+  VIDEO
+  AUDIO
+  EMBED
+  // Advanced blocks
+  CONDITIONAL_LOGIC
+  CALCULATED
+  HIDDEN
+  RECAPTCHA
 }
 
 enum FormStatus {

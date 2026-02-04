@@ -49,12 +49,9 @@ export class QuickSignService {
   ): Promise<{ token: string; type: QuickSignType; expiresIn: number }> {
     // ⚡ التحقق من cache أولاً للمستخدم
     const cacheKey = `${this.USER_CACHE_PREFIX}${email}`;
-    const cachedUser = await this.redis.get(cacheKey);
-    let existingUser: { id: string; email: string; profileCompleted: boolean } | null = null;
+    let existingUser = await this.redis.get<{ id: string; email: string; profileCompleted: boolean } | null>(cacheKey);
     
-    if (cachedUser) {
-      existingUser = JSON.parse(cachedUser);
-    } else {
+    if (!existingUser) {
       // لم يوجد في الـ cache - نبحث في الـ DB
       existingUser = await this.prisma.user.findUnique({
         where: { email },
@@ -155,17 +152,16 @@ export class QuickSignService {
 
       // ⚡ التحقق من Redis أولاً (أسرع)
       const tokenCacheKey = `${this.CACHE_PREFIX}${tokenHash}`;
-      const cachedDataStr = await this.redis.get(tokenCacheKey);
+      const cachedData = await this.redis.get<{
+        email: string;
+        type: QuickSignType;
+        userId?: string;
+        expiresAt: string;
+        used: boolean;
+      }>(tokenCacheKey);
       
-      if (cachedDataStr) {
+      if (cachedData) {
         console.log(`[QuickSign] Found token in Redis cache`);
-        const cachedData: {
-          email: string;
-          type: QuickSignType;
-          userId?: string;
-          expiresAt: string;
-          used: boolean;
-        } = JSON.parse(cachedDataStr);
 
         // التحقق من الاستخدام المسبق
         if (cachedData.used) {
@@ -189,9 +185,8 @@ export class QuickSignService {
         let profileCompleted = false;
         if (cachedData.userId) {
           const userCacheKey = `${this.USER_CACHE_PREFIX}${cachedData.email}`;
-          const cachedUserStr = await this.redis.get(userCacheKey);
-          if (cachedUserStr) {
-            const cachedUser = JSON.parse(cachedUserStr);
+          const cachedUser = await this.redis.get<{ profileCompleted?: boolean }>(userCacheKey);
+          if (cachedUser) {
             profileCompleted = cachedUser?.profileCompleted || false;
           }
         }
@@ -370,11 +365,10 @@ export class QuickSignService {
     
     // ⚡ تحديث Redis أولاً (سريع)
     const tokenCacheKey = `${this.CACHE_PREFIX}${tokenHash}`;
-    const cachedDataStr = await this.redis.get(tokenCacheKey);
-    if (cachedDataStr) {
-      const cachedData = JSON.parse(cachedDataStr);
+    const cachedData = await this.redis.get<{ used: boolean; [key: string]: any }>(tokenCacheKey);
+    if (cachedData) {
       cachedData.used = true;
-      await this.redis.set(tokenCacheKey, JSON.stringify(cachedData), 60); // نحتفظ لمدة دقيقة فقط
+      await this.redis.set(tokenCacheKey, cachedData, 60); // نحتفظ لمدة دقيقة فقط
     }
 
     // تحديث DB (بالـ hash)

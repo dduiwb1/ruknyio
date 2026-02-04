@@ -93,7 +93,7 @@ export class FormsQueriesService {
     // Try cache first
     try {
       const cached = await this.redisService.get(cacheKey);
-      if (cached) return JSON.parse(cached);
+      if (cached) return cached;
     } catch (e) {
       // Cache miss, continue
     }
@@ -185,7 +185,7 @@ export class FormsQueriesService {
     try {
       const cached = await this.redisService.get(cacheKey);
       if (cached) {
-        const form = JSON.parse(cached);
+        const form = cached;
         // Increment view count async (don't wait)
         this.incrementViewCount(form.id).catch(() => {});
         return form;

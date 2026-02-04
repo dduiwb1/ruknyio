@@ -25,15 +25,18 @@ export enum FormStatus {
 }
 
 export enum FieldType {
+  // Input fields
   TEXT = 'TEXT',
   TEXTAREA = 'TEXTAREA',
   NUMBER = 'NUMBER',
   EMAIL = 'EMAIL',
   PHONE = 'PHONE',
+  URL = 'URL',
   DATE = 'DATE',
   TIME = 'TIME',
   DATETIME = 'DATETIME',
   SELECT = 'SELECT',
+  MULTISELECT = 'MULTISELECT',
   RADIO = 'RADIO',
   CHECKBOX = 'CHECKBOX',
   FILE = 'FILE',
@@ -42,6 +45,23 @@ export enum FieldType {
   TOGGLE = 'TOGGLE',
   MATRIX = 'MATRIX',
   SIGNATURE = 'SIGNATURE',
+  RANKING = 'RANKING',
+  // Layout blocks
+  HEADING = 'HEADING',
+  PARAGRAPH = 'PARAGRAPH',
+  DIVIDER = 'DIVIDER',
+  TITLE = 'TITLE',
+  LABEL = 'LABEL',
+  // Embed blocks
+  IMAGE = 'IMAGE',
+  VIDEO = 'VIDEO',
+  AUDIO = 'AUDIO',
+  EMBED = 'EMBED',
+  // Advanced blocks
+  CONDITIONAL_LOGIC = 'CONDITIONAL_LOGIC',
+  CALCULATED = 'CALCULATED',
+  HIDDEN = 'HIDDEN',
+  RECAPTCHA = 'RECAPTCHA',
 }
 
 // ==================== INTERFACES ====================
@@ -223,15 +243,18 @@ export const FORM_STATUS_CONFIG: Record<FormStatus, { color: string; bg: string;
 };
 
 export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
+  // Input fields
   [FieldType.TEXT]: 'نص قصير',
   [FieldType.TEXTAREA]: 'نص طويل',
   [FieldType.NUMBER]: 'رقم',
   [FieldType.EMAIL]: 'بريد إلكتروني',
   [FieldType.PHONE]: 'رقم هاتف',
+  [FieldType.URL]: 'رابط',
   [FieldType.DATE]: 'تاريخ',
   [FieldType.TIME]: 'وقت',
   [FieldType.DATETIME]: 'تاريخ ووقت',
   [FieldType.SELECT]: 'قائمة منسدلة',
+  [FieldType.MULTISELECT]: 'اختيار متعدد من قائمة',
   [FieldType.RADIO]: 'اختيار واحد',
   [FieldType.CHECKBOX]: 'اختيار متعدد',
   [FieldType.FILE]: 'رفع ملف',
@@ -240,6 +263,23 @@ export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
   [FieldType.TOGGLE]: 'نعم/لا',
   [FieldType.MATRIX]: 'جدول',
   [FieldType.SIGNATURE]: 'توقيع',
+  [FieldType.RANKING]: 'ترتيب العناصر',
+  // Layout blocks
+  [FieldType.HEADING]: 'عنوان',
+  [FieldType.PARAGRAPH]: 'نص توضيحي',
+  [FieldType.DIVIDER]: 'فاصل',
+  [FieldType.TITLE]: 'عنوان رئيسي',
+  [FieldType.LABEL]: 'تسمية',
+  // Embed blocks
+  [FieldType.IMAGE]: 'صورة',
+  [FieldType.VIDEO]: 'فيديو',
+  [FieldType.AUDIO]: 'ملف صوتي',
+  [FieldType.EMBED]: 'تضمين محتوى',
+  // Advanced blocks
+  [FieldType.CONDITIONAL_LOGIC]: 'منطق شرطي',
+  [FieldType.CALCULATED]: 'حقل محسوب',
+  [FieldType.HIDDEN]: 'حقل مخفي',
+  [FieldType.RECAPTCHA]: 'حماية reCAPTCHA',
 };
 
 export const FORM_TYPE_CONFIG: Record<FormType, { color: string; bg: string; icon: string }> = {

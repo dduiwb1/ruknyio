@@ -28,6 +28,7 @@ import {
   Share2,
   HardDrive,
   Sparkles,
+  Phone,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -478,7 +479,7 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
   const handleAddField = (type: FieldType) => {
     const newField: FormFieldInput = {
       id: `field-${Date.now()}`,
-      label: FIELD_TYPE_LABELS[type],
+      label: type === FieldType.RECAPTCHA ? 'حماية reCAPTCHA' : '', // عنوان افتراضي لـ reCAPTCHA
       type,
       order: fields.length,
       required: false,
@@ -491,7 +492,22 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
     };
     setFields(prev => [...prev, newField]);
     setShowFieldSelector(false);
-    setEditingFieldId(newField.id);
+    // Only open editor on mobile - desktop handles editing inside FieldTypeSelector
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    if (isMobile) {
+      setEditingFieldId(newField.id);
+    }
+  };
+
+  // Add complete field (from desktop FieldTypeSelector with all data)
+  const handleAddCompleteField = (field: FormFieldInput) => {
+    const newField: FormFieldInput = {
+      ...field,
+      id: `field-${Date.now()}`,
+      order: fields.length,
+    };
+    setFields(prev => [...prev, newField]);
+    setShowFieldSelector(false);
   };
 
   // Update field
@@ -645,8 +661,15 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
 
       // Valid field types (must match backend enum)
       const VALID_FIELD_TYPES = [
-        'TEXT', 'TEXTAREA', 'NUMBER', 'EMAIL', 'PHONE', 'DATE', 'TIME', 'DATETIME',
-        'SELECT', 'RADIO', 'CHECKBOX', 'FILE', 'RATING', 'SCALE', 'TOGGLE', 'MATRIX', 'SIGNATURE'
+        // Input fields
+        'TEXT', 'TEXTAREA', 'NUMBER', 'EMAIL', 'PHONE', 'URL', 'DATE', 'TIME', 'DATETIME',
+        'SELECT', 'MULTISELECT', 'RADIO', 'CHECKBOX', 'FILE', 'RATING', 'SCALE', 'TOGGLE', 'MATRIX', 'SIGNATURE', 'RANKING',
+        // Layout blocks
+        'HEADING', 'PARAGRAPH', 'DIVIDER', 'TITLE', 'LABEL',
+        // Embed blocks
+        'IMAGE', 'VIDEO', 'AUDIO', 'EMBED',
+        // Advanced blocks
+        'CONDITIONAL_LOGIC', 'CALCULATED', 'HIDDEN', 'RECAPTCHA'
       ];
 
       // Helper to validate and sanitize field type
@@ -908,11 +931,32 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
     // Icons for field types
     const getFieldIcon = (type: FieldType) => {
       const icons: Record<string, React.ReactNode> = {
+        // Input fields
         [FieldType.TEXT]: <FileText className="w-4 h-4" />,
         [FieldType.TEXTAREA]: <FileText className="w-4 h-4" />,
         [FieldType.EMAIL]: <Mail className="w-4 h-4" />,
         [FieldType.NUMBER]: <FileText className="w-4 h-4" />,
+        [FieldType.PHONE]: <Phone className="w-4 h-4" />,
+        [FieldType.URL]: <LinkIcon className="w-4 h-4" />,
         [FieldType.SELECT]: <FileText className="w-4 h-4" />,
+        [FieldType.MULTISELECT]: <FileText className="w-4 h-4" />,
+        [FieldType.RANKING]: <FileText className="w-4 h-4" />,
+        // Layout blocks
+        [FieldType.HEADING]: <FileText className="w-4 h-4" />,
+        [FieldType.PARAGRAPH]: <FileText className="w-4 h-4" />,
+        [FieldType.DIVIDER]: <FileText className="w-4 h-4" />,
+        [FieldType.TITLE]: <FileText className="w-4 h-4" />,
+        [FieldType.LABEL]: <FileText className="w-4 h-4" />,
+        // Embed blocks
+        [FieldType.IMAGE]: <FileText className="w-4 h-4" />,
+        [FieldType.VIDEO]: <FileText className="w-4 h-4" />,
+        [FieldType.AUDIO]: <FileText className="w-4 h-4" />,
+        [FieldType.EMBED]: <FileText className="w-4 h-4" />,
+        // Advanced blocks
+        [FieldType.HIDDEN]: <FileText className="w-4 h-4" />,
+        [FieldType.CALCULATED]: <FileText className="w-4 h-4" />,
+        [FieldType.CONDITIONAL_LOGIC]: <FileText className="w-4 h-4" />,
+        [FieldType.RECAPTCHA]: <FileText className="w-4 h-4" />,
       };
       return icons[type] || <FileText className="w-4 h-4" />;
     };
@@ -986,14 +1030,30 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
                 </div>
               )}
 
-              {/* Field Editor Dialog */}
-              <FieldEditorDialog
-                field={editingField}
-                open={editingFieldId !== null}
-                onOpenChange={(open) => !open && setEditingFieldId(null)}
-                onUpdate={(updates) => editingField && handleUpdateField(editingField.id, updates)}
-                onSave={() => setEditingFieldId(null)}
-              />
+              {/* Field Editor - Desktop uses FieldTypeSelector, Mobile uses FieldEditorDialog */}
+              {editingFieldId && (
+                <>
+                  {/* Desktop: FieldTypeSelector */}
+                  <AnimatePresence>
+                    <FieldTypeSelector
+                      onSelect={() => {}}
+                      onClose={() => setEditingFieldId(null)}
+                      editingField={editingField}
+                      onUpdateField={(updates) => editingField && handleUpdateField(editingField.id, updates)}
+                      onSaveField={() => setEditingFieldId(null)}
+                      mode="edit"
+                    />
+                  </AnimatePresence>
+                  {/* Mobile: FieldEditorDialog (auto-hides on desktop) */}
+                  <FieldEditorDialog
+                    field={editingField}
+                    open={editingFieldId !== null}
+                    onOpenChange={(open) => !open && setEditingFieldId(null)}
+                    onUpdate={(updates) => editingField && handleUpdateField(editingField.id, updates)}
+                    onSave={() => setEditingFieldId(null)}
+                  />
+                </>
+              )}
 
               {/* Add Field Button */}
               <button
@@ -1010,6 +1070,7 @@ export function CreateFormWizard({ initialDraft }: { initialDraft?: FormDraftRes
                 {showFieldSelector && (
                   <FieldTypeSelector
                     onSelect={handleAddField}
+                    onSelectField={handleAddCompleteField}
                     onClose={() => setShowFieldSelector(false)}
                   />
                 )}

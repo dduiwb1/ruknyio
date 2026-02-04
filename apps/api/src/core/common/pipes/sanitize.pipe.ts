@@ -42,8 +42,17 @@ export class SanitizePipe implements PipeTransform {
   // قيم الـ enum المسموح بها (لن تُحذف)
   private readonly ALLOWED_ENUM_VALUES = [
     'TEXT', 'TEXTAREA', 'NUMBER', 'EMAIL', 'PHONE', 'DATE', 'TIME', 'DATETIME',
-    'SELECT', 'RADIO', 'CHECKBOX', 'FILE', 'RATING', 'SCALE', 'TOGGLE', 'MATRIX', 'SIGNATURE',
+    'SELECT', 'MULTISELECT', 'RADIO', 'CHECKBOX', 'FILE', 'RATING', 'SCALE', 'TOGGLE', 
+    'MATRIX', 'SIGNATURE', 'URL', 'RANKING',
+    // Layout blocks
+    'HEADING', 'PARAGRAPH', 'DIVIDER', 'TITLE', 'LABEL',
+    // Embed blocks  
+    'IMAGE', 'VIDEO', 'AUDIO', 'EMBED',
+    // Advanced blocks
+    'CONDITIONAL_LOGIC', 'CALCULATED', 'HIDDEN', 'RECAPTCHA',
+    // Form statuses
     'DRAFT', 'PUBLISHED', 'CLOSED', 'ARCHIVED', 'ACTIVE', 'INACTIVE',
+    // Form types
     'CONTACT', 'SURVEY', 'REGISTRATION', 'ORDER', 'FEEDBACK', 'QUIZ', 'APPLICATION', 'OTHER',
   ];
 

@@ -13,6 +13,7 @@ import { GoogleSheetsModule } from '../../integrations/google-sheets/google-shee
 import { GoogleDriveModule } from '../../integrations/google-drive/google-drive.module';
 import { S3Service } from '../../services/s3.service';
 import { RedisModule } from '../../core/cache/redis.module';
+import { RecaptchaEnterpriseService } from '../../infrastructure/security/recaptcha-enterprise.service';
 
 // New split services
 import {
@@ -50,6 +51,7 @@ import {
     ConditionalLogicService,
     WebhookService,
     S3Service,
+    RecaptchaEnterpriseService,
   ],
   exports: [FormsService, FormsFacadeService],
 })

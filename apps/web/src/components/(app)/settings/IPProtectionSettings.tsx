@@ -175,7 +175,7 @@ export function IPProtectionSettings({ onSettingsChange }: IPProtectionSettingsP
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-4xl overflow-hidden"
+        className="bg-card border border-border rounded-4xl overflow-hidden"
       >
         {/* Toggle Section */}
         <div className="p-4">
@@ -183,21 +183,21 @@ export function IPProtectionSettings({ onSettingsChange }: IPProtectionSettingsP
             <div className={cn(
               "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all duration-300",
               settings.alertOnNewIP
-                ? "bg-amber-100 dark:bg-amber-900/30"
-                : "bg-zinc-100 dark:bg-zinc-800"
+                ? "bg-warning/15"
+                : "bg-muted"
             )}>
               {settings.alertOnNewIP ? (
-                <Bell className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                <Bell className="w-5 h-5 text-warning" />
               ) : (
-                <BellOff className="w-5 h-5 text-zinc-400" />
+                <BellOff className="w-5 h-5 text-muted-foreground" />
               )}
             </div>
             
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
+              <h3 className="font-semibold text-foreground">
                 تنبيهات الأمان
               </h3>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+              <p className="text-sm text-muted-foreground mt-0.5">
                 إشعار عند تسجيل الدخول من موقع جديد
               </p>
             </div>
@@ -209,8 +209,8 @@ export function IPProtectionSettings({ onSettingsChange }: IPProtectionSettingsP
               className={cn(
                 "relative w-12 h-7 rounded-full transition-colors duration-300 shrink-0",
                 settings.alertOnNewIP 
-                  ? "bg-amber-500" 
-                  : "bg-zinc-200 dark:bg-zinc-700",
+                  ? "bg-warning" 
+                  : "bg-muted",
                 updating === 'alertOnNewIP' && "opacity-60"
               )}
               dir="ltr"
@@ -221,7 +221,7 @@ export function IPProtectionSettings({ onSettingsChange }: IPProtectionSettingsP
                 className="absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm flex items-center justify-center"
               >
                 {updating === 'alertOnNewIP' && (
-                  <Loader2 className="w-3 h-3 animate-spin text-zinc-400" />
+                  <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
                 )}
               </motion.div>
             </button>
@@ -231,13 +231,13 @@ export function IPProtectionSettings({ onSettingsChange }: IPProtectionSettingsP
         {/* Details Toggle */}
         <button
           onClick={() => setShowDetails(!showDetails)}
-          className="w-full px-4 py-5 flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+          className="w-full px-4 py-5 flex items-center justify-between border-t border-border hover:bg-muted/50 transition-colors"
         >
-          <span className="text-sm text-zinc-500 dark:text-zinc-400">
+          <span className="text-sm text-muted-foreground">
             كيف تعمل هذه الميزة؟
           </span>
           <ChevronDown className={cn(
-            "w-4 h-4 text-zinc-400 transition-transform duration-200",
+            "w-4 h-4 text-muted-foreground transition-transform duration-200",
             showDetails && "rotate-180"
           )} />
         </button>
@@ -253,26 +253,26 @@ export function IPProtectionSettings({ onSettingsChange }: IPProtectionSettingsP
             >
               <div className="px-4 pb-4 space-y-3">
                 <div className="flex gap-3 text-sm">
-                  <div className="w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0 mt-0.5">
-                    <Lock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <div className="w-6 h-6 rounded-lg bg-success/15 flex items-center justify-center shrink-0 mt-0.5">
+                    <Lock className="w-3.5 h-3.5 text-success" />
                   </div>
-                  <p className="text-zinc-600 dark:text-zinc-400">
+                  <p className="text-muted-foreground">
                     عناوين IP مشفرة بالكامل ولا يمكن استرجاعها
                   </p>
                 </div>
                 <div className="flex gap-3 text-sm">
-                  <div className="w-6 h-6 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0 mt-0.5">
-                    <Bell className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                  <div className="w-6 h-6 rounded-lg bg-warning/15 flex items-center justify-center shrink-0 mt-0.5">
+                    <Bell className="w-3.5 h-3.5 text-warning" />
                   </div>
-                  <p className="text-zinc-600 dark:text-zinc-400">
+                  <p className="text-muted-foreground">
                     ستتلقى بريداً عند تسجيل الدخول من موقع غير مألوف
                   </p>
                 </div>
                 <div className="flex gap-3 text-sm">
-                  <div className="w-6 h-6 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0 mt-0.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <div className="w-6 h-6 rounded-lg bg-info/15 flex items-center justify-center shrink-0 mt-0.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-info" />
                   </div>
-                  <p className="text-zinc-600 dark:text-zinc-400">
+                  <p className="text-muted-foreground">
                     أضف مواقعك المعتادة لتجنب التنبيهات المتكررة
                   </p>
                 </div>
@@ -287,17 +287,17 @@ export function IPProtectionSettings({ onSettingsChange }: IPProtectionSettingsP
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-4xl p-4"
+        className="bg-card border border-border rounded-4xl p-4"
       >
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-            <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+          <div className="w-10 h-10 rounded-xl bg-success/15 flex items-center justify-center">
+            <ShieldCheck className="w-5 h-5 text-success" />
           </div>
           <div className="flex-1">
-            <h4 className="font-semibold text-zinc-900 dark:text-zinc-100">
+            <h4 className="font-semibold text-foreground">
               المواقع الموثوقة
             </h4>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm text-muted-foreground">
               {settings.trustedIpCount === 0 
                 ? 'لم تُضف أي مواقع بعد' 
                 : `${settings.trustedIpCount} موقع مُسجل`}
@@ -305,8 +305,8 @@ export function IPProtectionSettings({ onSettingsChange }: IPProtectionSettingsP
           </div>
           
           {/* Counter Badge */}
-          <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-            <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+            <span className="text-sm font-medium text-muted-foreground">
               {settings.trustedIpCount}
             </span>
           </div>
@@ -319,8 +319,8 @@ export function IPProtectionSettings({ onSettingsChange }: IPProtectionSettingsP
             disabled={updating === 'addIP'}
             className={cn(
               "w-full flex items-center justify-center gap-2 py-3 px-4",
-              "bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/30",
-              "text-emerald-700 dark:text-emerald-400 text-sm font-medium",
+              "bg-success/10 hover:bg-success/20",
+              "text-success text-sm font-medium",
               "rounded-xl transition-colors duration-200",
               updating === 'addIP' && "opacity-60 cursor-not-allowed"
             )}
@@ -340,8 +340,8 @@ export function IPProtectionSettings({ onSettingsChange }: IPProtectionSettingsP
               disabled={updating === 'clearIPs'}
               className={cn(
                 "w-full flex items-center justify-center gap-2 py-3 px-4",
-                "text-zinc-500 dark:text-zinc-400 text-sm",
-                "hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-red-500 dark:hover:text-red-400",
+                "text-muted-foreground text-sm",
+                "hover:bg-muted hover:text-destructive",
                 "rounded-xl transition-colors duration-200",
                 updating === 'clearIPs' && "opacity-60 cursor-not-allowed"
               )}
@@ -363,12 +363,12 @@ export function IPProtectionSettings({ onSettingsChange }: IPProtectionSettingsP
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="flex items-center gap-3 px-4 py-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl"
+          className="flex items-center gap-3 px-4 py-3 bg-muted/50 rounded-xl"
         >
-          <Clock className="w-4 h-4 text-zinc-400" />
-          <span className="text-sm text-zinc-500 dark:text-zinc-400">
+          <Clock className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">
             آخر تسجيل دخول:{' '}
-            <span className="text-zinc-700 dark:text-zinc-300">
+            <span className="text-foreground">
               {new Date(settings.lastLoginAt).toLocaleDateString('ar-SA', {
                 day: 'numeric',
                 month: 'short',
@@ -386,8 +386,8 @@ export function IPProtectionSettings({ onSettingsChange }: IPProtectionSettingsP
         transition={{ delay: 0.15 }}
         className="flex items-start gap-2.5 px-1"
       >
-        <Shield className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />
-        <p className="text-xs text-zinc-400 leading-relaxed">
+        <Shield className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+        <p className="text-xs text-muted-foreground leading-relaxed">
          بيانات تسجيل الدخول محمية بتشفير قوي ولا نحتفظ بالمعلومات الحساسة بصيغتها الأصلية 
         </p>
       </motion.div>
@@ -399,27 +399,27 @@ export function IPProtectionSettingsSkeleton() {
   return (
     <div className="space-y-4">
       {/* Main Card Skeleton */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4">
+      <div className="bg-card border border-border rounded-4xl p-4">
         <div className="flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
+          <div className="w-11 h-11 rounded-xl bg-muted animate-pulse" />
           <div className="flex-1 space-y-2">
-            <div className="h-5 w-24 bg-zinc-100 dark:bg-zinc-800 rounded-lg animate-pulse" />
-            <div className="h-4 w-40 bg-zinc-100 dark:bg-zinc-800 rounded-lg animate-pulse" />
+            <div className="h-5 w-24 bg-muted rounded-lg animate-pulse" />
+            <div className="h-4 w-40 bg-muted rounded-lg animate-pulse" />
           </div>
-          <div className="w-12 h-7 bg-zinc-100 dark:bg-zinc-800 rounded-full animate-pulse" />
+          <div className="w-12 h-7 bg-muted rounded-full animate-pulse" />
         </div>
       </div>
 
       {/* Trusted Locations Skeleton */}
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4">
+      <div className="bg-card border border-border rounded-4xl p-4">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 animate-pulse" />
+          <div className="w-10 h-10 rounded-xl bg-muted animate-pulse" />
           <div className="flex-1 space-y-2">
-            <div className="h-4 w-28 bg-zinc-100 dark:bg-zinc-800 rounded-lg animate-pulse" />
-            <div className="h-3 w-20 bg-zinc-100 dark:bg-zinc-800 rounded-lg animate-pulse" />
+            <div className="h-4 w-28 bg-muted rounded-lg animate-pulse" />
+            <div className="h-3 w-20 bg-muted rounded-lg animate-pulse" />
           </div>
         </div>
-        <div className="h-12 bg-zinc-100 dark:bg-zinc-800 rounded-xl animate-pulse" />
+        <div className="h-12 bg-muted rounded-xl animate-pulse" />
       </div>
     </div>
   );

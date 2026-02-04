@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, IBM_Plex_Sans_Arabic } from "next/font/google";
 import { AppProviders } from "@/providers";
 import { PWAPrompt } from "@/components/pwa-prompt";
+import Script from 'next/script';
 import "./globals.css";
 
 const geistSans = Geist({
@@ -75,10 +76,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${ibmPlexArabic.variable} antialiased`}
         style={{ fontFamily: '"IBM Plex Sans Arabic", sans-serif' }}
       >
+
         <AppProviders>
           {children}
           <PWAPrompt />
         </AppProviders>
+        
       </body>
     </html>
   );
