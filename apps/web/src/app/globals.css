@@ -64,140 +64,140 @@
 :root {
   --radius: 0.625rem;
   
-  /* Brand Colors - Primary (Blue) */
-  --primary: #5E81F4;              /* Brand color for tabs, highlights, links */
-  --primary-filled: #4B6FD9;       /* Filled buttons - slightly darker */
-  --primary-hover: #3D5CC0;        /* Hover/Pressed state */
-  --primary-tint: #EEF2FE;         /* Light backgrounds */
-  --primary-foreground: #FFFFFF;
+  /* Brand Colors - Primary (Olive #cbe2c8) */
+  --primary: #4a7c59;                  /* Darker olive for buttons/links */
+  --primary-filled: #3d6a4a;           /* Filled buttons - slightly darker */
+  --primary-hover: #2f5639;            /* Hover/Pressed state */
+  --primary-tint: #cbe2c8;             /* Light backgrounds - Olive */
+  --primary-foreground: #ffffff;
   
-  /* Info Color (Cyan) */
-  --info: #40E1FA;
-  --info-filled: #2ECCE5;
-  --info-foreground: #FFFFFF;
+  /* Info Color (Soft Lime #e8fd9d) */
+  --info: #e8fd9d;
+  --info-filled: #d4f070;
+  --info-foreground: #2d3a1f;
   
   /* Semantic Colors */
-  --success: #7CE7AC;
-  --success-filled: #5FD492;
-  --success-foreground: #FFFFFF;
+  --success: #5a9c6a;                  /* Olive based success */
+  --success-filled: #4a8c5a;
+  --success-foreground: #ffffff;
   
-  --warning: #F4BE5E;
-  --warning-filled: #E5A93D;
-  --warning-foreground: #1F2937;
+  --warning: #f4be5e;
+  --warning-filled: #e5a93d;
+  --warning-foreground: #2d2a1f;
   
-  --destructive: #FF808B;
-  --destructive-filled: #F25D6A;
-  --destructive-foreground: #FFFFFF;
+  --destructive: #e55a5a;
+  --destructive-filled: #d04545;
+  --destructive-foreground: #ffffff;
   
   /* Background & Surface */
-  --background: #F6F6F6;
-  --surface: #FFFFFF;               /* Cards, modals */
-  --foreground: #1F2937;
+  --background: #ffffff;               /* White background */
+  --surface: #ffffff;                  /* Cards, modals */
+  --foreground: #1f2937;
   
   /* Card & Popover */
-  --card: #FFFFFF;
-  --card-foreground: #1F2937;
-  --popover: #FFFFFF;
-  --popover-foreground: #1F2937;
+  --card: #ffffff;
+  --card-foreground: #1f2937;
+  --popover: #ffffff;
+  --popover-foreground: #1f2937;
   
-  /* Secondary & Muted */
-  --secondary: #F3F4F6;
-  --secondary-foreground: #1F2937;
-  --muted: #F3F4F6;
-  --muted-foreground: #6B7280;
+  /* Secondary & Muted (Gray Violet #d6dfea) */
+  --secondary: #d6dfea;                /* Gray Violet */
+  --secondary-foreground: #1f2937;
+  --muted: #e8ecf2;
+  --muted-foreground: #64748b;
   
-  /* Accent */
-  --accent: #EEF2FE;
-  --accent-foreground: #1F2937;
+  /* Accent (Soft Lime #e8fd9d) */
+  --accent: #e8fd9d;                   /* Soft Lime */
+  --accent-foreground: #2d3a1f;
   
   /* Borders & Inputs */
-  --border: #E5E7EB;
-  --input: #E5E7EB;
-  --ring: #5E81F4;
+  --border: #d6dfea;
+  --input: #d6dfea;
+  --ring: #4a7c59;
   
   /* Charts - Using brand colors */
-  --chart-1: #5E81F4;              /* Primary Blue */
-  --chart-2: #40E1FA;              /* Info Cyan */
-  --chart-3: #7CE7AC;              /* Success Green */
-  --chart-4: #F4BE5E;              /* Warning Yellow */
-  --chart-5: #FF808B;              /* Destructive Red */
+  --chart-1: #4a7c59;                  /* Olive */
+  --chart-2: #e8fd9d;                  /* Soft Lime */
+  --chart-3: #d6dfea;                  /* Gray Violet */
+  --chart-4: #f4be5e;                  /* Warning */
+  --chart-5: #e55a5a;                  /* Destructive */
   
   /* Sidebar */
-  --sidebar: #FFFFFF;
-  --sidebar-foreground: #1F2937;
-  --sidebar-primary: #5E81F4;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #EEF2FE;
-  --sidebar-accent-foreground: #1F2937;
-  --sidebar-border: #E5E7EB;
-  --sidebar-ring: #5E81F4;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1f2937;
+  --sidebar-primary: #4a7c59;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #cbe2c8;
+  --sidebar-accent-foreground: #1f2937;
+  --sidebar-border: #d6dfea;
+  --sidebar-ring: #4a7c59;
 }
 
 .dark {
-  /* Brand Colors - Primary (Blue) */
-  --primary: #7A9AF7;              /* Lighter for dark mode */
-  --primary-filled: #6B8BF5;
-  --primary-hover: #5A7AE8;
-  --primary-tint: #2A3A5C;
-  --primary-foreground: #FFFFFF;
+  /* Brand Colors - Primary (Olive) */
+  --primary: #6a9c7a;                  /* Lighter olive for dark mode */
+  --primary-filled: #5a8c6a;
+  --primary-hover: #7aac8a;
+  --primary-tint: #2a3d2e;
+  --primary-foreground: #ffffff;
   
-  /* Info Color (Cyan) */
-  --info: #5CE8FC;
-  --info-filled: #40E1FA;
-  --info-foreground: #0F172A;
+  /* Info Color (Soft Lime) */
+  --info: #c4e070;
+  --info-filled: #b4d060;
+  --info-foreground: #1a1f14;
   
   /* Semantic Colors */
-  --success: #8AEDB8;
-  --success-filled: #7CE7AC;
-  --success-foreground: #0F172A;
+  --success: #7abc8a;
+  --success-filled: #6aac7a;
+  --success-foreground: #1a1f14;
   
-  --warning: #F7CA7A;
-  --warning-filled: #F4BE5E;
-  --warning-foreground: #0F172A;
+  --warning: #f7ca7a;
+  --warning-filled: #f4be5e;
+  --warning-foreground: #1a1f14;
   
-  --destructive: #FF9AA3;
-  --destructive-filled: #FF808B;
-  --destructive-foreground: #FFFFFF;
+  --destructive: #f07070;
+  --destructive-filled: #e55a5a;
+  --destructive-foreground: #ffffff;
   
   /* Background & Surface */
-  --background: #0F172A;
-  --surface: #1E293B;
-  --foreground: #F1F5F9;
+  --background: #0f1714;
+  --surface: #1a2420;
+  --foreground: #f1f5f3;
   
   /* Card & Popover */
-  --card: #1E293B;
-  --card-foreground: #F1F5F9;
-  --popover: #1E293B;
-  --popover-foreground: #F1F5F9;
+  --card: #1a2420;
+  --card-foreground: #f1f5f3;
+  --popover: #1a2420;
+  --popover-foreground: #f1f5f3;
   
-  /* Secondary & Muted */
-  --secondary: #334155;
-  --secondary-foreground: #F1F5F9;
-  --muted: #334155;
-  --muted-foreground: #94A3B8;
+  /* Secondary & Muted (Gray Violet) */
+  --secondary: #2a3540;
+  --secondary-foreground: #f1f5f3;
+  --muted: #243030;
+  --muted-foreground: #94a3b0;
   
-  /* Accent */
-  --accent: #2A3A5C;
-  --accent-foreground: #F1F5F9;
+  /* Accent (Soft Lime) */
+  --accent: #3a4530;
+  --accent-foreground: #f1f5f3;
   
   /* Borders & Inputs */
-  --border: rgba(255, 255, 255, 0.1);
-  --input: rgba(255, 255, 255, 0.15);
-  --ring: #7A9AF7;
+  --border: #2a3535;
+  --input: #2d3838;
+  --ring: #6a9c7a;
   
   /* Charts - Using brand colors */
-  --chart-1: #7A9AF7;              /* Primary Blue */
-  --chart-2: #5CE8FC;              /* Info Cyan */
-  --chart-3: #8AEDB8;              /* Success Green */
-  --chart-4: #F7CA7A;              /* Warning Yellow */
-  --chart-5: #FF9AA3;              /* Destructive Red */
+  --chart-1: #6a9c7a;                  /* Olive */
+  --chart-2: #c4e070;                  /* Soft Lime */
+  --chart-3: #a0b0c0;                  /* Gray Violet */
+  --chart-4: #f7ca7a;                  /* Warning */
+  --chart-5: #f07070;                  /* Destructive */
   
   /* Sidebar */
-  --sidebar: #1E293B;
-  --sidebar-foreground: #F1F5F9;
-  --sidebar-primary: #7A9AF7;
-  --sidebar-primary-foreground: #0F172A;
-  --sidebar-accent: #2A3A5C;
+  --sidebar: #141d1a;
+  --sidebar-foreground: #f1f5f3;
+  --sidebar-primary: #6a9c7a;
+  --sidebar-primary-foreground: #1a1f14;
+  --sidebar-accent: #2a3d2e;
   --sidebar-accent-foreground: #F1F5F9;
   --sidebar-border: rgba(255, 255, 255, 0.1);
   --sidebar-ring: #7A9AF7;

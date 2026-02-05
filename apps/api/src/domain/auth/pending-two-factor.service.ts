@@ -34,17 +34,6 @@ export class PendingTwoFactorService {
       },
     });
 
-    if (!isProduction) {
-      console.log('[Pending2FA] Session created:', {
-        sessionId: id,
-        userId,
-        email,
-        createdAt: now.toISOString(),
-        expiresAt: expiresAt.toISOString(),
-        expiryMinutes: this.SESSION_EXPIRY_MINUTES,
-      });
-    }
-
     return id;
   }
 

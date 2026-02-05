@@ -85,13 +85,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Initialize auth state on mount
   useEffect(() => {
     const initAuth = async () => {
-      console.log('[AuthProvider] initAuth started');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[AuthProvider] initAuth started');
+      }
       
       // 🔒 Skip init if we're on OAuth callback page (will be handled by callback component)
       if (typeof window !== 'undefined') {
         const url = new URL(window.location.href);
         if (url.pathname.includes('/auth/callback') && url.searchParams.has('code')) {
-          console.log('[AuthProvider] OAuth callback detected, skipping initAuth');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[AuthProvider] OAuth callback detected, skipping initAuth');
+          }
           setState(prev => ({ ...prev, isLoading: false }));
           return;
         }
@@ -236,7 +240,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Handle OAuth callback
   const handleOAuthCallback = useCallback(async (code: string): Promise<AuthResponse> => {
-    console.log('[AuthProvider] handleOAuthCallback started with code:', code);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[AuthProvider] handleOAuthCallback started with code:', code);
+    }
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {

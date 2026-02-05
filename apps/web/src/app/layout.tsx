@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, IBM_Plex_Sans_Arabic } from "next/font/google";
+import { Geist, Geist_Mono, IBM_Plex_Sans_Arabic, Courgette } from "next/font/google";
 import { AppProviders } from "@/providers";
 import { PWAPrompt } from "@/components/pwa-prompt";
 import Script from 'next/script';
@@ -19,6 +19,12 @@ const ibmPlexArabic = IBM_Plex_Sans_Arabic({
   variable: "--font-ibm-plex-arabic",
   subsets: ["arabic", "latin"],
   weight: ["300", "400", "500", "600", "700"],
+});
+
+const courgette = Courgette({
+  variable: "--font-courgette",
+  subsets: ["latin"],
+  weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -73,7 +79,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${ibmPlexArabic.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${ibmPlexArabic.variable} ${courgette.variable} antialiased`}
         style={{ fontFamily: '"IBM Plex Sans Arabic", sans-serif' }}
       >
 

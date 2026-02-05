@@ -243,7 +243,7 @@ export function Sidebar({ className }: SidebarProps) {
         </button>
 
                 {isProfileOpen && (
-          <div className="absolute left-2 right-2 top-full z-50 mt-1.5 rounded-3xl border border-border/40 bg-card/95 backdrop-blur-sm p-2 shadow-xl">
+          <div className="absolute left-2 right-2 top-full z-50 mt-1.5 rounded-3xl border border-border/40 bg-card/95 backdrop-blur-sm p-2">
                         
             {/* Menu Items */}
             <div className="space-y-0.5">

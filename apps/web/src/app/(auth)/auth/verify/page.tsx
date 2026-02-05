@@ -53,13 +53,13 @@ function VerifyContent() {
   function getErrorMessage(errorType: string): string {
     switch (errorType) {
       case 'used':
-        return 'هذا الرابط تم استخدامه مسبقاً';
+        return 'هذا الرابط تم استخدامه مسبقاً. يرجى طلب رابط جديد للدخول.';
       case 'expired':
-        return 'انتهت صلاحية هذا الرابط';
+        return 'انتهت صلاحية هذا الرابط (30 دقيقة). يرجى طلب رابط جديد للدخول.';
       case 'invalid':
-        return 'رابط غير صالح';
+        return 'رابط غير صالح. يرجى التأكد من نسخ الرابط بشكل صحيح.';
       default:
-        return 'حدث خطأ غير متوقع';
+        return 'حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى أو التواصل مع الدعم.';
     }
   }
 
@@ -279,7 +279,7 @@ function VerifyContent() {
 
           {/* Header */}
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2 text-center">
-            الرابط منتهي الصلاحية
+            الرابط منتهي الصلاحية - اطلب رابط جديد
           </h1>
           <p className="text-zinc-600 dark:text-zinc-400 text-center mb-8">
             {error || 'هذا الرابط السحري منتهي الصلاحية أو تم استخدامه مسبقاً'}

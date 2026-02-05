@@ -552,8 +552,8 @@ export default function SettingsPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="relative">
-            <div className="w-20 h-20 rounded-2xl bg-[#ffffff] flex items-center justify-center mx-auto mb-5 shadow-xl shadow-primary/20">
-              <Settings2 className="w-10 h-10 text-white" />
+            <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
+              <Settings2 className="w-10 h-10 text-primary" />
             </div>
             <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 translate-y-2">
               <Loader2 className="w-6 h-6 animate-spin text-info" />

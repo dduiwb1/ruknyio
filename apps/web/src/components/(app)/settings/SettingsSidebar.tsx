@@ -166,53 +166,56 @@ function SettingsSidebarContent({ onItemClick }: { onItemClick?: () => void }) {
 
   return (
     <>
-      <div className="p-4 ">
-        <div className="flex items-center gap-3 mb-4">
-          <Link href="/app" className="p-2 rounded-xl hover:bg-gray-100 transition-all duration-200" onClick={onItemClick}>
-            <ArrowRight className="size-4 text-gray-500" />
+      <div className="p-3">
+        <div className="flex items-center gap-2.5 mb-3">
+          <Link href="/app" className="p-2 rounded-lg hover:bg-muted/50 transition-colors" onClick={onItemClick}>
+            <ArrowRight className="size-4 text-muted-foreground" />
           </Link>
-          <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
             <Settings className="w-4 h-4 text-primary" />
           </div>
-          <span className="text-sm font-semibold text-gray-900">الإعدادات</span>
+          <span className="text-sm font-semibold text-foreground">الإعدادات</span>
         </div>
         <div className="relative">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
             placeholder="بحث في الإعدادات..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pr-10 pl-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 focus:bg-white transition-all duration-200"
+            className="w-full pr-10 pl-4 py-2.5 rounded-xl bg-muted/30 border border-border/40 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 focus:bg-card transition-all duration-200"
           />
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <nav className="flex-1 overflow-y-auto px-2.5 py-2.5 space-y-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {filteredSections.map((section) => {
           const isOpen = openSection === section.id;
           const SectionIcon = section.icon;
           return (
-            <div key={section.id}>
+            <div key={section.id} className="rounded-3xl overflow-hidden">
               <motion.button
                 type="button"
                 onClick={() => toggleSection(section.id)}
                 className={cn(
-                  'flex w-full items-center gap-2.5 rounded-xl p-2.5 text-right transition-all duration-200',
+                  'flex w-full items-center gap-2 rounded-full p-2 text-right outline-none ring-primary/50 transition-all h-9 text-sm',
+                  'focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50',
                   isOpen 
-                    ? 'bg-gray-100 text-gray-900 shadow-sm border border-gray-200' 
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-muted/70 text-foreground font-medium' 
+                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                 )}
                 whileTap={{ scale: 0.98 }}
               >
-                <motion.div animate={{ rotate: isOpen ? -90 : 0 }} transition={{ duration: 0.2 }}>
-                  <ChevronLeft className="size-3.5 text-gray-500" />
-                </motion.div>
-                <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center', section.iconBg)}>
-                  <SectionIcon className={cn('size-4', section.iconColor)} />
+                <div className="flex items-center gap-2 flex-1">
+                  <motion.div animate={{ rotate: isOpen ? 90 : 0 }} transition={{ type: "spring", stiffness: 400, damping: 25 }}>
+                    <ChevronLeft className="size-3 text-muted-foreground" />
+                  </motion.div>
+                  <div className={cn('w-6 h-6 rounded-md flex items-center justify-center', section.iconBg)}>
+                    <SectionIcon className={cn('size-3.5', section.iconColor)} />
+                  </div>
+                  <span className="text-sm">{section.label}</span>
                 </div>
-                <span className="text-xs font-medium flex-1">{section.label}</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200 text-gray-600 font-medium">{section.items.length}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">{section.items.length}</span>
               </motion.button>
 
               <AnimatePresence initial={false}>
@@ -224,7 +227,7 @@ function SettingsSidebarContent({ onItemClick }: { onItemClick?: () => void }) {
                     transition={{ duration: 0.2, ease: 'easeOut' }}
                     className="overflow-hidden"
                   >
-                    <div className="py-1.5 pr-7 space-y-1">
+                    <div className="py-1 pr-4 space-y-0.5">
                       {section.items.map((item, index) => {
                         const Icon = item.icon;
                         const isActive = isItemActive(item.href);
@@ -234,19 +237,20 @@ function SettingsSidebarContent({ onItemClick }: { onItemClick?: () => void }) {
                               href={item.href}
                               onClick={onItemClick}
                               className={cn(
-                                'flex items-center gap-2.5 rounded-xl px-3 py-2 transition-all duration-200',
+                                'flex w-full items-center gap-2 overflow-hidden rounded-full p-2 text-right outline-none ring-primary/50 transition-all h-8 text-sm',
+                                'focus-visible:ring-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0',
                                 isActive 
-                                  ? 'bg-primary text-primary-foreground shadow-md border border-primary/30' 
-                                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                  ? 'bg-primary text-primary-foreground font-medium' 
+                                  : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
                               )}
                             >
-                              <Icon className="size-4 shrink-0" />
-                              <span className="text-xs font-medium flex-1">{item.label}</span>
+                              <Icon className="size-3.5 shrink-0" />
+                              <span className="truncate flex-1">{item.label}</span>
                               {item.badge && (
                                 <span
                                   className={cn(
-                                    'px-2 py-0.5 text-[9px] font-semibold rounded-full',
-                                    isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-primary/10 text-primary'
+                                    'px-1.5 py-0.5 text-[9px] font-medium rounded-full shrink-0',
+                                    isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-warning/10 text-warning'
                                   )}
                                 >
                                   {item.badge}
@@ -265,23 +269,25 @@ function SettingsSidebarContent({ onItemClick }: { onItemClick?: () => void }) {
         })}
 
         {filteredSections.length === 0 && (
-          <div className="text-center py-6 text-muted-foreground">
-            <Search className="w-6 h-6 mx-auto mb-2 opacity-30" />
-            <p className="text-xs">لا توجد نتائج</p>
+          <div className="text-center py-8 text-muted-foreground">
+            <Search className="w-8 h-8 mx-auto mb-2 opacity-20" />
+            <p className="text-xs">لا توجد نتائج للبحث</p>
           </div>
         )}
       </nav>
 
-      <div className="p-3 border-t border-gray-200">
-        <Link href="/app/help" onClick={onItemClick}>
-          <div className="p-3 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 hover:from-blue-100 hover:to-blue-150 transition-all duration-200 group">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-blue-100 border border-blue-200 flex items-center justify-center shrink-0 group-hover:bg-blue-200 transition-colors">
-                <HelpCircle className="w-4 h-4 text-blue-600" />
+      <div className="p-2.5 border-t border-border/30">
+        <Link href="/app/help" onClick={onItemClick} className="block">
+          <div className="p-3 rounded-xl bg-info/10 border border-info/20 hover:bg-info/15 transition-colors">
+            <div className="flex items-start gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-info flex items-center justify-center shrink-0">
+                <HelpCircle className="w-3.5 h-3.5 text-white" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-gray-900">تحتاج مساعدة؟</p>
-                <p className="text-[11px] text-gray-600">الدعم الفني متاح 24/7</p>
+                <p className="text-xs font-medium text-foreground mb-0.5">تحتاج مساعدة؟</p>
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  تواصل معنا عبر الدعم الفني
+                </p>
               </div>
             </div>
           </div>
@@ -297,7 +303,7 @@ function SettingsSidebarContent({ onItemClick }: { onItemClick?: () => void }) {
 
 export function SettingsSidebarDesktop() {
   return (
-    <aside className="hidden lg:flex flex-col shrink-0 w-[260px] mr-2 h-full rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <aside className="hidden lg:flex flex-col shrink-0 w-[240px] mr-2 h-full rounded-2xl border border-border/40 bg-card">
       <SettingsSidebarContent />
     </aside>
   );
@@ -315,7 +321,7 @@ export function SettingsSidebarSlider() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="lg:hidden fixed bottom-4 left-4 z-40 w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
+        className="lg:hidden fixed bottom-4 left-4 z-40 w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
         aria-label="فتح قائمة الإعدادات"
       >
         <Menu className="w-6 h-6" />
@@ -338,18 +344,18 @@ export function SettingsSidebarSlider() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="fixed top-0 left-0 bottom-0 z-50 w-[300px] max-w-[85vw] flex flex-col rounded-l-2xl border-l border-t border-b border-gray-200 bg-white shadow-2xl lg:hidden supports-[backdrop-filter]:bg-white"
+              className="fixed top-0 left-0 bottom-0 z-50 w-[280px] max-w-[85vw] flex flex-col rounded-l-2xl border-l border-t border-b border-border/40 bg-card lg:hidden"
               dir="rtl"
             >
-              <div className="flex items-center justify-between p-3 border-b border-gray-200">
-                <span className="text-sm font-semibold text-gray-900">قائمة الإعدادات</span>
+              <div className="flex items-center justify-between p-3 border-b border-border/30">
+                <span className="text-sm font-semibold text-foreground">قائمة الإعدادات</span>
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="p-2 rounded-lg hover:bg-gray-100 transition-all duration-200"
+                  className="p-2 rounded-lg hover:bg-muted/50 transition-colors"
                   aria-label="إغلاق"
                 >
-                  <X className="w-5 h-5 text-gray-500" />
+                  <X className="w-5 h-5 text-muted-foreground" />
                 </button>
               </div>
               <div className="flex-1 flex flex-col min-h-0 overflow-hidden">

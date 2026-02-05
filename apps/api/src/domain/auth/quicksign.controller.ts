@@ -369,7 +369,6 @@ export class QuickSignController {
       
       // Redirect لصفحة 2FA
       const redirectUrl = `${frontendUrl}/auth/verify-2fa?sessionId=${pendingSessionId}`;
-      if (!isProduction) console.log('🔄 Redirecting to verify-2fa:', redirectUrl);
       return res.redirect(redirectUrl);
     }
 

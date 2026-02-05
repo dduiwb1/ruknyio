@@ -27,6 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
 
 interface TwoFactorAuthProps {
   isEnabled?: boolean;
@@ -94,7 +95,7 @@ function OTPInput({
   };
 
   return (
-    <div className="flex gap-2.5 justify-center" dir="ltr">
+    <div className="flex gap-2 justify-center" dir="ltr">
       {[0, 1, 2, 3, 4, 5].map((index) => (
         <motion.div
           key={index}
@@ -116,13 +117,13 @@ function OTPInput({
             onFocus={() => setFocused(index)}
             disabled={disabled}
             className={cn(
-              "w-12 h-14 text-center text-xl font-bold rounded-xl border-2 transition-all duration-200 bg-white text-gray-900 ",
-              "focus:outline-none focus:shadow-md",
+              "w-11 h-12 text-center text-lg font-bold rounded-xl border-2 transition-all duration-200 bg-card text-foreground",
+              "focus:outline-none",
               focused === index 
-                ? "border-info ring-3 ring-info/20" 
+                ? "border-info ring-2 ring-info/20" 
                 : value[index] 
                   ? "border-info/60 bg-info/5" 
-                  : "border-gray-200 hover:border-gray-300",
+                  : "border-border hover:border-border/80",
               disabled && "opacity-50 cursor-not-allowed"
             )}
           />
@@ -260,17 +261,17 @@ export function TwoFactorAuth({ isEnabled: isEnabledProp, onStatusChange }: TwoF
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-card border border-border rounded-4xl p-5  transition-all duration-300"
+        className="bg-card border border-border rounded-2xl p-5 transition-all duration-300"
       >
         <div className="flex items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-3">
             <div className={cn(
               "w-11 h-11 rounded-xl flex items-center justify-center transition-colors",
               isEnabled 
-                ? "bg-gradient-to-br from-info to-info-filled" 
+                ? "bg-info/10" 
                 : "bg-muted"
             )}>
-              <Shield className={cn("w-5 h-5", isEnabled ? "text-white" : "text-muted-foreground")} />
+              <Shield className={cn("w-5 h-5", isEnabled ? "text-info" : "text-muted-foreground")} />
             </div>
             <div>
               <h3 className="font-bold text-foreground">المصادقة الثنائية</h3>
@@ -280,23 +281,20 @@ export function TwoFactorAuth({ isEnabled: isEnabledProp, onStatusChange }: TwoF
 
           <motion.div 
             initial={false}
-            animate={{
-              backgroundColor: isEnabled ? "rgba(64, 225, 250, 0.1)" : "rgb(243, 244, 246)"
-            }}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold",
+              isEnabled ? "bg-info/10" : "bg-muted"
             )}
           >
             <motion.span
               initial={false}
               animate={{
-                backgroundColor: isEnabled ? "#40E1FA" : "#9CA3AF",
                 scale: isEnabled ? [1, 1.2, 1] : 1
               }}
               transition={{ duration: 0.3 }}
-              className="w-2 h-2 rounded-full"
+              className={cn("w-2 h-2 rounded-full", isEnabled ? "bg-info" : "bg-muted-foreground")}
             />
-            <span className={isEnabled ? "text-info" : "text-gray-500"}>
+            <span className={isEnabled ? "text-info" : "text-muted-foreground"}>
               {isEnabled ? 'مفعلة' : 'غير مفعلة'}
             </span>
           </motion.div>
@@ -321,33 +319,41 @@ export function TwoFactorAuth({ isEnabled: isEnabledProp, onStatusChange }: TwoF
           </div>
         </div>
 
-        {/* Action Button - Enhanced */}
-        <motion.button
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={isEnabled ? () => setShowDisableModal(true) : handleSetup}
-          disabled={isLoading}
-          className={cn(
-            "w-full py-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2",
-            isEnabled 
-              ? "bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/20"
-              : "bg-gradient-to-r from-primary to-primary-hover text-white hover:shadow-md"
-          )}
-        >
-          {isLoading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : isEnabled ? (
-            <>
-              <ShieldOff className="w-4 h-4" />
-              تعطيل المصادقة
-            </>
-          ) : (
-            <>
-              <Shield className="w-4 h-4" />
-              تفعيل المصادقة
-            </>
-          )}
-        </motion.button>
+        {/* Toggle Switch */}
+        <div className="flex items-center justify-between gap-4 bg-muted/30 rounded-xl p-4 border border-border">
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-semibold text-foreground">
+                تفعيل المصادقة الثنائية
+              </p>
+              {isEnabled && (
+                <span className="text-xs bg-info/10 text-info px-2 py-0.5 rounded-full font-medium">
+                  مفعّلة
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {isEnabled 
+                ? 'حسابك محمي برمز تحقق إضافي'
+                : 'تأمين الحساب بطبقة حماية إضافية'
+              }
+            </p>
+          </div>
+          <div dir="ltr" className="shrink-0">
+            <Switch
+              checked={isEnabled}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  handleSetup();
+                } else {
+                  setShowDisableModal(true);
+                }
+              }}
+              disabled={isLoading}
+              className="data-[state=checked]:bg-info"
+            />
+          </div>
+        </div>
       </motion.div>
 
       {/* Quick Link to IP Alerts */}
@@ -355,7 +361,7 @@ export function TwoFactorAuth({ isEnabled: isEnabledProp, onStatusChange }: TwoF
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-gradient-to-br mt-4 from-warning/5 to-warning/10 border border-warning/20 rounded-2xl p-4 transition-all duration-300"
+        className="bg-warning/5 mt-4 border border-warning/20 rounded-2xl p-4 transition-all duration-300"
       >
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -381,9 +387,9 @@ export function TwoFactorAuth({ isEnabled: isEnabledProp, onStatusChange }: TwoF
 
       {/* Setup Modal using Dialog */}
       <Dialog open={showSetupModal} onOpenChange={(open) => !open && closeModal()}>
-        <DialogContent dir="rtl" className="max-w-sm p-0 gap-0" showCloseButton={false}>
+        <DialogContent dir="rtl" className="max-w-xs p-0 gap-0" showCloseButton={false}>
           {/* Header */}
-          <DialogHeader className="p-4 border-b border-border">
+          <DialogHeader className="p-3 border-b border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {step === 'verify' && (
@@ -408,21 +414,21 @@ export function TwoFactorAuth({ isEnabled: isEnabledProp, onStatusChange }: TwoF
           </DialogHeader>
 
           {/* Steps Indicator */}
-          <div className="px-5 pt-4">
+          <div className="px-4 pt-3">
             <div className="flex items-center justify-center gap-2">
               <div className={cn(
                 "w-8 h-1 rounded-full transition-colors",
-                step === 'qr' ? "bg-primary" : "bg-primary/30"
+                step === 'qr' ? "bg-info" : "bg-info/30"
               )} />
               <div className={cn(
                 "w-8 h-1 rounded-full transition-colors",
-                step === 'verify' ? "bg-primary" : "bg-muted"
+                step === 'verify' ? "bg-info" : "bg-muted"
               )} />
             </div>
           </div>
 
           {/* Content */}
-          <div className="p-5">
+          <div className="p-4">
             <AnimatePresence mode="wait">
               {step === 'qr' ? (
                 <motion.div
@@ -431,7 +437,7 @@ export function TwoFactorAuth({ isEnabled: isEnabledProp, onStatusChange }: TwoF
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                 >
-                  <p className="text-sm text-muted-foreground text-center mb-5">
+                  <p className="text-sm text-muted-foreground text-center mb-4">
                     امسح الرمز باستخدام تطبيق المصادقة
                   </p>
 
@@ -440,21 +446,21 @@ export function TwoFactorAuth({ isEnabled: isEnabledProp, onStatusChange }: TwoF
                     <motion.div 
                       initial={{ scale: 0.9 }}
                       animate={{ scale: 1 }}
-                      className="flex justify-center mb-5"
+                      className="flex justify-center mb-4"
                     >
-                      <div className="p-4 bg-background border-2 border-border rounded-2xl">
-                        <img src={qrCode} alt="QR Code" className="w-44 h-44" />
+                      <div className="p-3 bg-muted/30 border border-border rounded-xl">
+                        <img src={qrCode} alt="QR Code" className="w-36 h-36" />
                       </div>
                     </motion.div>
                   )}
 
                   {/* Manual Entry */}
-                  <div className="bg-muted/50 rounded-xl p-4 mb-5 border border-border">
+                  <div className="bg-muted/30 rounded-xl p-3 mb-4 border border-border">
                     <p className="text-xs text-muted-foreground text-center mb-3 font-medium">
                       أو أدخل الرمز يدوياً
                     </p>
                     <div className="flex items-center gap-2">
-                      <code className="flex-1 bg-background px-3 py-2.5 rounded-xl text-xs font-mono text-center border border-border text-foreground truncate">
+                      <code className="flex-1 bg-card px-3 py-2.5 rounded-xl text-xs font-mono text-center border border-border text-foreground truncate">
                         {secret}
                       </code>
                       <button
@@ -462,8 +468,8 @@ export function TwoFactorAuth({ isEnabled: isEnabledProp, onStatusChange }: TwoF
                         className={cn(
                           "p-2.5 rounded-xl transition-all",
                           copied 
-                            ? "bg-primary text-primary-foreground" 
-                            : "bg-background border border-border text-muted-foreground hover:bg-muted"
+                            ? "bg-info text-info-foreground" 
+                            : "bg-card border border-border text-muted-foreground hover:bg-muted"
                         )}
                       >
                         {copied ? (
@@ -477,7 +483,7 @@ export function TwoFactorAuth({ isEnabled: isEnabledProp, onStatusChange }: TwoF
 
                   <button
                     onClick={() => setStep('verify')}
-                    className="w-full py-3 bg-foreground text-background rounded-xl font-semibold hover:bg-foreground/90 transition-all text-sm"
+                    className="w-full py-3 bg-info text-info-foreground rounded-xl font-semibold hover:bg-info/90 transition-all text-sm"
                   >
                     التالي
                   </button>
@@ -489,12 +495,12 @@ export function TwoFactorAuth({ isEnabled: isEnabledProp, onStatusChange }: TwoF
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                 >
-                  <p className="text-sm text-muted-foreground text-center mb-6">
+                  <p className="text-sm text-muted-foreground text-center mb-4">
                     أدخل الرمز المكون من 6 أرقام من التطبيق
                   </p>
 
                   {/* OTP Input */}
-                  <div className="mb-6">
+                  <div className="mb-4">
                     <OTPInput
                       value={verificationCode}
                       onChange={setVerificationCode}
@@ -516,7 +522,7 @@ export function TwoFactorAuth({ isEnabled: isEnabledProp, onStatusChange }: TwoF
                   <button
                     onClick={handleVerify}
                     disabled={isLoading || verificationCode.length !== 6}
-                    className="w-full py-3 bg-foreground text-background rounded-xl font-semibold hover:bg-foreground/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+                    className="w-full py-3 bg-info text-info-foreground rounded-xl font-semibold hover:bg-info/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
                   >
                     {isLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -533,9 +539,9 @@ export function TwoFactorAuth({ isEnabled: isEnabledProp, onStatusChange }: TwoF
 
       {/* Disable Modal using Dialog */}
       <Dialog open={showDisableModal} onOpenChange={(open) => !open && closeModal()}>
-        <DialogContent dir="rtl" className="max-w-sm p-0 gap-0" showCloseButton={false}>
+        <DialogContent dir="rtl" className="max-w-xs p-0 gap-0" showCloseButton={false}>
           {/* Header */}
-          <DialogHeader className="p-4 border-b border-border">
+          <DialogHeader className="p-3 border-b border-border">
             <div className="flex items-center justify-between">
               <DialogTitle className="text-base font-semibold">
                 تعطيل المصادقة الثنائية
@@ -550,16 +556,16 @@ export function TwoFactorAuth({ isEnabled: isEnabledProp, onStatusChange }: TwoF
           </DialogHeader>
 
           {/* Content */}
-          <div className="p-5">
+          <div className="p-4">
             <p className="text-sm text-muted-foreground text-center mb-2">
               هل أنت متأكد؟
             </p>
-            <p className="text-xs text-muted-foreground text-center mb-6">
+            <p className="text-xs text-muted-foreground text-center mb-4">
               تعطيل المصادقة الثنائية سيجعل حسابك أقل أماناً. أدخل الرمز للتأكيد.
             </p>
 
             {/* OTP Input */}
-            <div className="mb-6">
+            <div className="mb-4">
               <OTPInput
                 value={verificationCode}
                 onChange={setVerificationCode}
@@ -588,7 +594,7 @@ export function TwoFactorAuth({ isEnabled: isEnabledProp, onStatusChange }: TwoF
               <button
                 onClick={handleDisable}
                 disabled={isLoading || verificationCode.length !== 6}
-                className="flex-1 py-3 bg-foreground text-background rounded-xl font-medium hover:bg-foreground/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+                className="flex-1 py-3 bg-destructive text-destructive-foreground rounded-xl font-medium hover:bg-destructive/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
               >
                 {isLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
