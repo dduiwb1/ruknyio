@@ -35,14 +35,30 @@ export class DatabaseCleanupService implements OnModuleInit {
     // Run initial cleanup on startup (delayed to not block startup)
     setTimeout(() => {
       this.runAllCleanups().catch((err) => {
-        this.logger.error('Initial cleanup failed:', err);
+        this.logger.warn('Initial cleanup failed (this is non-critical):', err instanceof Error ? err.message : err);
       });
     }, 30000); // 30 seconds after startup
   }
 
   /**
+   * ⚡ Check if database is reachable before running cleanup
+   */
+  private async isDatabaseReachable(): Promise<boolean> {
+    try {
+      await this.prisma.$queryRaw`SELECT 1`;
+      return true;
+    } catch (error) {
+      this.logger.warn(
+        `Database unreachable: ${error instanceof Error ? error.message : 'Unknown error'}. Cleanup skipped.`,
+      );
+      return false;
+    }
+  }
+
+  /**
    * ⚡ Run all cleanup jobs every hour
    * Uses distributed lock to prevent multiple instances from running simultaneously
+   * Gracefully handles database connectivity issues
    */
   @Cron(CronExpression.EVERY_HOUR)
   async runAllCleanups(): Promise<void> {
@@ -54,6 +70,15 @@ export class DatabaseCleanupService implements OnModuleInit {
     // Local guard
     if (this.isRunning) {
       this.logger.warn('Cleanup already running locally, skipping...');
+      return;
+    }
+
+    // Check database connectivity before attempting cleanup
+    const isDbReachable = await this.isDatabaseReachable();
+    if (!isDbReachable) {
+      this.logger.warn(
+        '⚠️ Database is currently unreachable. Cleanup will retry in the next cycle.',
+      );
       return;
     }
 
@@ -86,16 +111,40 @@ export class DatabaseCleanupService implements OnModuleInit {
 
       results.forEach((result, index) => {
         if (result.status === 'rejected') {
-          this.logger.error(`Cleanup task ${index} failed:`, result.reason);
+          const error = result.reason;
+          // Check if it's a connection error
+          if (
+            error?.code === 'P1001' ||
+            error?.message?.includes('Can\'t reach database server')
+          ) {
+            this.logger.warn(
+              `Cleanup task ${index} skipped: Database temporarily unreachable. This is non-critical and will retry in the next cycle.`,
+            );
+          } else {
+            this.logger.error(`Cleanup task ${index} failed:`, error);
+          }
         }
       });
 
       const duration = Date.now() - startTime;
-      this.logger.log(
-        `✅ Database cleanup completed in ${duration}ms (${successCount} successful, ${failCount} failed)`,
-      );
+      if (failCount === 0) {
+        this.logger.log(
+          `✅ Database cleanup completed in ${duration}ms (${successCount} successful)`,
+        );
+      } else {
+        this.logger.warn(
+          `✅ Database cleanup completed in ${duration}ms (${successCount} successful, ${failCount} skipped/failed)`,
+        );
+      }
     } catch (error) {
-      this.logger.error('Database cleanup failed:', error);
+      const err = error as any;
+      if (err?.code === 'P1001' || err?.message?.includes('Can\'t reach database server')) {
+        this.logger.warn(
+          '⚠️ Database cleanup skipped: Database is currently unreachable. Will retry in the next cycle.',
+        );
+      } else {
+        this.logger.error('Database cleanup failed:', error);
+      }
     } finally {
       this.isRunning = false;
       // Release the distributed lock
@@ -148,160 +197,200 @@ export class DatabaseCleanupService implements OnModuleInit {
    * انمسحت من DB → "Session not found" وتسجيل خروج غير متوقع.
    */
   async cleanupExpiredSessions(): Promise<number> {
-    const now = new Date();
-    const result = await this.prisma.session.deleteMany({
-      where: {
-        OR: [
-          // جلسات انتهت صلاحية refresh token (14 يوم)
-          { refreshExpiresAt: { lt: now } },
-          // جلسات مُبطلة قديمة (أكثر من 7 أيام)
-          {
-            isRevoked: true,
-            revokedAt: { lt: this.daysAgo(7) } },
-        ],
-      },
-    });
+    try {
+      const now = new Date();
+      const result = await this.prisma.session.deleteMany({
+        where: {
+          OR: [
+            // جلسات انتهت صلاحية refresh token (14 يوم)
+            { refreshExpiresAt: { lt: now } },
+            // جلسات مُبطلة قديمة (أكثر من 7 أيام)
+            {
+              isRevoked: true,
+              revokedAt: { lt: this.daysAgo(7) } },
+          ],
+        },
+      });
 
-    if (result.count > 0) {
-      this.logger.debug(`Cleaned up ${result.count} expired sessions`);
+      if (result.count > 0) {
+        this.logger.debug(`Cleaned up ${result.count} expired sessions`);
+      }
+      return result.count;
+    } catch (error) {
+      this.handleCleanupError('cleanupExpiredSessions', error);
+      return 0;
     }
-    return result.count;
   }
 
   /**
    * ⚡ Clean up expired OTPs (WhatsApp)
    */
   async cleanupExpiredOTPs(): Promise<number> {
-    const cutoff = this.daysAgo(DB_CLEANUP.RETENTION.EXPIRED_OTP);
+    try {
+      const cutoff = this.daysAgo(DB_CLEANUP.RETENTION.EXPIRED_OTP);
 
-    const result = await this.prisma.whatsappOtp.deleteMany({
-      where: {
-        OR: [{ expiresAt: { lt: new Date() } }, { verified: true, createdAt: { lt: cutoff } }],
-      },
-    });
+      const result = await this.prisma.whatsappOtp.deleteMany({
+        where: {
+          OR: [{ expiresAt: { lt: new Date() } }, { verified: true, createdAt: { lt: cutoff } }],
+        },
+      });
 
-    if (result.count > 0) {
-      this.logger.debug(`Cleaned up ${result.count} expired OTPs`);
+      if (result.count > 0) {
+        this.logger.debug(`Cleaned up ${result.count} expired OTPs`);
+      }
+      return result.count;
+    } catch (error) {
+      this.handleCleanupError('cleanupExpiredOTPs', error);
+      return 0;
     }
-    return result.count;
   }
 
   /**
    * ⚡ Clean up old security logs
    */
   async cleanupOldSecurityLogs(): Promise<number> {
-    const cutoff = this.daysAgo(DB_CLEANUP.RETENTION.SECURITY_LOGS);
+    try {
+      const cutoff = this.daysAgo(DB_CLEANUP.RETENTION.SECURITY_LOGS);
 
-    // Delete in batches to avoid long-running transactions
-    let totalDeleted = 0;
-    let deleted = 0;
+      // Delete in batches to avoid long-running transactions
+      let totalDeleted = 0;
+      let deleted = 0;
 
-    do {
-      const result = await this.prisma.securityLog.deleteMany({
-        where: {
-          createdAt: { lt: cutoff },
-        },
-      });
-      deleted = result.count;
-      totalDeleted += deleted;
+      do {
+        const result = await this.prisma.securityLog.deleteMany({
+          where: {
+            createdAt: { lt: cutoff },
+          },
+        });
+        deleted = result.count;
+        totalDeleted += deleted;
 
-      // Small delay between batches
-      if (deleted > 0) {
-        await this.sleep(100);
+        // Small delay between batches
+        if (deleted > 0) {
+          await this.sleep(100);
+        }
+      } while (deleted >= DB_CLEANUP.BATCH_SIZE);
+
+      if (totalDeleted > 0) {
+        this.logger.debug(`Cleaned up ${totalDeleted} old security logs`);
       }
-    } while (deleted >= DB_CLEANUP.BATCH_SIZE);
-
-    if (totalDeleted > 0) {
-      this.logger.debug(`Cleaned up ${totalDeleted} old security logs`);
+      return totalDeleted;
+    } catch (error) {
+      this.handleCleanupError('cleanupOldSecurityLogs', error);
+      return 0;
     }
-    return totalDeleted;
   }
 
   /**
    * ⚡ Clean up old login attempts
    */
   async cleanupOldLoginAttempts(): Promise<number> {
-    const cutoff = this.daysAgo(DB_CLEANUP.RETENTION.LOGIN_ATTEMPTS);
+    try {
+      const cutoff = this.daysAgo(DB_CLEANUP.RETENTION.LOGIN_ATTEMPTS);
 
-    const result = await this.prisma.loginAttempt.deleteMany({
-      where: {
-        createdAt: { lt: cutoff },
-      },
-    });
+      const result = await this.prisma.loginAttempt.deleteMany({
+        where: {
+          createdAt: { lt: cutoff },
+        },
+      });
 
-    if (result.count > 0) {
-      this.logger.debug(`Cleaned up ${result.count} old login attempts`);
+      if (result.count > 0) {
+        this.logger.debug(`Cleaned up ${result.count} old login attempts`);
+      }
+      return result.count;
+    } catch (error) {
+      this.handleCleanupError('cleanupOldLoginAttempts', error);
+      return 0;
     }
-    return result.count;
   }
 
   /**
    * ⚡ Clean up expired pending 2FA sessions
    */
   async cleanupExpiredPending2FA(): Promise<number> {
-    const result = await this.prisma.pendingTwoFactorSession.deleteMany({
-      where: {
-        expiresAt: { lt: new Date() },
-      },
-    });
+    try {
+      const result = await this.prisma.pendingTwoFactorSession.deleteMany({
+        where: {
+          expiresAt: { lt: new Date() },
+        },
+      });
 
-    if (result.count > 0) {
-      this.logger.debug(`Cleaned up ${result.count} expired 2FA sessions`);
+      if (result.count > 0) {
+        this.logger.debug(`Cleaned up ${result.count} expired 2FA sessions`);
+      }
+      return result.count;
+    } catch (error) {
+      this.handleCleanupError('cleanupExpiredPending2FA', error);
+      return 0;
     }
-    return result.count;
   }
 
   /**
    * ⚡ Clean up old webhook logs
    */
   async cleanupOldWebhookLogs(): Promise<number> {
-    const cutoff = this.daysAgo(DB_CLEANUP.RETENTION.WEBHOOK_LOGS);
+    try {
+      const cutoff = this.daysAgo(DB_CLEANUP.RETENTION.WEBHOOK_LOGS);
 
-    const result = await this.prisma.telegramWebhookLog.deleteMany({
-      where: {
-        createdAt: { lt: cutoff },
-      },
-    });
+      const result = await this.prisma.telegramWebhookLog.deleteMany({
+        where: {
+          createdAt: { lt: cutoff },
+        },
+      });
 
-    if (result.count > 0) {
-      this.logger.debug(`Cleaned up ${result.count} old webhook logs`);
+      if (result.count > 0) {
+        this.logger.debug(`Cleaned up ${result.count} old webhook logs`);
+      }
+      return result.count;
+    } catch (error) {
+      this.handleCleanupError('cleanupOldWebhookLogs', error);
+      return 0;
     }
-    return result.count;
   }
 
   /**
    * ⚡ Clean up expired verification codes
    */
   async cleanupExpiredVerificationCodes(): Promise<number> {
-    const result = await this.prisma.verification_codes.deleteMany({
-      where: {
-        OR: [{ expiresAt: { lt: new Date() } }, { verified: true, verifiedAt: { lt: this.daysAgo(1) } }],
-      },
-    });
+    try {
+      const result = await this.prisma.verification_codes.deleteMany({
+        where: {
+          OR: [{ expiresAt: { lt: new Date() } }, { verified: true, verifiedAt: { lt: this.daysAgo(1) } }],
+        },
+      });
 
-    if (result.count > 0) {
-      this.logger.debug(`Cleaned up ${result.count} expired verification codes`);
+      if (result.count > 0) {
+        this.logger.debug(`Cleaned up ${result.count} expired verification codes`);
+      }
+      return result.count;
+    } catch (error) {
+      this.handleCleanupError('cleanupExpiredVerificationCodes', error);
+      return 0;
     }
-    return result.count;
   }
 
   /**
    * ⚡ Clean up expired QuickSign links
    */
   async cleanupExpiredQuickSignLinks(): Promise<number> {
-    const result = await this.prisma.quicksign_links.deleteMany({
-      where: {
-        OR: [
-          { expiresAt: { lt: new Date() } },
-          { used: true, usedAt: { lt: this.daysAgo(7) } },
-        ],
-      },
-    });
+    try {
+      const result = await this.prisma.quicksign_links.deleteMany({
+        where: {
+          OR: [
+            { expiresAt: { lt: new Date() } },
+            { used: true, usedAt: { lt: this.daysAgo(7) } },
+          ],
+        },
+      });
 
-    if (result.count > 0) {
-      this.logger.debug(`Cleaned up ${result.count} expired QuickSign links`);
+      if (result.count > 0) {
+        this.logger.debug(`Cleaned up ${result.count} expired QuickSign links`);
+      }
+      return result.count;
+    } catch (error) {
+      this.handleCleanupError('cleanupExpiredQuickSignLinks', error);
+      return 0;
     }
-    return result.count;
   }
 
   /**
@@ -377,6 +466,30 @@ export class DatabaseCleanupService implements OnModuleInit {
   }
 
   // ===== Helper Methods =====
+
+  /**
+   * ⚡ Handle cleanup errors gracefully
+   * Distinguishes between critical errors and temporary connectivity issues
+   */
+  private handleCleanupError(taskName: string, error: any): void {
+    // Check if it's a database connection error
+    if (
+      error?.code === 'P1001' ||
+      error?.message?.includes('Can\'t reach database server') ||
+      error?.message?.includes('ECONNREFUSED') ||
+      error?.message?.includes('ETIMEDOUT')
+    ) {
+      this.logger.warn(
+        `⚠️ ${taskName}: Database temporarily unreachable (non-critical). Will retry in next cycle.`,
+      );
+    } else if (error?.code?.startsWith('P')) {
+      // Other Prisma errors
+      this.logger.warn(`${taskName}: Prisma error ${error.code}: ${error.message}`);
+    } else {
+      // Unexpected errors
+      this.logger.error(`${taskName}: Unexpected error:`, error);
+    }
+  }
 
   private daysAgo(days: number): Date {
     const date = new Date();
