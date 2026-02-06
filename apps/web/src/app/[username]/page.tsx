@@ -8,7 +8,7 @@ import {
   FABButton, 
   FABDivider, 
   FABBadge 
-} from '@/components/(app)/sheard/floating-action-bar';
+} from '@/components/layout/floating-action-bar';
 import { 
   MapPin, 
   Calendar, 
@@ -363,11 +363,11 @@ export default function PublicProfilePage() {
   if (error || !profile) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4">
-        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center">
-          <Users className="w-10 h-10 text-gray-400" />
+        <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
+          <Users className="w-10 h-10 text-primary" />
         </div>
-        <h1 className="text-xl font-bold text-gray-900">المستخدم غير موجود</h1>
-        <p className="text-gray-500">لم نتمكن من العثور على @{username}</p>
+        <h1 className="text-xl font-bold text-gray-900">جاري العمل على إكمال المنصة</h1>
+        <p className="text-gray-500">هذه الصفحة قيد التطوير وستكون متاحة قريباً</p>
         <a
           href="/"
           className="px-6 py-3 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-colors"

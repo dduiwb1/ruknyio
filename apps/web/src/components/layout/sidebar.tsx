@@ -23,7 +23,6 @@ import {
   Sparkles,
   ShoppingBag,
   Calendar,
-  Home,
   Package,
   Tag,
   MessageSquare,
@@ -242,9 +241,8 @@ export function Sidebar({ className }: SidebarProps) {
           />
         </button>
 
-                {isProfileOpen && (
+        {isProfileOpen && (
           <div className="absolute left-2 right-2 top-full z-50 mt-1.5 rounded-3xl border border-border/40 bg-card/95 backdrop-blur-sm p-2">
-                        
             {/* Menu Items */}
             <div className="space-y-0.5">
               <Link
@@ -285,9 +283,9 @@ export function Sidebar({ className }: SidebarProps) {
                 )}
               </Link>
             </div>
-            
+
             <div className="h-px bg-border/50 mx-1 my-1" />
-            
+
             {/* Logout */}
             <button
               type="button"
@@ -311,7 +309,7 @@ export function Sidebar({ className }: SidebarProps) {
         {navSections.map((section) => {
           const isExpanded = expandedSection === section.id;
           const SectionIcon = section.icon;
-          
+
           return (
             <div key={section.id} className="rounded-3xl overflow-hidden">
               {/* Section Header */}

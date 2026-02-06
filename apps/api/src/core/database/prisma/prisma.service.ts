@@ -8,12 +8,13 @@ import { PrismaClient, Prisma } from '@prisma/client';
 import { DB_PERFORMANCE } from '../database.constants';
 
 /**
- * ⚡ Extended Prisma Client with performance optimizations
+ * ⚡ Extended Prisma Client with performance optimizations for Neon PostgreSQL
  * 
  * Features:
- * - Connection pooling for Neon PostgreSQL
- * - Automatic reconnection on connection errors
+ * - Connection pooling for Neon PostgreSQL (serverless)
+ * - Automatic reconnection on connection errors (handles Neon suspend/resume)
  * - Query performance monitoring
+ * - Handles "connection closed" errors gracefully
  */
 @Injectable()
 export class PrismaService
@@ -24,6 +25,8 @@ export class PrismaService
   private queryCount = 0;
   private slowQueryCount = 0;
   private isConnected = false;
+  private reconnectAttempts = 0;
+  private readonly MAX_RECONNECT_ATTEMPTS = 5;
 
   constructor() {
     // ⚠️ Validate DATABASE_URL exists before initializing
@@ -76,29 +79,61 @@ export class PrismaService
     await this.connectWithRetry();
     const duration = Date.now() - startTime;
     this.logger.log(`✅ Database connected successfully (${duration}ms)`);
+    
+    // ⚡ Start keepalive ping for Neon (prevents auto-suspend during active use)
+    this.startKeepalive();
+  }
+
+  /**
+   * ⚡ Keepalive ping to prevent Neon from suspending during active sessions
+   * Runs every 4 minutes (Neon suspends after 5 minutes of inactivity)
+   */
+  private keepaliveInterval: NodeJS.Timeout | null = null;
+  
+  private startKeepalive(): void {
+    // Only in production
+    if (process.env.NODE_ENV !== 'production') return;
+    
+    this.keepaliveInterval = setInterval(async () => {
+      try {
+        await this.$queryRaw`SELECT 1`;
+        this.logger.debug('🔄 Database keepalive ping successful');
+      } catch (error) {
+        this.logger.warn('⚠️ Keepalive ping failed, will reconnect on next query');
+        this.isConnected = false;
+      }
+    }, 4 * 60 * 1000); // 4 minutes
   }
 
   /**
    * ⚡ Connect with retry logic for Neon PostgreSQL
    * Handles connection pool timeouts and serverless cold starts
    */
-  private async connectWithRetry(maxRetries = 3, delayMs = 1000): Promise<void> {
+  private async connectWithRetry(maxRetries = 5, delayMs = 2000): Promise<void> {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         await this.$connect();
         this.isConnected = true;
+        this.reconnectAttempts = 0;
         return;
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const isNeonColdStart = errorMessage.includes('Closed') || 
+                                errorMessage.includes('connection') ||
+                                errorMessage.includes('timeout');
+        
         this.logger.warn(
-          `Database connection attempt ${attempt}/${maxRetries} failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          `Database connection attempt ${attempt}/${maxRetries} failed: ${errorMessage}` +
+          (isNeonColdStart ? ' (Neon cold start detected)' : ''),
         );
         
         if (attempt === maxRetries) {
           throw error;
         }
         
-        // Exponential backoff
-        await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
+        // Exponential backoff with jitter for Neon cold starts
+        const backoffDelay = delayMs * Math.pow(1.5, attempt - 1) + Math.random() * 1000;
+        await new Promise((resolve) => setTimeout(resolve, backoffDelay));
       }
     }
   }
@@ -110,6 +145,7 @@ export class PrismaService
   async ensureConnection(): Promise<void> {
     try {
       await this.$queryRaw`SELECT 1`;
+      this.isConnected = true;
     } catch (error) {
       this.logger.warn('Connection lost, attempting to reconnect...');
       this.isConnected = false;
@@ -117,7 +153,51 @@ export class PrismaService
     }
   }
 
+  /**
+   * ⚡ Execute query with automatic retry on connection errors
+   * Handles Neon's "connection closed" errors gracefully
+   */
+  async executeWithRetry<T>(
+    operation: () => Promise<T>,
+    maxRetries = 3,
+  ): Promise<T> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const isConnectionError = 
+          errorMessage.includes('Closed') ||
+          errorMessage.includes('connection') ||
+          errorMessage.includes('ECONNREFUSED') ||
+          errorMessage.includes('ETIMEDOUT');
+
+        if (!isConnectionError || attempt === maxRetries) {
+          throw error;
+        }
+
+        this.logger.warn(
+          `Query failed (attempt ${attempt}/${maxRetries}): ${errorMessage}. Reconnecting...`,
+        );
+        
+        // Reconnect before retry
+        this.isConnected = false;
+        await this.connectWithRetry(2, 1000);
+        
+        // Small delay before retry
+        await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+      }
+    }
+    
+    throw new Error('Max retries exceeded');
+  }
+
   async onModuleDestroy() {
+    // Stop keepalive
+    if (this.keepaliveInterval) {
+      clearInterval(this.keepaliveInterval);
+    }
+    
     await this.$disconnect();
     this.logger.log('🔌 Database disconnected');
   }

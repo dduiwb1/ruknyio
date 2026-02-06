@@ -554,3 +554,15 @@
 .animate-scale-in {
   animation: scale-in 0.4s ease-out forwards;
 }
+
+/* Logo cloud: حلقة لا نهائية سلسة — نسختان من المحتوى، التحرك 50% = نسخة واحدة */
+@keyframes logo-marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* يُستخدم من المكوّن عبر style={{ animation: 'logo-marquee ...' }} */

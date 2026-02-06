@@ -1,7 +1,7 @@
 'use client';
 import { cn } from '@/lib/utils';
 import { useMotionValue, animate, motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import useMeasure from 'react-use-measure';
 
 type InfiniteSliderProps = {
@@ -9,92 +9,100 @@ type InfiniteSliderProps = {
   gap?: number;
   duration?: number;
   durationOnHover?: number;
+  /** Alias for duration (seconds per loop). When set, overrides duration. */
+  speed?: number;
+  /** Alias for durationOnHover (seconds when hovering). When set, overrides durationOnHover. */
+  speedOnHover?: number;
   direction?: 'horizontal' | 'vertical';
   reverse?: boolean;
   className?: string;
-  speed?: number;
-  speedOnHover?: number;
 };
 
 export function InfiniteSlider({
   children,
   gap = 16,
-  duration,
+  duration = 25,
   durationOnHover,
+  speed,
+  speedOnHover,
   direction = 'horizontal',
   reverse = false,
   className,
-  speed = 80,
-  speedOnHover,
 }: InfiniteSliderProps) {
-  // Convert speed (pixels per second) to duration (seconds for full scroll)
-  const calculateDuration = (contentSize: number, speedPxPerSec: number) => {
-    return Math.max(contentSize / speedPxPerSec, 5); // minimum 5 seconds
-  };
-
-  const [currentDuration, setCurrentDuration] = useState(duration || 25);
-  const [ref, { width, height }] = useMeasure();
+  const resolvedDuration = speed ?? duration;
+  const resolvedDurationOnHover = speedOnHover ?? durationOnHover;
+  const [currentDuration, setCurrentDuration] = useState(resolvedDuration);
+  const [ref, { width, height }] = useMeasure({ scroll: false });
   const translation = useMotionValue(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [key, setKey] = useState(0);
+  const rafRef = useRef<number>(0);
 
   useEffect(() => {
-    let controls;
-    const size = direction === 'horizontal' ? width : height;
-    const contentSize = size + gap;
-    const from = reverse ? -contentSize / 2 : 0;
-    const to = reverse ? 0 : -contentSize / 2;
+    setCurrentDuration(resolvedDuration);
+  }, [resolvedDuration]);
 
-    const finalDuration = duration || calculateDuration(contentSize, speed);
+  useEffect(() => {
+    const size = direction === 'horizontal' ? width : height;
+    if (size <= 0) return;
+
+    // 3 نسخ من المحتوى: عرض نسخة واحدة = (الحجم الكلي - فجوتان) / 3
+    const oneCopySize = Math.max((size - 2 * gap) / 3, 1);
+    const from = reverse ? -oneCopySize : 0;
+    const to = reverse ? 0 : -oneCopySize;
+
+    let controls: { stop: () => void } | undefined;
 
     if (isTransitioning) {
-      controls = animate(translation, [translation.get(), to], {
+      const current = translation.get();
+      const distance = Math.abs(current - to);
+      const durationSec = currentDuration * (distance / oneCopySize);
+      controls = animate(translation, [current, to], {
         ease: 'linear',
-        duration: finalDuration * Math.abs((translation.get() - to) / contentSize),
+        duration: durationSec,
         onComplete: () => {
           setIsTransitioning(false);
-          setKey((prevKey) => prevKey + 1);
+          setKey((k) => k + 1);
         },
       });
     } else {
       controls = animate(translation, [from, to], {
         ease: 'linear',
-        duration: finalDuration,
-        repeat: Infinity,
-        repeatType: 'loop',
-        repeatDelay: 0,
-        onRepeat: () => {
-          translation.set(from);
+        duration: currentDuration,
+        onComplete: () => {
+          // إعادة فورية ثم تشغيل الدورة التالية في الإطار التالي
+          rafRef.current = requestAnimationFrame(() => {
+            translation.set(from);
+            setKey((k) => k + 1);
+          });
         },
       });
     }
 
-    return controls?.stop;
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      controls?.stop();
+    };
   }, [
     key,
-    translation,
-    currentDuration,
     width,
     height,
     gap,
+    currentDuration,
     isTransitioning,
     direction,
     reverse,
-    duration,
-    speed,
   ]);
 
-  const hoverDuration = speedOnHover ? calculateDuration((direction === 'horizontal' ? width : height) + gap, speedOnHover) : durationOnHover;
-
-  const hoverProps = hoverDuration
+  const hoverProps = resolvedDurationOnHover != null
     ? {
         onHoverStart: () => {
           setIsTransitioning(true);
-          setCurrentDuration(hoverDuration);
+          setCurrentDuration(resolvedDurationOnHover);
         },
         onHoverEnd: () => {
           setIsTransitioning(true);
-          setCurrentDuration(duration || calculateDuration((direction === 'horizontal' ? width : height) + gap, speed));
+          setCurrentDuration(resolvedDuration);
         },
       }
     : {};
@@ -102,7 +110,7 @@ export function InfiniteSlider({
   return (
     <div className={cn('overflow-hidden', className)}>
       <motion.div
-        className='flex w-max'
+        className="flex w-max shrink-0"
         style={{
           ...(direction === 'horizontal'
             ? { x: translation }
@@ -113,6 +121,7 @@ export function InfiniteSlider({
         ref={ref}
         {...hoverProps}
       >
+        {children}
         {children}
         {children}
       </motion.div>

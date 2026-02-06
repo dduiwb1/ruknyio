@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Sidebar, SidebarSkeleton } from '@/components/(app)/sheard/sidebar';
-import { MobileNavigation, MobileNavigationSkeleton } from '@/components/(app)/sheard/mobile-navigation';
+import { Sidebar, SidebarSkeleton } from '@/components/layout/sidebar';
+import { MobileNavigation, MobileNavigationSkeleton } from '@/components/layout/mobile-navigation';
 
 export default function UserLayout({
   children,

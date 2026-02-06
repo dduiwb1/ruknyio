@@ -1,365 +1,11 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { ArrowRight, ChevronRight, ChevronDown, Menu, X, Store, Calendar, Users, Sparkles, LayoutGrid, CreditCard, BarChart3, Settings, FileText, User, Bot, Check, Zap, Shield, Clock, Headphones, Globe } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { ArrowRight, ChevronDown, Menu, X, Store, Calendar, Sparkles, LayoutGrid, BarChart3, FileText, User, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { AnimatedGroup } from '@/components/ui/animated-group';
-import { AnimatedBeam, Circle } from '@/components/ui/animated-beam';
-import { LogoCloud, type Logo } from '@/components/ui/logo-cloud-4';
-import Footer from '@/components/layout/footer';
 import { cn } from '@/lib/utils';
-import type { Variants } from 'framer-motion';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const transitionVariants = {
-    item: {
-        hidden: {
-            opacity: 0,
-            filter: 'blur(12px)',
-            y: 12,
-        },
-        visible: {
-            opacity: 1,
-            filter: 'blur(0px)',
-            y: 0,
-            transition: {
-                type: 'spring' as const,
-                bounce: 0.3,
-                duration: 1.5,
-            },
-        },
-    },
-} satisfies { item: Variants };
-
-const GoogleCloudLogoSvg = () => (
-    <svg preserveAspectRatio="xMidYMid" viewBox="0 -25 256 256" className="h-full w-auto" aria-hidden>
-        <path fill="#EA4335" d="m170.252 56.819 22.253-22.253 1.483-9.37C153.437-11.677 88.976-7.496 52.42 33.92 42.267 45.423 34.734 59.764 30.717 74.573l7.97-1.123 44.505-7.34 3.436-3.513c19.797-21.742 53.27-24.667 76.128-6.168l7.496.39Z" />
-        <path fill="#4285F4" d="M224.205 73.918a100.249 100.249 0 0 0-30.217-48.722l-31.232 31.232a55.515 55.515 0 0 1 20.379 44.037v5.544c15.35 0 27.797 12.445 27.797 27.796 0 15.352-12.446 27.485-27.797 27.485h-55.671l-5.466 5.934v33.34l5.466 5.231h55.67c39.93.311 72.553-31.494 72.864-71.424a72.303 72.303 0 0 0-31.793-60.453" />
-        <path fill="#34A853" d="M71.87 205.796h55.593V161.29H71.87a27.275 27.275 0 0 1-11.399-2.498l-7.887 2.42-22.409 22.253-1.952 7.574c12.567 9.489 27.9 14.825 43.647 14.757" />
-        <path fill="#FBBC05" d="M71.87 61.425C31.94 61.664-.237 94.228.001 134.159a72.301 72.301 0 0 0 28.222 56.88l32.248-32.246c-13.99-6.322-20.208-22.786-13.887-36.776 6.32-13.99 22.786-20.208 36.775-13.888a27.796 27.796 0 0 1 13.887 13.888l32.248-32.248A72.224 72.224 0 0 0 71.87 61.425" />
-    </svg>
-);
-
-const trustedLogos: Logo[] = [
-    { src: "/logos/aws.svg", alt: "AWS" },
-    { alt: "Google Cloud", svg: <GoogleCloudLogoSvg /> },
-    { src: "/logos/tiktok.svg", alt: "TikTok" },
-    { src: "/logos/soundcloud-wordmark.svg", alt: "SoundCloud" },
-    { src: "/logos/perplexity_wordmark_dark.svg", alt: "Perplexity AI" },
-    { src: "/logos/tL_v571NdZ0.svg", alt: "Meta" },
-    { src: "/logos/facebook-wordmark.svg", alt: "Facebook" },
-    { src: "/logos/whatsapp-wordmark.svg", alt: "WhatsApp" },
-    { src: "/logos/instagram-wordmark.svg", alt: "Instagram" },
-    { src: "/logos/google-wordmark.svg", alt: "Google" },
-    { src: "/logos/openai_wordmark_dark.svg", alt: "OpenAI" },
-];
-
-export function HeroSection() {
-    return (
-        <>
-            <HeroHeader />
-            <main className="overflow-hidden bg-white" dir="rtl">
-                <div
-                    aria-hidden
-                    className="z-[2] absolute inset-0 pointer-events-none isolate opacity-50 contain-strict hidden lg:block">
-                    <div className="w-[35rem] h-[80rem] -translate-y-[350px] absolute right-0 top-0 rotate-45 rounded-full bg-[radial-gradient(68.54%_68.72%_at_55.02%_31.46%,hsla(var(--primary)/0.08)_0,hsla(var(--primary)/0.02)_50%,hsla(var(--primary)/0)_80%)]" />
-                    <div className="h-[80rem] absolute right-0 top-0 w-56 rotate-45 rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,hsla(var(--primary)/0.06)_0,hsla(var(--primary)/0.02)_80%,transparent_100%)] [translate:-5%_-50%]" />
-                    <div className="h-[80rem] -translate-y-[350px] absolute right-0 top-0 w-56 rotate-45 bg-[radial-gradient(50%_50%_at_50%_50%,hsla(var(--primary)/0.04)_0,hsla(var(--primary)/0.02)_80%,transparent_100%)]" />
-                </div>
-                <section>
-                    <div className="relative pt-20 sm:pt-24 md:pt-36">
-                        <AnimatedGroup
-                            variants={{
-                                container: {
-                                    visible: {
-                                        transition: {
-                                            delayChildren: 1,
-                                        },
-                                    },
-                                },
-                                item: {
-                                    hidden: {
-                                        opacity: 0,
-                                        y: 20,
-                                    },
-                                    visible: {
-                                        opacity: 1,
-                                        y: 0,
-                                        transition: {
-                                            type: 'spring' as const,
-                                            bounce: 0.3,
-                                            duration: 2,
-                                        },
-                                    },
-                                },
-                            }}
-                            className="absolute inset-0 -z-20">
-                            <Image
-                                src="https://images.unsplash.com/photo-1557683316-973673baf926?w=3276&q=80"
-                                alt="خلفية"
-                                className="absolute inset-x-0 top-56 -z-20 hidden lg:top-32 dark:block object-cover"
-                                width={3276}
-                                height={4095}
-                                priority
-                            />
-                        </AnimatedGroup>
-                        <div aria-hidden className="absolute inset-0 -z-10 size-full [background:radial-gradient(125%_125%_at_50%_100%,transparent_0%,var(--background)_75%)]" />
-                        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-                            <div className="text-center sm:mx-auto lg:mr-auto lg:mt-0">
-                                <AnimatedGroup variants={transitionVariants as { item: Variants }}>
-                                    <Link
-                                        href="/features"
-                                        className="hover:bg-background dark:hover:border-t-border bg-muted group mx-auto flex w-fit items-center gap-2 sm:gap-4 rounded-full border p-1 pr-3 sm:pr-4 shadow-md shadow-black/5 transition-all duration-300 dark:border-t-white/5 dark:shadow-zinc-950">
-                                        <span className="text-foreground text-xs sm:text-sm">🎉 اكتشف مميزات ركني الجديدة</span>
-                                        <span className="dark:border-background block h-4 w-0.5 border-r bg-white dark:bg-zinc-700 hidden sm:block"></span>
-
-                                        <div className="bg-background group-hover:bg-muted size-5 sm:size-6 overflow-hidden rounded-full duration-500">
-                                            <div className="flex w-10 sm:w-12 translate-x-1/2 duration-500 ease-in-out group-hover:translate-x-0">
-                                                <span className="flex size-5 sm:size-6">
-                                                    <ArrowRight className="m-auto size-2.5 sm:size-3 rotate-180" />
-                                                </span>
-                                                <span className="flex size-5 sm:size-6">
-                                                    <ArrowRight className="m-auto size-2.5 sm:size-3 rotate-180" />
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </Link>
-
-                                    <h1
-                                        className="mt-6 sm:mt-8 max-w-4xl mx-auto text-balance text-3xl sm:text-4xl md:text-5xl font-bold lg:text-6xl lg:mt-16 xl:text-[4.5rem] leading-tight">
-                                        أنشئ صفحتك الاحترافية مع منصة <span className="text-primary">ركني</span>
-                                    </h1>
-                                    <p
-                                        className="mx-auto mt-4 sm:mt-6 md:mt-8 max-w-2xl text-balance text-sm sm:text-base md:text-lg text-muted-foreground px-2">
-                                        صفحة واحدة تجمع روابطك ومنتجاتك ونماذجك. كل ما تحتاجه للتواصل مع جمهورك وتنمية أعمالك.
-                                    </p>
-                                </AnimatedGroup>
-
-                                <AnimatedGroup
-                                    variants={{
-                                        container: {
-                                            visible: {
-                                                transition: {
-                                                    staggerChildren: 0.05,
-                                                    delayChildren: 0.75,
-                                                },
-                                            },
-                                        },
-                                        item: transitionVariants.item,
-                                    }}
-                                    className="mt-8 sm:mt-10 md:mt-12 flex flex-col items-center justify-center gap-2 md:flex-row">
-                                    <div
-                                        key={1}
-                                        className="bg-foreground/10 rounded-[14px] border p-0.5">
-                                        <Button
-                                            asChild
-                                            size="lg"
-                                            className="rounded-xl px-6 sm:px-8 text-sm sm:text-base h-11 sm:h-12">
-                                            <Link href="/app">
-                                                <span className="text-nowrap">ابدأ مجاناً</span>
-                                            </Link>
-                                        </Button>
-                                    </div>
-                                </AnimatedGroup>
-                            </div>
-                        </div>
-
-                        <AnimatedGroup
-                            variants={{
-                                container: {
-                                    visible: {
-                                        transition: {
-                                            staggerChildren: 0.05,
-                                            delayChildren: 0.75,
-                                        },
-                                    },
-                                },
-                                item: transitionVariants.item,
-                            }}>
-                            <div className="relative mt-8 sm:mt-12 md:mt-20 overflow-hidden px-4 sm:px-6">
-                                <div
-                                    aria-hidden
-                                    className="bg-gradient-to-b to-background absolute inset-0 z-10 from-transparent from-35%"
-                                />
-                                <div className="inset-shadow-2xs ring-background dark:inset-shadow-white/20 bg-background relative mx-auto max-w-6xl overflow-hidden rounded-xl sm:rounded-2xl border p-2 sm:p-4 shadow-lg shadow-zinc-950/15 ring-1">
-                                    <Image
-                                        className="bg-background aspect-[16/10] sm:aspect-[15/8] relative hidden rounded-xl sm:rounded-2xl dark:block object-cover"
-                                        src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=2700&q=80"
-                                        alt="لوحة تحكم ركني"
-                                        width={2700}
-                                        height={1440}
-                                    />
-                                    <Image
-                                        className="z-2 border-border/25 aspect-[16/10] sm:aspect-[15/8] relative rounded-xl sm:rounded-2xl border dark:hidden object-cover"
-                                        src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=2700&q=80"
-                                        alt="لوحة تحكم ركني"
-                                        width={2700}
-                                        height={1440}
-                                    />
-                                </div>
-                            </div>
-                        </AnimatedGroup>
-                    </div>
-                </section>
-
-                {/* Trusted Companies Section - LogoCloud */}
-                <section className="relative w-full px-4 py-16 md:py-20">
-                    {/* Decorative background */}
-                    <div className="absolute inset-0 -z-10">
-                        <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/30 to-background" />
-                        <div
-                            aria-hidden="true"
-                            className="absolute left-1/2 top-0 -translate-x-1/2 h-px w-3/4 bg-gradient-to-r from-transparent via-border to-transparent"
-                        />
-                        <div
-                            aria-hidden="true"
-                            className="absolute left-1/2 bottom-0 -translate-x-1/2 h-px w-3/4 bg-gradient-to-r from-transparent via-border to-transparent"
-                        />
-                    </div>
-                    
-                    <div className="relative z-10 mx-auto w-full max-w-5xl">
-                        <div className="text-center mb-10">
-                            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-sm font-medium text-primary mb-4">
-                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                                </svg>
-                                موثوق عالمياً
-                            </span>
-                            <h2 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl lg:text-4xl">
-                                نستخدم أفضل التقنيات العالمية
-                            </h2>
-                            <p className="mt-3 text-base text-muted-foreground md:text-lg max-w-2xl mx-auto">
-                                نعتمد على أحدث التقنيات من الشركات الرائدة لضمان أفضل تجربة لك
-                            </p>
-                        </div>
-                        <LogoCloud logos={trustedLogos} />
-                    </div>
-                </section>
-
-                {/* Features Section */}
-                <section className="bg-background py-12 md:py-24">
-                    <div className="mx-auto max-w-7xl px-4 sm:px-6">
-                        <div className="text-center mb-8 md:mb-16">
-                            <h2 className="text-2xl sm:text-3xl font-bold md:text-4xl mb-3 md:mb-4">كل ما تحتاجه في مكان واحد</h2>
-                            <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto">
-                                أدوات متكاملة لإدارة أعمالك بكفاءة عالية
-                            </p>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-                            <FeatureCard
-                                icon={<Store className="size-5 sm:size-6" />}
-                                title="إنشاء المتاجر"
-                                description="أنشئ متجرك الإلكتروني بسهولة وابدأ البيع فوراً"
-                            />
-                            <FeatureCard
-                                icon={<Calendar className="size-5 sm:size-6" />}
-                                title="إدارة الفعاليات"
-                                description="نظّم فعالياتك واستقبل الحجوزات بشكل آلي"
-                            />
-                            <FeatureCard
-                                icon={<Users className="size-5 sm:size-6" />}
-                                title="تواصل مع العملاء"
-                                description="تابع عملاءك وأرسل لهم التحديثات والعروض"
-                            />
-                            <FeatureCard
-                                icon={<Sparkles className="size-5 sm:size-6" />}
-                                title="تحليلات متقدمة"
-                                description="راقب أداء متجرك واتخذ قرارات ذكية"
-                            />
-                        </div>
-                    </div>
-                </section>
-
-                {/* Advantages Section */}
-                <section className="bg-muted/30 py-12 md:py-20 lg:py-28 m-2 md:m-12 rounded-4xl border-2 border-muted/120 drop-shadow-lg">
-                    <div className="mx-auto max-w-7xl px-4 sm:px-6">
-                        <div className="flex gap-4 flex-col items-start sm:items-center sm:text-center">
-                            <Badge variant="secondary" className="text-xs sm:text-sm">
-                                لماذا ركني؟
-                            </Badge>
-                            <div className="flex gap-2 sm:gap-3 flex-col">
-                                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl tracking-tight font-bold">
-                                    مميزات تجعلنا الخيار الأول
-                                </h2>
-                                <p className="text-sm sm:text-base md:text-lg max-w-2xl leading-relaxed text-muted-foreground">
-                                    نقدم لك أدوات متكاملة تساعدك على إدارة أعمالك بكفاءة وسهولة، مع دعم فني متواصل.
-                                </p>
-                            </div>
-                            <div className="flex gap-6 sm:gap-8 md:gap-10 pt-8 sm:pt-10 md:pt-12 flex-col w-full">
-                                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
-                                    <AdvantageItem 
-                                        icon={<Zap className="size-4 sm:size-5 text-primary" />}
-                                        title="سرعة فائقة"
-                                        description="أداء سريع وموثوق يضمن تجربة سلسة لك ولعملائك."
-                                    />
-                                    <AdvantageItem 
-                                        icon={<Shield className="size-4 sm:size-5 text-primary" />}
-                                        title="أمان متقدم"
-                                        description="حماية بياناتك وبيانات عملائك بأعلى معايير الأمان."
-                                    />
-                                    <AdvantageItem 
-                                        icon={<Clock className="size-4 sm:size-5 text-primary" />}
-                                        title="توفير الوقت"
-                                        description="أتمتة المهام المتكررة لتركز على تنمية أعمالك."
-                                    />
-                                    <AdvantageItem 
-                                        icon={<Headphones className="size-4 sm:size-5 text-primary" />}
-                                        title="دعم متواصل"
-                                        description="فريق دعم جاهز لمساعدتك على مدار الساعة."
-                                    />
-                                    <AdvantageItem 
-                                        icon={<Globe className="size-4 sm:size-5 text-primary" />}
-                                        title="وصول عالمي"
-                                        description="اعرض منتجاتك وخدماتك للعملاء في كل مكان."
-                                    />
-                                    <AdvantageItem 
-                                        icon={<BarChart3 className="size-4 sm:size-5 text-primary" />}
-                                        title="تحليلات ذكية"
-                                        description="تقارير مفصلة تساعدك على اتخاذ قرارات أفضل."
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <Footer />
-            </main>
-        </>
-    );
-}
-
-
-function AdvantageItem({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
-    return (
-        <div className="flex flex-row gap-3 sm:gap-4 w-full items-start p-4 sm:p-5 rounded-2xl bg-background/60 border border-border/50 hover:border-primary/30 hover:bg-background transition-all duration-300">
-            <div className="size-9 sm:size-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                {icon}
-            </div>
-            <div className="flex flex-col gap-0.5 sm:gap-1 text-right">
-                <p className="font-semibold text-sm sm:text-base">{title}</p>
-                <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
-                    {description}
-                </p>
-            </div>
-        </div>
-    );
-}
-
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
-    return (
-        <div className="group relative rounded-2xl border border-border/50 bg-muted/40 p-4 sm:p-6 transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:bg-muted/60">
-            <div className="mb-3 sm:mb-4 inline-flex size-10 sm:size-12 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary/15 transition-colors">
-                {icon}
-            </div>
-            <h3 className="mb-1 sm:mb-2 text-sm sm:text-lg font-semibold leading-tight">{title}</h3>
-            <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed line-clamp-2 sm:line-clamp-none">{description}</p>
-        </div>
-    );
-}
 
 const menuItems = [
     { name: 'الأسعار', href: '/pricing' },
@@ -376,7 +22,15 @@ const productItems = [
     { name: 'الذكاء الاصطناعي', href: '/products/ai', icon: Bot, description: 'أدوات ذكية لتطوير أعمالك' },
 ];
 
-const HeroHeader = () => {
+const RuknyLogo = ({ className }: { className?: string }) => {
+    return (
+        <div className={cn('flex items-center gap-2', className)}>
+            <span className="text-xl font-bold" style={{ fontFamily: 'var(--font-courgette), cursive' }}>Rukny</span>
+        </div>
+    );
+};
+
+export function MainHeader() {
     const [menuState, setMenuState] = React.useState(false);
     const [isScrolled, setIsScrolled] = React.useState(false);
     const [productMenuOpen, setProductMenuOpen] = React.useState(false);
@@ -390,7 +44,6 @@ const HeroHeader = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Close product menu when clicking outside
     React.useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -517,7 +170,7 @@ const HeroHeader = () => {
                     </div>
                 </motion.div>
 
-                {/* Mega Menu Dropdown - Full Width like wayl.io */}
+                {/* Mega Menu Dropdown */}
                 <AnimatePresence>
                     {productMenuOpen && (
                         <motion.div
@@ -538,7 +191,7 @@ const HeroHeader = () => {
                             )}>
                                 <div className="px-6 py-8">
                                     <div className="grid grid-cols-12 gap-8">
-                                        {/* Products Grid - 3 columns for 6 items */}
+                                        {/* Products Grid */}
                                         <div className="col-span-9">
                                             <div className="grid grid-cols-3 gap-3">
                                                 {productItems.map((item, index) => (
@@ -623,7 +276,6 @@ const HeroHeader = () => {
                                 dragMomentum={true}
                                 dragTransition={{ bounceStiffness: 200, bounceDamping: 30 }}
                                 onDragEnd={(_, info) => {
-                                    // Close if dragged down more than 100px or with fast velocity
                                     if (info.offset.y > 100 || info.velocity.y > 200) {
                                         setMenuState(false);
                                     }
@@ -644,7 +296,7 @@ const HeroHeader = () => {
                                         </button>
                                     </div>
 
-                                    {/* Products Section - Cards with Text */}
+                                    {/* Products Section */}
                                     <div className="mb-5">
                                         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">المنتجات</h3>
                                         <div className="grid grid-cols-2 gap-3">
@@ -749,14 +401,6 @@ const HeroHeader = () => {
             </nav>
         </header>
     );
-};
+}
 
-const RuknyLogo = ({ className }: { className?: string }) => {
-    return (
-        <div className={cn('flex items-center gap-2', className)}>
-            <span className="text-xl font-bold" style={{ fontFamily: 'var(--font-courgette), cursive' }}>Rukny</span>
-        </div>
-    );
-};
-
-export default HeroSection;
+export default MainHeader;
