@@ -32,44 +32,9 @@ const ProgressIndicator = ({
   const showBackButton = isBackVisible && currentStep > 1
 
   return (
-    <div className="flex flex-col items-center justify-center gap-6 w-full">
-      {/* Progress Dots */}
-      <div className="flex items-center gap-4 relative">
-        {Array.from({ length: totalSteps }, (_, i) => i + 1).map((dot) => (
-          <div
-            key={dot}
-            className={cn(
-              "w-2 h-2 rounded-full relative z-10 transition-colors duration-300",
-              dot <= currentStep ? "bg-foreground" : "bg-muted-foreground/30"
-            )}
-          />
-        ))}
-
-        {/* Green progress overlay */}
-        <motion.div
-          initial={{ width: '16px' }}
-          animate={{
-            width: `${16 + (currentStep - 1) * 24}px`,
-          }}
-          className="absolute -right-[4px] top-1/2 -translate-y-1/2 h-5 bg-gray-200 rounded-full -z-0"
-          transition={{
-            type: "spring",
-            stiffness: 300,
-            damping: 20,
-            mass: 0.8,
-            bounce: 0.25,
-            duration: 0.6
-          }}
-        />
-      </div>
-
-      {/* Step indicator text */}
-      <p className="text-xs text-muted-foreground">
-        الخطوة {currentStep} من {totalSteps}
-      </p>
-
+    <div className="flex flex-col items-center justify-center gap-3 w-full">
       {/* Buttons container */}
-      <div className="w-full">
+      <div className="w-full max-w-md mx-auto">
         <motion.div
           className="flex items-center gap-2"
           animate={{

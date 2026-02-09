@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, memo, useCallback } from 'react';
 import Image from 'next/image';
-import { toast } from '@/components/toast-provider';
+import { toast } from 'sonner';
 import { Upload, ImagePlus, Trash2, X, Check, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';

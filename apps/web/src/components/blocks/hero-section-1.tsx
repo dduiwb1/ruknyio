@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AnimatedGroup } from '@/components/ui/animated-group';
 import { AnimatedBeam, Circle } from '@/components/ui/animated-beam';
-import { LogoCloud, type Logo } from '@/components/ui/logo-cloud-4';
+import { InfiniteSlider } from '@/components/ui/infinite-slider';
 import Footer from '@/components/layout/footer';
 import { cn } from '@/lib/utils';
 import type { Variants } from 'framer-motion';
@@ -34,18 +34,9 @@ const transitionVariants = {
     },
 } satisfies { item: Variants };
 
-const GoogleCloudLogoSvg = () => (
-    <svg preserveAspectRatio="xMidYMid" viewBox="0 -25 256 256" className="h-full w-auto" aria-hidden>
-        <path fill="#EA4335" d="m170.252 56.819 22.253-22.253 1.483-9.37C153.437-11.677 88.976-7.496 52.42 33.92 42.267 45.423 34.734 59.764 30.717 74.573l7.97-1.123 44.505-7.34 3.436-3.513c19.797-21.742 53.27-24.667 76.128-6.168l7.496.39Z" />
-        <path fill="#4285F4" d="M224.205 73.918a100.249 100.249 0 0 0-30.217-48.722l-31.232 31.232a55.515 55.515 0 0 1 20.379 44.037v5.544c15.35 0 27.797 12.445 27.797 27.796 0 15.352-12.446 27.485-27.797 27.485h-55.671l-5.466 5.934v33.34l5.466 5.231h55.67c39.93.311 72.553-31.494 72.864-71.424a72.303 72.303 0 0 0-31.793-60.453" />
-        <path fill="#34A853" d="M71.87 205.796h55.593V161.29H71.87a27.275 27.275 0 0 1-11.399-2.498l-7.887 2.42-22.409 22.253-1.952 7.574c12.567 9.489 27.9 14.825 43.647 14.757" />
-        <path fill="#FBBC05" d="M71.87 61.425C31.94 61.664-.237 94.228.001 134.159a72.301 72.301 0 0 0 28.222 56.88l32.248-32.246c-13.99-6.322-20.208-22.786-13.887-36.776 6.32-13.99 22.786-20.208 36.775-13.888a27.796 27.796 0 0 1 13.887 13.888l32.248-32.248A72.224 72.224 0 0 0 71.87 61.425" />
-    </svg>
-);
-
-const trustedLogos: Logo[] = [
+const trustedLogos = [
     { src: "/logos/aws.svg", alt: "AWS" },
-    { alt: "Google Cloud", svg: <GoogleCloudLogoSvg /> },
+    { src: "/logos/google-cloud.svg", alt: "Google Cloud" },
     { src: "/logos/tiktok.svg", alt: "TikTok" },
     { src: "/logos/soundcloud-wordmark.svg", alt: "SoundCloud" },
     { src: "/logos/perplexity_wordmark_dark.svg", alt: "Perplexity AI" },
@@ -55,6 +46,8 @@ const trustedLogos: Logo[] = [
     { src: "/logos/instagram-wordmark.svg", alt: "Instagram" },
     { src: "/logos/google-wordmark.svg", alt: "Google" },
     { src: "/logos/openai_wordmark_dark.svg", alt: "OpenAI" },
+    { src: "/logos/gemini_wordmark.svg", alt: "Gemini" },
+    { src: "/logos/LI-Logo.png", alt: "linkedin" },
 ];
 
 export function HeroSection() {
@@ -235,7 +228,28 @@ export function HeroSection() {
                                 نعتمد على أحدث التقنيات من الشركات الرائدة لضمان أفضل تجربة لك
                             </p>
                         </div>
-                        <LogoCloud logos={trustedLogos} />
+                        <div className="relative" dir="ltr">
+                            {/* Edge fade effects */}
+                            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 sm:w-24 md:w-32 lg:w-40 bg-gradient-to-r from-background via-background/80 to-transparent" />
+                            <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 sm:w-24 md:w-32 lg:w-40 bg-gradient-to-l from-background via-background/80 to-transparent" />
+                            
+                            <InfiniteSlider gap={32} duration={25} durationOnHover={50}>
+                                {trustedLogos.map((logo) => (
+                                    <div
+                                        key={logo.alt}
+                                        className="group flex items-center justify-center"
+                                    >
+                                        <img
+                                            src={logo.src}
+                                            alt={logo.alt}
+                                            className="h-6 w-auto max-w-[100px] sm:h-7 sm:max-w-[120px] md:h-8 md:max-w-[140px] object-contain opacity-50 grayscale transition-all duration-300 ease-out group-hover:opacity-100 group-hover:grayscale-0 group-hover:scale-110"
+                                            loading="lazy"
+                                            decoding="async"
+                                        />
+                                    </div>
+                                ))}
+                            </InfiniteSlider>
+                        </div>
                     </div>
                 </section>
 
@@ -274,7 +288,7 @@ export function HeroSection() {
                 </section>
 
                 {/* Advantages Section */}
-                <section className="bg-muted/30 py-12 md:py-20 lg:py-28 m-2 md:m-12 rounded-4xl border-2 border-muted/120 drop-shadow-lg">
+                <section className="bg-muted/10 py-12 md:py-20 lg:py-28 m-2 md:m-12 rounded-4xl ">
                     <div className="mx-auto max-w-7xl px-4 sm:px-6">
                         <div className="flex gap-4 flex-col items-start sm:items-center sm:text-center">
                             <Badge variant="secondary" className="text-xs sm:text-sm">

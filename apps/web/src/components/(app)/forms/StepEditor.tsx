@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
+import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion';
 import { 
   Plus, 
   Trash2, 
@@ -22,7 +22,6 @@ import { cn } from '@/lib/utils';
 import { FieldType, FIELD_TYPE_LABELS } from '@/lib/hooks/useForms';
 import { FieldTypeSelector } from './FieldTypeSelector';
 import { FieldEditor, type FormFieldInput } from './FieldEditor';
-import { FieldEditorDialog } from './FieldEditorDialog';
 
 export interface FormStepInput {
   id: string;
@@ -35,6 +34,36 @@ export interface FormStepInput {
 interface StepEditorProps {
   steps: FormStepInput[];
   onStepsChange: (steps: FormStepInput[]) => void;
+}
+
+const reorderTransition = { type: 'spring' as const, stiffness: 300, damping: 35 };
+
+// غلاف خطوة قابلة للسحب — كل خطوة لها useDragControls خاص
+function DraggableStepItem({
+  step,
+  children,
+}: {
+  step: FormStepInput;
+  children: (dragHandleProps: { onPointerDown: (e: React.PointerEvent) => void }) => React.ReactNode;
+}) {
+  const dragControls = useDragControls();
+  return (
+    <Reorder.Item
+      value={step}
+      dragListener={false}
+      dragControls={dragControls}
+      transition={reorderTransition}
+      className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm outline-none select-none focus-visible:ring-2 focus-visible:ring-amber-500/30 data-[dragging]:shadow-lg data-[dragging]:z-10"
+    >
+      {children({
+        onPointerDown: (e: React.PointerEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dragControls.start(e);
+        },
+      })}
+    </Reorder.Item>
+  );
 }
 
 export function StepEditor({ steps, onStepsChange }: StepEditorProps) {
@@ -107,44 +136,29 @@ export function StepEditor({ steps, onStepsChange }: StepEditorProps) {
 
     const newField: FormFieldInput = {
       id: `field-${Date.now()}`,
-      label: fieldType === FieldType.RECAPTCHA ? 'حماية reCAPTCHA' : '', // عنوان افتراضي لـ reCAPTCHA
+      label: FIELD_TYPE_LABELS[fieldType],
       type: fieldType,
       order: step.fields.length,
       required: false,
       placeholder: '',
-      options: fieldType === FieldType.SELECT || fieldType === FieldType.RADIO || fieldType === FieldType.CHECKBOX 
-        ? ['خيار 1', 'خيار 2', 'خيار 3'] 
-        : undefined,
+      options: fieldType === FieldType.SELECT || fieldType === FieldType.RADIO || fieldType === FieldType.CHECKBOX
+        ? ['خيار 1', 'خيار 2', 'خيار 3']
+        : fieldType === FieldType.RANKING
+          ? ['العنصر 1', 'العنصر 2', 'العنصر 3']
+          : undefined,
       minValue: fieldType === FieldType.RATING ? 1 : fieldType === FieldType.SCALE ? 0 : undefined,
       maxValue: fieldType === FieldType.RATING ? 5 : fieldType === FieldType.SCALE ? 10 : undefined,
+      matrixRows: fieldType === FieldType.MATRIX ? ['صف 1', 'صف 2'] : undefined,
+      matrixColumns: fieldType === FieldType.MATRIX ? ['ضعيف', 'مقبول', 'جيد', 'ممتاز'] : undefined,
+      signaturePenColor: fieldType === FieldType.SIGNATURE ? '#0f172a' : undefined,
+      signaturePenWidth: fieldType === FieldType.SIGNATURE ? 2 : undefined,
     };
 
     handleUpdateStep(stepId, {
       fields: [...step.fields, newField],
     });
     setShowFieldSelectorForStep(null);
-    // Only open editor on mobile - desktop handles editing inside FieldTypeSelector
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-    if (isMobile) {
-      setEditingFieldId(newField.id);
-    }
-  };
-
-  // Add complete field to step (from desktop FieldTypeSelector with all data)
-  const handleAddCompleteField = (stepId: string, field: FormFieldInput) => {
-    const step = steps.find(s => s.id === stepId);
-    if (!step) return;
-
-    const newField: FormFieldInput = {
-      ...field,
-      id: `field-${Date.now()}`,
-      order: step.fields.length,
-    };
-
-    handleUpdateStep(stepId, {
-      fields: [...step.fields, newField],
-    });
-    setShowFieldSelectorForStep(null);
+    setEditingFieldId(newField.id);
   };
 
   // Update field in step
@@ -244,11 +258,9 @@ export function StepEditor({ steps, onStepsChange }: StepEditorProps) {
               : null;
 
             return (
-              <Reorder.Item
-                key={step.id}
-                value={step}
-                className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm"
-              >
+              <DraggableStepItem key={step.id} step={step}>
+                {(dragHandleProps) => (
+                  <>
                 {/* Step Header */}
                 <div
                   className={cn(
@@ -257,8 +269,12 @@ export function StepEditor({ steps, onStepsChange }: StepEditorProps) {
                   )}
                   onClick={() => setExpandedStepId(isExpanded ? null : step.id)}
                 >
-                  <div className="cursor-grab active:cursor-grabbing">
-                    <GripVertical className="w-5 h-5 text-gray-400" />
+                  <div
+                    className="cursor-grab active:cursor-grabbing touch-none p-1 -m-1 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
+                    aria-label="سحب لإعادة ترتيب الخطوة"
+                    {...dragHandleProps}
+                  >
+                    <GripVertical className="w-5 h-5" />
                   </div>
                   
                   <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-500 text-white text-sm font-bold">
@@ -384,9 +400,11 @@ export function StepEditor({ steps, onStepsChange }: StepEditorProps) {
                                 <Reorder.Item
                                   key={field.id}
                                   value={field}
+                                  transition={reorderTransition}
                                   className={cn(
-                                    "flex items-center gap-2 p-3 bg-gray-50 rounded-lg border transition-colors cursor-grab active:cursor-grabbing",
-                                    editingFieldId === field.id ? 'border-amber-500' : 'border-transparent'
+                                    "flex items-center gap-2 p-3 bg-gray-50 rounded-lg border transition-colors cursor-grab active:cursor-grabbing outline-none select-none",
+                                    editingFieldId === field.id ? 'border-amber-500' : 'border-transparent',
+                                    "data-[dragging]:shadow-md data-[dragging]:z-10 data-[dragging]:bg-gray-100"
                                   )}
                                 >
                                   <GripVertical className="w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -426,28 +444,14 @@ export function StepEditor({ steps, onStepsChange }: StepEditorProps) {
                             </Reorder.Group>
                           )}
 
-                          {/* Field Editor - Desktop uses FieldTypeSelector, Mobile uses FieldEditorDialog */}
+                          {/* Field Editor */}
                           <AnimatePresence>
                             {editingField && expandedStepId === step.id && (
-                              <>
-                                {/* Desktop: FieldTypeSelector (auto-hides on mobile) */}
-                                <FieldTypeSelector
-                                  onSelect={() => {}}
-                                  onClose={() => setEditingFieldId(null)}
-                                  editingField={editingField}
-                                  onUpdateField={(updates) => handleUpdateField(step.id, editingField.id, updates)}
-                                  onSaveField={() => setEditingFieldId(null)}
-                                  mode="edit"
-                                />
-                                {/* Mobile: FieldEditorDialog (auto-hides on desktop) */}
-                                <FieldEditorDialog
-                                  field={editingField}
-                                  open={editingFieldId !== null}
-                                  onOpenChange={(open) => !open && setEditingFieldId(null)}
-                                  onUpdate={(updates) => handleUpdateField(step.id, editingField.id, updates)}
-                                  onSave={() => setEditingFieldId(null)}
-                                />
-                              </>
+                              <FieldEditor
+                                field={editingField}
+                                onUpdate={(updates) => handleUpdateField(step.id, editingField.id, updates)}
+                                onClose={() => setEditingFieldId(null)}
+                              />
                             )}
                           </AnimatePresence>
                         </div>
@@ -455,7 +459,9 @@ export function StepEditor({ steps, onStepsChange }: StepEditorProps) {
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </Reorder.Item>
+                  </>
+                )}
+              </DraggableStepItem>
             );
           })}
         </Reorder.Group>
@@ -466,7 +472,6 @@ export function StepEditor({ steps, onStepsChange }: StepEditorProps) {
         {showFieldSelectorForStep && (
           <FieldTypeSelector
             onSelect={(type) => handleAddField(showFieldSelectorForStep, type)}
-            onSelectField={(field) => handleAddCompleteField(showFieldSelectorForStep, field)}
             onClose={() => setShowFieldSelectorForStep(null)}
           />
         )}

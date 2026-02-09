@@ -25,6 +25,7 @@ import {
 } from '@/lib/hooks/useForms';
 import { useRouter } from 'next/navigation';
 import { toast, toastMessages } from '@/components/toast-provider';
+import { generateFormSlug } from '@/lib/utils/generateFormSlug';
 
 const VIEW_MODE_STORAGE_KEY = 'forms-view-mode';
 
@@ -84,7 +85,8 @@ export default function FormsPage() {
   }, [forms, filters, sortBy]);
 
   const handleCreateForm = useCallback(() => {
-    router.push('/app/forms/create?new=true');
+    const slug = generateFormSlug();
+    router.push(`/app/forms/create/${slug}?new=true`);
   }, [router]);
 
   const handleEditForm = useCallback(

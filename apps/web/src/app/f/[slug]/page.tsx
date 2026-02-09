@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { SignatureCanvas } from '@/components/ui/signature-canvas';
 import {
   Select,
   SelectContent,
@@ -54,6 +55,83 @@ import {
   formatCalculatedValue,
   getHiddenFieldValue,
 } from '@/lib/hooks/useAdvancedFormFields';
+
+// Form Theme Interface
+interface FormTheme {
+  primaryColor: string;
+  backgroundColor: string;
+  textColor: string;
+  borderColor: string;
+  accentColor: string;
+  fontFamily: 'default' | 'modern' | 'classic' | 'playful';
+  fontSize: 'small' | 'medium' | 'large';
+  borderRadius: 'none' | 'small' | 'medium' | 'large' | 'full';
+  fieldStyle: 'outlined' | 'filled' | 'underlined';
+  spacing: 'compact' | 'normal' | 'relaxed';
+  appearance: 'light' | 'dark' | 'system';
+  showLogo: boolean;
+  presetId?: string;
+}
+
+// Default theme
+const DEFAULT_THEME: FormTheme = {
+  primaryColor: '#6366f1',
+  backgroundColor: '#ffffff',
+  textColor: '#1f2937',
+  borderColor: '#e5e7eb',
+  accentColor: '#8b5cf6',
+  fontFamily: 'default',
+  fontSize: 'medium',
+  borderRadius: 'medium',
+  fieldStyle: 'outlined',
+  spacing: 'normal',
+  appearance: 'light',
+  showLogo: true,
+};
+
+// Apply theme to CSS variables
+const getThemeStyles = (theme: FormTheme): React.CSSProperties => {
+  const fontFamilyMap: Record<string, string> = {
+    default: 'inherit',
+    modern: '"IBM Plex Sans Arabic", "Rubik", sans-serif',
+    classic: '"Noto Naskh Arabic", "Traditional Arabic", serif',
+    playful: '"Comic Sans MS", "Changa", sans-serif',
+  };
+  
+  const fontSizeMap: Record<string, string> = {
+    small: '14px',
+    medium: '16px',
+    large: '18px',
+  };
+  
+  const borderRadiusMap: Record<string, string> = {
+    none: '0px',
+    small: '8px',
+    medium: '16px',
+    large: '24px',
+    full: '9999px',
+  };
+  
+  const spacingMap: Record<string, string> = {
+    compact: '12px',
+    normal: '20px',
+    relaxed: '28px',
+  };
+
+  return {
+    '--form-primary': theme.primaryColor,
+    '--form-bg': theme.backgroundColor,
+    '--form-text': theme.textColor,
+    '--form-border': theme.borderColor,
+    '--form-accent': theme.accentColor,
+    '--form-font': fontFamilyMap[theme.fontFamily] || 'inherit',
+    '--form-font-size': fontSizeMap[theme.fontSize] || '16px',
+    '--form-radius': borderRadiusMap[theme.borderRadius] || '16px',
+    '--form-spacing': spacingMap[theme.spacing] || '20px',
+    fontFamily: fontFamilyMap[theme.fontFamily] || 'inherit',
+    fontSize: fontSizeMap[theme.fontSize] || '16px',
+  } as React.CSSProperties;
+};
 
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3001';
@@ -91,6 +169,7 @@ export default function PublicFormPage() {
   const [showQrInSheet, setShowQrInSheet] = useState(false);
   const [copied, setCopied] = useState(false);
   const infoSheetDragControls = useDragControls();
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Fetch form data
   useEffect(() => {
@@ -170,6 +249,17 @@ export default function PublicFormPage() {
   }, [form, currentStep, isFieldVisible]);
 
   const totalSteps = form?.isMultiStep ? (form.steps?.length || 1) : 1;
+
+  // Get form theme
+  const formTheme = useMemo<FormTheme>(() => {
+    if (form?.theme && typeof form.theme === 'object') {
+      return { ...DEFAULT_THEME, ...(form.theme as Partial<FormTheme>) };
+    }
+    return DEFAULT_THEME;
+  }, [form?.theme]);
+
+  // Theme styles for the form
+  const themeStyles = useMemo(() => getThemeStyles(formTheme), [formTheme]);
 
   // Progress
   const progress = useMemo(() => {
@@ -266,14 +356,29 @@ export default function PublicFormPage() {
     const errorId = `${fieldId}-error`;
     const ariaDescribedBy = [field.description ? descId : null, hasError ? errorId : null].filter(Boolean).join(' ') || undefined;
 
+    // Field style based on theme
+    const fieldStyleClasses = {
+      outlined: "border bg-transparent",
+      filled: "border-0 bg-muted/50",
+      underlined: "border-0 border-b-2 rounded-none bg-transparent",
+    };
+
     const inputClass = cn(
-      "w-full min-h-[48px] h-12 px-4 bg-muted/30 border rounded-2xl transition-all text-sm outline-none",
+      "w-full min-h-[48px] h-12 px-4 transition-all text-sm outline-none",
       "placeholder:text-muted-foreground/60",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:ring-offset-0 focus-visible:border-primary/50",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0",
+      fieldStyleClasses[formTheme.fieldStyle] || fieldStyleClasses.outlined,
+      formTheme.fieldStyle !== 'underlined' && `rounded-2xl`,
       hasError
         ? "border-destructive/50 focus-visible:border-destructive focus-visible:ring-destructive/20"
-        : "border-border hover:border-border/80"
+        : "border-border hover:border-border/80 focus-visible:ring-primary/20 focus-visible:border-primary/50"
     );
+
+    // Apply theme colors via inline styles
+    const inputStyle: React.CSSProperties = {
+      borderColor: hasError ? undefined : formTheme.appearance !== 'system' ? formTheme.borderColor : undefined,
+      borderRadius: formTheme.fieldStyle !== 'underlined' ? `var(--form-radius, 16px)` : undefined,
+    };
 
     // Field label and description
     const fieldLabel = (
@@ -313,6 +418,7 @@ export default function PublicFormPage() {
               onChange={(e) => handleFieldChange(field.id, e.target.value)}
               placeholder={field.placeholder || 'أدخل النص...'}
               className={inputClass}
+              style={inputStyle}
               aria-invalid={hasError}
               aria-required={field.required}
               aria-describedby={ariaDescribedBy}
@@ -332,6 +438,7 @@ export default function PublicFormPage() {
               placeholder={field.placeholder || 'أدخل النص...'}
               rows={4}
               className={cn(inputClass, "h-auto min-h-[120px] max-h-48 py-3.5 resize-y leading-relaxed")}
+              style={inputStyle}
               aria-invalid={hasError}
               aria-required={field.required}
               aria-describedby={ariaDescribedBy}
@@ -353,6 +460,7 @@ export default function PublicFormPage() {
                 onChange={(e) => handleFieldChange(field.id, e.target.value)}
                 placeholder={field.placeholder || 'example@email.com'}
                 className={cn(inputClass, "pr-12")}
+                style={inputStyle}
                 dir="ltr"
                 aria-invalid={hasError}
                 aria-required={field.required}
@@ -376,6 +484,7 @@ export default function PublicFormPage() {
                 onChange={(e) => handleFieldChange(field.id, e.target.value)}
                 placeholder={field.placeholder || '+964 XXX XXX XXXX'}
                 className={cn(inputClass, "pr-12")}
+                style={inputStyle}
                 dir="ltr"
                 aria-invalid={hasError}
                 aria-required={field.required}
@@ -401,6 +510,7 @@ export default function PublicFormPage() {
                 min={field.minValue}
                 max={field.maxValue}
                 className={cn(inputClass, "pr-12")}
+                style={inputStyle}
                 dir="ltr"
                 aria-invalid={hasError}
                 aria-required={field.required}
@@ -422,13 +532,17 @@ export default function PublicFormPage() {
                 type="date"
                 value={value || ''}
                 onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                min={(field as any).minDate || undefined}
+                max={(field as any).maxDate || undefined}
                 className={cn(inputClass, "pr-12")}
+                style={inputStyle}
                 dir="ltr"
                 aria-invalid={hasError}
                 aria-required={field.required}
                 aria-describedby={ariaDescribedBy}
               />
             </div>
+            {field.placeholder && <p className="text-xs text-muted-foreground mt-1">{field.placeholder}</p>}
             {errorMessage}
           </div>
         );
@@ -444,7 +558,10 @@ export default function PublicFormPage() {
                 type="time"
                 value={value || ''}
                 onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                min={(field as any).minTime || undefined}
+                max={(field as any).maxTime || undefined}
                 className={cn(inputClass, "pr-12")}
+                style={inputStyle}
                 dir="ltr"
                 aria-invalid={hasError}
                 aria-required={field.required}
@@ -465,11 +582,13 @@ export default function PublicFormPage() {
               value={value || ''}
               onChange={(e) => handleFieldChange(field.id, e.target.value)}
               className={inputClass}
+              style={inputStyle}
               dir="ltr"
               aria-invalid={hasError}
               aria-required={field.required}
               aria-describedby={ariaDescribedBy}
             />
+            {field.placeholder && <p className="text-xs text-muted-foreground mt-1">{field.placeholder}</p>}
             {errorMessage}
           </div>
         );
@@ -486,6 +605,7 @@ export default function PublicFormPage() {
                   "focus:ring-2 focus:ring-primary/20 focus:ring-offset-0 focus:border-primary/50",
                   hasError ? "border-destructive/50" : "border-border hover:border-border/80"
                 )}
+                style={inputStyle}
                 aria-invalid={hasError}
                 aria-required={field.required}
                 aria-describedby={ariaDescribedBy}
@@ -645,9 +765,11 @@ export default function PublicFormPage() {
           </div>
         );
 
-      case FieldType.RATING:
-        const maxRating = field.maxValue || 5;
-        const currentRating = value || 0;
+      case FieldType.RATING: {
+        const minR = Math.min(field.minValue ?? 1, field.maxValue ?? 5);
+        const maxR = Math.max(field.maxValue ?? 5, field.minValue ?? 1);
+        const count = Math.max(1, maxR - minR + 1);
+        const currentRating = value !== undefined && value !== '' && value !== null ? Number(value) : 0;
         return (
           <div className="space-y-1">
             {fieldLabel}
@@ -657,30 +779,35 @@ export default function PublicFormPage() {
               aria-label={field.label}
               aria-describedby={ariaDescribedBy}
             >
-              {Array.from({ length: maxRating }).map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => handleFieldChange(field.id, i + 1)}
-                  className="p-1.5 rounded-xl hover:bg-muted transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-                  aria-label={`${i + 1} من ${maxRating}`}
-                  aria-pressed={i + 1 === currentRating}
-                >
-                  <Star
-                    className={cn(
-                      "w-7 h-7 transition-colors",
-                      i < currentRating ? "fill-warning text-warning" : "text-muted-foreground/30"
-                    )}
-                  />
-                </button>
-              ))}
-              {currentRating > 0 && (
-                <span className="text-sm font-medium text-muted-foreground mr-2">{currentRating}/{maxRating}</span>
+              {Array.from({ length: count }).map((_, i) => {
+                const starValue = minR + i;
+                const isSelected = currentRating === starValue;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => handleFieldChange(field.id, starValue)}
+                    className="p-1.5 rounded-xl hover:bg-muted transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    aria-label={`${starValue} من ${minR} إلى ${maxR}`}
+                    aria-pressed={isSelected}
+                  >
+                    <Star
+                      className={cn(
+                        "w-7 h-7 transition-colors",
+                        currentRating >= starValue ? "fill-warning text-warning" : "text-muted-foreground/30"
+                      )}
+                    />
+                  </button>
+                );
+              })}
+              {currentRating >= minR && currentRating <= maxR && (
+                <span className="text-sm font-medium text-muted-foreground mr-2">{currentRating}/{maxR}</span>
               )}
             </div>
             {errorMessage}
           </div>
         );
+      }
 
       case FieldType.SCALE:
         const min = field.minValue || 0;
@@ -720,10 +847,46 @@ export default function PublicFormPage() {
           </div>
         );
 
-      case FieldType.FILE:
+      case FieldType.FILE: {
+        const allowedTypes = (field as any).allowedFileTypes as string[] | undefined;
+        const accept = allowedTypes?.length && !allowedTypes.includes('*/*') ? allowedTypes.join(',') : undefined;
+        const maxFiles = Math.min(20, Math.max(1, (field as any).maxFiles ?? 1));
+        const maxSize = (field as any).maxFileSize ?? 10 * 1024 * 1024;
+        const fileValue = Array.isArray(value) ? value : value ? [value] : [];
         return (
           <div className="space-y-1">
             {fieldLabel}
+            <input
+              type="file"
+              ref={(el) => { fileInputRefs.current[field.id] = el; }}
+              accept={accept}
+              multiple={maxFiles > 1}
+              className="sr-only"
+              id={`${fieldId}-file`}
+              aria-describedby={ariaDescribedBy}
+              onChange={(e) => {
+                const files = e.target.files ? Array.from(e.target.files) : [];
+                if (files.length === 0) return;
+                const trimmed = files.slice(0, maxFiles);
+                const oversized = trimmed.some(f => f.size > maxSize);
+                if (oversized) {
+                  setValidationErrors(prev => ({ ...prev, [field.id]: `الحجم الأقصى للملف ${Math.round(maxSize / (1024 * 1024))} ميجابايت` }));
+                  e.target.value = '';
+                  return;
+                }
+                const toDataUrl = (f: File): Promise<string> => new Promise((res, rej) => {
+                  const r = new FileReader();
+                  r.onload = () => res(r.result as string);
+                  r.onerror = rej;
+                  r.readAsDataURL(f);
+                });
+                Promise.all(trimmed.map(toDataUrl)).then((urls) => {
+                  handleFieldChange(field.id, maxFiles === 1 ? urls[0] : urls);
+                  setValidationErrors(prev => { const next = { ...prev }; delete next[field.id]; return next; });
+                }).catch(() => handleFieldChange(field.id, maxFiles === 1 ? '' : []));
+                e.target.value = '';
+              }}
+            />
             <div
               className="border-2 border-dashed border-border rounded-2xl p-8 text-center hover:border-primary/50 hover:bg-muted/30 transition-colors min-h-[140px] flex flex-col items-center justify-center cursor-pointer"
               role="button"
@@ -731,29 +894,51 @@ export default function PublicFormPage() {
               aria-label="رفع الملفات"
               aria-describedby={ariaDescribedBy}
               onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLElement).click()}
+              onClick={() => fileInputRefs.current[field.id]?.click()}
             >
               <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" aria-hidden />
-              <p className="text-sm font-medium text-foreground mb-1">اضغط لرفع الملفات</p>
-              <p className="text-xs text-muted-foreground">أو اسحب وأفلت الملفات هنا</p>
+              <p className="text-sm font-medium text-foreground mb-1">
+                {fileValue.length ? `تم اختيار ${fileValue.length} ملف/ملفات` : 'اضغط لرفع الملفات'}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {accept ? `الأنواع: ${accept}` : 'جميع الأنواع مقبولة'} — الحجم الأقصى {Math.round(maxSize / (1024 * 1024))} ميجابايت
+              </p>
             </div>
             {errorMessage}
           </div>
         );
+      }
 
       case FieldType.SIGNATURE:
         return (
           <div className="space-y-1">
             {fieldLabel}
-            <div className="border-2 border-dashed border-border rounded-2xl p-8 text-center min-h-[120px] flex items-center justify-center bg-muted/20">
-              <p className="text-sm text-muted-foreground">التوقيع غير متاح حالياً</p>
-            </div>
+            <SignatureCanvas
+              value={value as string}
+              onChange={(dataUrl) => handleFieldChange(field.id, dataUrl)}
+              color={(field as any).signaturePenColor ?? (field as any).signatureColor ?? '#0f172a'}
+              lineWidth={Math.min(6, Math.max(1, (field as any).signaturePenWidth ?? (field as any).signatureWidth ?? 2))}
+              height={150}
+              className="w-full"
+            />
             {errorMessage}
           </div>
         );
 
       // ==================== NEW FIELD TYPES ====================
 
-      case FieldType.URL:
+      case FieldType.URL: {
+        const allowedDomains = (field as any).allowedDomains?.split(',').map((d: string) => d.trim()).filter(Boolean) || [];
+        const urlValue = (value || '') as string;
+        const isValidDomain = allowedDomains.length === 0 || allowedDomains.some((domain: string) => {
+          try {
+            const url = new URL(urlValue);
+            return url.hostname === domain || url.hostname.endsWith('.' + domain);
+          } catch {
+            return false;
+          }
+        });
+        const showDomainError = urlValue && allowedDomains.length > 0 && !isValidDomain;
         return (
           <div className="space-y-1">
             {fieldLabel}
@@ -762,12 +947,12 @@ export default function PublicFormPage() {
                 id={fieldId}
                 type="url"
                 inputMode="url"
-                value={value || ''}
+                value={urlValue}
                 onChange={(e) => handleFieldChange(field.id, e.target.value)}
                 placeholder={field.placeholder || 'https://example.com'}
-                className={cn(inputClass, "pl-10")}
+                className={cn(inputClass, "pl-10", showDomainError && "border-destructive/50")}
                 dir="ltr"
-                aria-invalid={hasError}
+                aria-invalid={hasError || !!showDomainError}
                 aria-required={field.required}
                 aria-describedby={ariaDescribedBy}
               />
@@ -775,9 +960,13 @@ export default function PublicFormPage() {
                 🔗
               </span>
             </div>
+            {showDomainError && (
+              <p className="text-xs text-destructive">يجب أن يكون الرابط من: {allowedDomains.join('، ')}</p>
+            )}
             {errorMessage}
           </div>
         );
+      }
 
       case FieldType.MULTISELECT: {
         const multiselectOptions = Array.isArray(field.options) ? field.options : [];
@@ -1101,6 +1290,68 @@ export default function PublicFormPage() {
         // This is a logic block, not a visible field
         return null;
 
+      case FieldType.MATRIX: {
+        const matrixRows = (field as any).matrixRows || [];
+        const matrixColumns = (field as any).matrixColumns || [];
+        const matrixValue = (value || {}) as Record<string, string>;
+        
+        if (matrixRows.length === 0 || matrixColumns.length === 0) {
+          return (
+            <div className="space-y-1">
+              {fieldLabel}
+              <div className="text-sm text-muted-foreground p-4 border border-dashed rounded-xl text-center">
+                لم يتم إعداد الجدول بعد
+              </div>
+            </div>
+          );
+        }
+        
+        return (
+          <div className="space-y-2">
+            {fieldLabel}
+            <div className="overflow-x-auto -mx-4 px-4">
+              <table className="w-full border-collapse min-w-[400px]">
+                <thead>
+                  <tr>
+                    <th className="p-2 text-right text-xs font-medium text-muted-foreground bg-muted/30 rounded-tr-lg"></th>
+                    {matrixColumns.map((col: string, i: number) => (
+                      <th key={i} className="p-2 text-center text-xs font-medium text-muted-foreground bg-muted/30 last:rounded-tl-lg">
+                        {col}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {matrixRows.map((row: string, rowIndex: number) => (
+                    <tr key={rowIndex} className="border-b border-border/50 last:border-0">
+                      <td className="p-3 text-sm font-medium text-foreground bg-muted/10">
+                        {row}
+                      </td>
+                      {matrixColumns.map((col: string, colIndex: number) => (
+                        <td key={colIndex} className="p-2 text-center">
+                          <label className="cursor-pointer flex items-center justify-center">
+                            <input
+                              type="radio"
+                              name={`matrix-${field.id}-${rowIndex}`}
+                              checked={matrixValue[row] === col}
+                              onChange={() => {
+                                handleFieldChange(field.id, { ...matrixValue, [row]: col });
+                              }}
+                              className="w-4 h-4 accent-primary cursor-pointer"
+                            />
+                          </label>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {errorMessage}
+          </div>
+        );
+      }
+
       default:
         return (
           <div className="space-y-1">
@@ -1204,7 +1455,19 @@ export default function PublicFormPage() {
   const ownerName = form.user?.profile?.name || form.user?.email?.split('@')[0] || 'مستخدم';
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
+    <div 
+      className={cn(
+        "min-h-screen transition-colors",
+        formTheme.appearance === 'dark' ? 'dark bg-gray-900' : 
+        formTheme.appearance === 'light' ? 'bg-white' : 'bg-background'
+      )}
+      dir="rtl"
+      style={{
+        ...themeStyles,
+        backgroundColor: formTheme.appearance !== 'system' ? formTheme.backgroundColor : undefined,
+        color: formTheme.appearance !== 'system' ? formTheme.textColor : undefined,
+      }}
+    >
       {/* Simple Header + بطاقة المعلومات تنبثق من هنا */}
       <header className="sticky top-2 z-40 mx-4 sm:mx-auto max-w-2xl relative">
         <div className="bg-card/95 backdrop-blur-md rounded-4xl border border-border px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
@@ -1467,9 +1730,14 @@ export default function PublicFormPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-card rounded-4xl border border-border"
+          className="rounded-4xl border"
+          style={{
+            backgroundColor: formTheme.appearance !== 'system' ? formTheme.backgroundColor : undefined,
+            borderColor: formTheme.appearance !== 'system' ? formTheme.borderColor : undefined,
+            borderRadius: `var(--form-radius, 24px)`,
+          }}
         >
-          <div className="p-5 space-y-5">
+          <div className="p-5" style={{ gap: `var(--form-spacing, 20px)`, display: 'flex', flexDirection: 'column' }}>
             {currentFields.map((field, index) => (
               <Fragment key={field.id}>{renderField(field, index)}</Fragment>
             ))}
@@ -1492,7 +1760,11 @@ export default function PublicFormPage() {
             {form.isMultiStep && currentStep < totalSteps - 1 ? (
               <button
                 onClick={handleNext}
-                className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-medium transition-colors"
+                style={{
+                  backgroundColor: formTheme.primaryColor,
+                  borderRadius: `var(--form-radius, 12px)`,
+                }}
               >
                 التالي
                 <ChevronLeft className="w-4 h-4" />
@@ -1503,7 +1775,11 @@ export default function PublicFormPage() {
                 onClick={handleSubmit}
                 disabled={isSubmitting}
                 aria-busy={isSubmitting}
-                className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 shadow-sm min-h-[44px]"
+                className="flex items-center gap-2 px-6 py-2.5 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50 shadow-sm min-h-[44px]"
+                style={{
+                  backgroundColor: formTheme.primaryColor,
+                  borderRadius: `var(--form-radius, 12px)`,
+                }}
               >
                 {isSubmitting ? (
                   <>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, ArrowUpDown, CheckCircle2, Clock, FileText, Ban, LayoutGrid, List, ChevronDown } from 'lucide-react';
+import { Search, X, SlidersHorizontal, ArrowUpDown, Filter, CheckCircle2, Clock, FileText, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { 
   FormStatus, 
@@ -20,18 +20,18 @@ interface FormsFiltersBarProps {
   onViewModeChange?: (mode: 'grid' | 'list') => void;
 }
 
-const SORT_OPTIONS: { value: FormsSortOption; label: string }[] = [
-  { value: 'newest', label: 'الأحدث' },
-  { value: 'oldest', label: 'الأقدم' },
-  { value: 'name', label: 'أ-ي' },
-  { value: 'submissions', label: 'الردود' },
+const SORT_OPTIONS: { value: FormsSortOption; label: string; icon?: React.ElementType }[] = [
+  { value: 'newest', label: 'الأحدث', icon: Clock },
+  { value: 'oldest', label: 'الأقدم', icon: Clock },
+  { value: 'name', label: 'أ-ي', icon: ArrowUpDown },
+  { value: 'submissions', label: 'الردود', icon: FileText },
 ];
 
-const STATUS_FILTERS: { value: FormStatus | ''; label: string }[] = [
-  { value: '', label: 'الكل' },
-  { value: FormStatus.PUBLISHED, label: 'منشور' },
-  { value: FormStatus.DRAFT, label: 'مسودة' },
-  { value: FormStatus.CLOSED, label: 'مغلق' },
+const STATUS_FILTERS: { value: FormStatus | ''; label: string; icon: React.ElementType; color: string }[] = [
+  { value: '', label: 'الكل', icon: Filter, color: 'text-gray-500' },
+  { value: FormStatus.PUBLISHED, label: 'منشور', icon: CheckCircle2, color: 'text-green-500' },
+  { value: FormStatus.DRAFT, label: 'مسودة', icon: Clock, color: 'text-amber-500' },
+  { value: FormStatus.CLOSED, label: 'مغلق', icon: Ban, color: 'text-red-500' },
 ];
 
 export function FormsFiltersBar({ 
@@ -40,129 +40,135 @@ export function FormsFiltersBar({
   sortBy,
   onSortChange,
   resultsCount,
-  viewMode = 'grid',
+  viewMode,
   onViewModeChange
 }: FormsFiltersBarProps) {
-  const [showSearch, setShowSearch] = useState(false);
-  const [sortOpen, setSortOpen] = useState(false);
-  const currentSortLabel = SORT_OPTIONS.find(o => o.value === sortBy)?.label || 'الأحدث';
+  const hasActiveFilters = filters.status || filters.search;
+
+  const clearSearch = () => {
+    onFiltersChange({ ...filters, search: '' });
+  };
 
   return (
-    <div className="space-y-3">
-      {/* Main Filter Row */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {/* Search Button / Input */}
-        <AnimatePresence mode="wait">
-          {showSearch ? (
-            <motion.div
-              initial={{ width: 44, opacity: 0 }}
-              animate={{ width: 200, opacity: 1 }}
-              exit={{ width: 44, opacity: 0 }}
-              className="relative"
-            >
-              <input
-                type="text"
-                autoFocus
-                value={filters.search || ''}
-                onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
-                placeholder="بحث..."
-                className="w-full h-11 pr-4 pl-10 bg-card rounded-full text-sm border border-border/50 focus:border-border focus:outline-none"
-                onBlur={() => !filters.search && setShowSearch(false)}
-              />
-              <button
-                onClick={() => { onFiltersChange({ ...filters, search: '' }); setShowSearch(false); }}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </motion.div>
-          ) : (
+    <div className="space-y-4">
+      {/* Search Input */}
+      <div className="relative group">
+        <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+        <input
+          type="text"
+          value={filters.search || ''}
+          onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
+          placeholder="ابحث عن نموذج..."
+          className="w-full pr-12 pl-12 py-3.5 bg-gray-100 rounded-2xl text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white border border-transparent focus:border-blue-200 transition-all"
+        />
+        <AnimatePresence>
+          {filters.search && (
             <motion.button
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowSearch(true)}
-              className="flex items-center justify-center w-11 h-11 rounded-full bg-card border border-border/50 hover:border-border transition-colors"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              onClick={clearSearch}
+              className="absolute left-4 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors"
             >
-              <Search className="w-5 h-5 text-muted-foreground" />
+              <X className="w-4 h-4" />
             </motion.button>
           )}
         </AnimatePresence>
-
-        {/* Sort Dropdown */}
-        <div className="relative">
-          <button
-            onClick={() => setSortOpen(!sortOpen)}
-            className="flex items-center gap-2 h-11 px-4 bg-card rounded-full border border-border/50 hover:border-border transition-colors"
-          >
-            <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-medium">ترتيب</span>
-            <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", sortOpen && "rotate-180")} />
-          </button>
-          
-          <AnimatePresence>
-            {sortOpen && (
-              <>
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 z-40"
-                  onClick={() => setSortOpen(false)}
-                />
-                <motion.div
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -5 }}
-                  className="absolute top-full left-0 mt-2 bg-card rounded-2xl border border-border shadow-lg z-50 min-w-[140px] overflow-hidden py-1"
-                >
-                  {SORT_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => { onSortChange(option.value); setSortOpen(false); }}
-                      className={cn(
-                        "w-full px-4 py-2.5 text-sm text-right hover:bg-muted transition-colors",
-                        sortBy === option.value && "bg-muted font-medium"
-                      )}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Status Filter Pills */}
-        {STATUS_FILTERS.map((status) => {
-          const isActive = filters.status === status.value || (!filters.status && !status.value);
-          return (
-            <button
-              key={status.value}
-              onClick={() => onFiltersChange({ 
-                ...filters, 
-                status: status.value as FormStatus || undefined 
-              })}
-              className={cn(
-                "h-11 px-5 rounded-full text-sm font-medium transition-all border",
-                isActive
-                  ? "bg-foreground text-background border-foreground"
-                  : "bg-card text-foreground border-border/50 hover:border-border"
-              )}
-            >
-              {status.label}
-            </button>
-          );
-        })}
       </div>
 
-      {/* Second Row: View Toggle & Results */}
+      {/* Filters Row */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {/* Status Filter Pills */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-gray-400 ml-1 flex items-center gap-1">
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            الحالة:
+          </span>
+          {STATUS_FILTERS.map((status) => {
+            const isActive = filters.status === status.value || (!filters.status && !status.value);
+            const Icon = status.icon;
+            return (
+              <motion.button
+                key={status.value}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => onFiltersChange({ 
+                  ...filters, 
+                  status: status.value as FormStatus || undefined 
+                })}
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium transition-all duration-200 whitespace-nowrap border",
+                  isActive
+                    ? "bg-gray-900 text-white border-gray-900 shadow-md"
+                    : "bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                )}
+              >
+                <Icon className={cn("w-3.5 h-3.5", !isActive && status.color)} />
+                {status.label}
+              </motion.button>
+            );
+          })}
+        </div>
+
+        {/* Divider */}
+        <div className="h-6 w-px bg-gray-200 hidden sm:block" />
+
+        {/* Sort Pills */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-gray-400 ml-1 flex items-center gap-1">
+            <ArrowUpDown className="w-3.5 h-3.5" />
+            ترتيب:
+          </span>
+          {SORT_OPTIONS.map((option) => {
+            const isActive = sortBy === option.value;
+            return (
+              <motion.button
+                key={option.value}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => onSortChange(option.value)}
+                className={cn(
+                  "px-4 py-2 rounded-xl text-xs font-medium transition-all duration-200 whitespace-nowrap border",
+                  isActive
+                    ? "bg-blue-50 text-blue-600 border-blue-200"
+                    : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                )}
+              >
+                {option.label}
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Results Count & Clear */}
       <div className="flex items-center justify-between">
-        {/* Results Count */}
-        <span className="text-sm text-muted-foreground">
-          {resultsCount} نموذج
-        </span>
+        <motion.span
+          key={resultsCount}
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2"
+        >
+          <span className="inline-flex items-center justify-center w-6 h-6 bg-gray-100 rounded-lg text-xs font-semibold text-gray-700">
+            {resultsCount}
+          </span>
+          نموذج
+        </motion.span>
+        
+        <AnimatePresence>
+          {hasActiveFilters && (
+            <motion.button
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              onClick={() => onFiltersChange({})}
+              className="inline-flex items-center gap-1.5 text-sm text-red-500 hover:text-red-600 transition-colors"
+            >
+              <X className="w-4 h-4" />
+              مسح الفلاتر
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

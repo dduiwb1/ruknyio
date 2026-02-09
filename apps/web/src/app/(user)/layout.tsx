@@ -18,10 +18,11 @@ export default function UserLayout({
     setMounted(true);
   }, []);
   
-  // Don't show main sidebar on settings pages and form creation pages (they have their own layout)
+  // Don't show main sidebar on settings pages, form creation pages, and preview pages (they have their own layout)
   const isSettingsPage = pathname?.startsWith('/app/settings');
   const isFormCreatePage = pathname?.startsWith('/app/forms/create');
-  const hideSidebar = isSettingsPage || isFormCreatePage;
+  const isFormPreviewPage = pathname?.startsWith('/app/forms/preview');
+  const hideSidebar = isSettingsPage || isFormCreatePage || isFormPreviewPage;
 
   return (
     <div className="flex h-svh overflow-hidden" dir="rtl">

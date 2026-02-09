@@ -1,7 +1,16 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, FileText, Send, CheckCircle, FileEdit, LucideIcon } from 'lucide-react';
+import { 
+  TrendingUp,
+  TrendingDown,
+  FileText,
+  FileCheck,
+  FilePen,
+  MessageSquare,
+  Eye,
+  Percent
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FormsStats as StatsType } from '@/lib/hooks/useForms';
 
@@ -10,65 +19,94 @@ interface FormsStatsProps {
   isLoading?: boolean;
 }
 
-interface StatItemConfig {
-  key: string;
-  title: string;
-  subtitle: string;
-  colorVariant: 'indigo' | 'purple' | 'cyan' | 'emerald' | 'amber' | 'violet';
-  icon: LucideIcon;
-}
-
-const statsConfig: StatItemConfig[] = [
-  { key: 'total', title: 'إجمالي النماذج', subtitle: 'جميع النماذج', colorVariant: 'indigo', icon: FileText },
-  { key: 'published', title: 'النماذج المنشورة', subtitle: 'نموذج نشط', colorVariant: 'emerald', icon: CheckCircle },
-  { key: 'draft', title: 'المسودات', subtitle: 'قيد التحرير', colorVariant: 'violet', icon: FileEdit },
-  { key: 'totalSubmissions', title: 'إجمالي الإجابات', subtitle: 'استجابة مستلمة', colorVariant: 'amber', icon: Send },
-];
-
-// Color config matching Dashboard StatsCard design
-const colorConfig: Record<string, { 
-  bg: string;
-  skeleton: string;
-  iconBg: string;
-  iconColor: string;
-}> = {
-  indigo: {
-    bg: 'bg-indigo-100/80 dark:bg-indigo-950/30',
-    skeleton: 'bg-indigo-200 dark:bg-indigo-900/40',
-    iconBg: 'bg-indigo-200/80 dark:bg-indigo-900/50',
-    iconColor: 'text-indigo-600 dark:text-indigo-400',
-  },
-  purple: {
-    bg: 'bg-purple-100/80 dark:bg-purple-950/30',
-    skeleton: 'bg-purple-200 dark:bg-purple-900/40',
-    iconBg: 'bg-purple-200/80 dark:bg-purple-900/50',
-    iconColor: 'text-purple-600 dark:text-purple-400',
-  },
-  cyan: {
-    bg: 'bg-cyan-100/80 dark:bg-cyan-950/30',
-    skeleton: 'bg-cyan-200 dark:bg-cyan-900/40',
-    iconBg: 'bg-cyan-200/80 dark:bg-cyan-900/50',
-    iconColor: 'text-cyan-600 dark:text-cyan-400',
-  },
-  emerald: {
-    bg: 'bg-emerald-100/80 dark:bg-emerald-950/30',
-    skeleton: 'bg-emerald-200 dark:bg-emerald-900/40',
-    iconBg: 'bg-emerald-200/80 dark:bg-emerald-900/50',
-    iconColor: 'text-emerald-600 dark:text-emerald-400',
-  },
-  amber: {
-    bg: 'bg-amber-100/80 dark:bg-amber-950/30',
-    skeleton: 'bg-amber-200 dark:bg-amber-900/40',
-    iconBg: 'bg-amber-200/80 dark:bg-amber-900/50',
-    iconColor: 'text-amber-600 dark:text-amber-400',
-  },
-  violet: {
-    bg: 'bg-violet-100/80 dark:bg-violet-950/30',
-    skeleton: 'bg-violet-200 dark:bg-violet-900/40',
-    iconBg: 'bg-violet-200/80 dark:bg-violet-900/50',
-    iconColor: 'text-violet-600 dark:text-violet-400',
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
   },
 };
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: 'spring' as const,
+      stiffness: 300,
+      damping: 25,
+    },
+  },
+};
+
+const statsConfig = [
+  {
+    key: 'total',
+    title: 'إجمالي النماذج',
+    subtitleKey: 'published',
+    subtitleSuffix: 'نموذج منشور',
+    bgColor: 'bg-amber-100',
+    hoverColor: 'hover:bg-amber-200',
+    textColor: 'text-amber-900',
+    icon: FileText,
+  },
+  {
+    key: 'published',
+    title: 'النماذج المنشورة',
+    subtitleKey: 'total',
+    subtitleSuffix: 'من الإجمالي',
+    bgColor: 'bg-emerald-100',
+    hoverColor: 'hover:bg-emerald-200',
+    textColor: 'text-emerald-900',
+    icon: FileCheck,
+  },
+  {
+    key: 'draft',
+    title: 'النماذج المسودة',
+    subtitleKey: 'total',
+    subtitleSuffix: 'من الإجمالي',
+    bgColor: 'bg-sky-100',
+    hoverColor: 'hover:bg-sky-200',
+    textColor: 'text-sky-900',
+    icon: FilePen,
+  },
+  {
+    key: 'totalSubmissions',
+    title: 'إجمالي الإجابات',
+    subtitleKey: 'published',
+    subtitleSuffix: 'نموذج',
+    bgColor: 'bg-violet-100',
+    hoverColor: 'hover:bg-violet-200',
+    textColor: 'text-violet-900',
+    icon: MessageSquare,
+  },
+  {
+    key: 'totalViews',
+    title: 'إجمالي المشاهدات',
+    subtitleKey: null,
+    subtitleSuffix: 'مشاهدة',
+    bgColor: 'bg-rose-100',
+    hoverColor: 'hover:bg-rose-200',
+    textColor: 'text-rose-900',
+    icon: Eye,
+  },
+  {
+    key: 'responseRate',
+    title: 'معدل الاستجابة',
+    subtitleKey: null,
+    subtitleSuffix: 'نسبة التحويل',
+    bgColor: 'bg-indigo-100',
+    hoverColor: 'hover:bg-indigo-200',
+    textColor: 'text-indigo-900',
+    icon: Percent,
+    isPercentage: true,
+  },
+];
 
 // Format large numbers
 const formatNumber = (num: number): string => {
@@ -82,114 +120,128 @@ const formatNumber = (num: number): string => {
 };
 
 export function FormsStats({ stats, isLoading }: FormsStatsProps) {
+  // Calculate response rate (submissions / views * 100)
+  const responseRate = stats.totalViews > 0 
+    ? Math.round((stats.totalSubmissions / stats.totalViews) * 100) 
+    : 0;
+
+  // Calculate percentage change
+  const calculateChange = (current: number, total: number): { change: string; isPositive: boolean } => {
+    if (total === 0 || current === 0) return { change: '0%', isPositive: true };
+    const percentage = Math.round((current / total) * 100);
+    return { change: `${percentage}%`, isPositive: percentage > 0 };
+  };
+
   if (isLoading) {
-    return <FormsStatsSkeleton />;
+    const skeletonColors = ['bg-amber-100', 'bg-emerald-100', 'bg-sky-100', 'bg-violet-100', 'bg-rose-100', 'bg-indigo-100'];
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        {skeletonColors.map((color, i) => (
+          <div
+            key={i}
+            className={cn("rounded-2xl p-4 sm:p-5 animate-pulse", color)}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="h-8 w-8 bg-white/50 rounded-xl" />
+            </div>
+            <div className="h-4 bg-white/50 rounded w-20 mb-2" />
+            <div className="h-3 bg-white/30 rounded w-16 mb-3" />
+            <div className="flex items-end justify-between">
+              <div className="h-8 bg-white/50 rounded w-12" />
+              <div className="h-5 bg-white/30 rounded-full w-14" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   }
 
-  // Calculate real percentage changes based on stats
-  const getChangeInfo = (key: string, value: number) => {
-    if (key === 'published' && stats.total > 0) {
-      const percentage = (stats.published / stats.total) * 100;
-      return { change: `${percentage.toFixed(0)}%`, isPositive: true };
-    }
-    if (key === 'draft' && stats.total > 0) {
-      const percentage = (stats.draft / stats.total) * 100;
-      return { change: `${percentage.toFixed(0)}%`, isPositive: percentage < 50 };
-    }
-    if (key === 'total') {
-      return { change: stats.total > 0 ? '+11.01%' : '0%', isPositive: stats.total > 0 };
-    }
-    if (key === 'totalSubmissions') {
-      return { change: stats.totalSubmissions > 0 ? '+15.03%' : '0%', isPositive: stats.totalSubmissions > 0 };
-    }
-    return { change: '+0%', isPositive: true };
-  };
-
-  const getValue = (key: string): number => {
-    if (key === 'closed') return (stats as any).closed || 0;
-    return (stats[key as keyof StatsType] as number) || 0;
-  };
-
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-      {statsConfig.map((stat, index) => {
-        const value = getValue(stat.key);
-        const { change, isPositive } = getChangeInfo(stat.key, value);
-        const colors = colorConfig[stat.colorVariant];
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 sm:gap-4"
+    >
+      {statsConfig.map((stat) => {
+        // Handle response rate separately
+        const value = stat.key === 'responseRate' 
+          ? responseRate 
+          : (stats[stat.key as keyof StatsType] || 0);
+        const subtitleValue = stat.subtitleKey ? stats[stat.subtitleKey as keyof StatsType] || 0 : value;
+        const change = calculateChange(
+          stat.key === 'totalSubmissions' ? stats.published : value,
+          stat.key === 'totalSubmissions' ? stats.total : stats.total
+        );
         const Icon = stat.icon;
-
+        
         return (
           <motion.div
             key={stat.key}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-            className={cn("rounded-xl p-3 sm:p-4 transition-all duration-200", colors.bg)}
+            variants={itemVariants}
+            whileHover={{ scale: 1.02, y: -2 }}
+            className={cn(
+              "relative rounded-2xl p-4 sm:p-5",
+              "transition-all duration-300",
+              "text-right",
+              stat.bgColor,
+              stat.hoverColor
+            )}
           >
-            {/* Header: Icon + Title */}
-            <div className="flex items-center gap-2 mb-3">
+            {/* Icon */}
+            <div className="flex items-center justify-between mb-3">
               <div className={cn(
-                "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
-                colors.iconBg
+                "w-8 h-8 rounded-xl flex items-center justify-center",
+                "bg-white/50"
               )}>
-                <Icon className={cn("w-4 h-4", colors.iconColor)} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{stat.title}</p>
+                <Icon className={cn("w-4 h-4", stat.textColor)} />
               </div>
             </div>
 
+            {/* Title */}
+            <p className={cn("text-sm font-medium mb-1", stat.textColor)}>
+              {stat.title}
+            </p>
+
+            {/* Subtitle */}
+            <p className="text-xs text-gray-500 mb-2">
+              {stat.subtitleKey 
+                ? `من ${subtitleValue} ${stat.subtitleSuffix}`
+                : stat.subtitleSuffix
+              }
+            </p>
+
             {/* Value & Change Row */}
             <div className="flex items-end justify-between">
-              <span className="text-xl sm:text-2xl font-bold text-foreground tabular-nums">
-                {formatNumber(value)}
-              </span>
-              <div className="flex items-center gap-0.5">
-                {isPositive ? (
-                  <TrendingUp className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                ) : (
-                  <TrendingDown className="w-3 h-3 text-rose-600 dark:text-rose-400" />
-                )}
-                <span className={cn(
-                  "text-xs font-medium",
-                  isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+              {/* Value */}
+              <motion.div
+                className={cn("text-2xl sm:text-3xl font-bold", stat.textColor)}
+                initial={{ scale: 1 }}
+                whileHover={{ scale: 1.02 }}
+              >
+                {(stat as any).isPercentage ? `${value}%` : formatNumber(value)}
+              </motion.div>
+
+              {/* Change Indicator */}
+              {!(stat as any).isPercentage && (
+                <div className={cn(
+                  "flex items-center gap-0.5 text-xs font-medium px-2 py-0.5 rounded-full",
+                  change.isPositive 
+                    ? "bg-white/50 text-gray-700" 
+                    : "bg-red-100 text-red-600"
                 )}>
-                  {change}
-                </span>
-              </div>
+                  <span>~{change.change}</span>
+                  {change.isPositive ? (
+                    <TrendingUp className="w-3 h-3" />
+                  ) : (
+                    <TrendingDown className="w-3 h-3" />
+                  )}
+                </div>
+              )}
             </div>
           </motion.div>
         );
       })}
-    </div>
-  );
-}
-
-export function FormsStatsSkeleton() {
-  const skeletonColors = [
-    colorConfig.indigo,
-    colorConfig.emerald,
-    colorConfig.violet,
-    colorConfig.amber,
-  ];
-
-  return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-      {skeletonColors.map((colors, i) => (
-        <div key={i} className={cn("rounded-xl p-3 sm:p-4", colors.bg)}>
-          {/* Header skeleton */}
-          <div className="flex items-center gap-2 mb-3">
-            <div className={cn("w-8 h-8 rounded-full animate-pulse shrink-0", colors.skeleton)} />
-            <div className={cn("h-4 w-20 rounded animate-pulse", colors.skeleton)} />
-          </div>
-          
-          {/* Value & Change skeleton */}
-          <div className="flex items-end justify-between">
-            <div className={cn("h-6 w-14 rounded animate-pulse", colors.skeleton)} />
-            <div className={cn("h-4 w-10 rounded animate-pulse", colors.skeleton)} />
-          </div>
-        </div>
-      ))}
-    </div>
+    </motion.div>
   );
 }

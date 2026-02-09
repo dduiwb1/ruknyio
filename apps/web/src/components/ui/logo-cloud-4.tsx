@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useMemo, useCallback, useRef, memo } from "react";
 
 export type Logo =
   | { alt: string; src: string; width?: number; height?: number }
@@ -12,7 +13,7 @@ type LogoCloudProps = React.ComponentProps<"div"> & {
   duration?: number;
 };
 
-function LogoItem({ logo }: { logo: Logo }) {
+const LogoItem = memo(function LogoItem({ logo }: { logo: Logo }) {
   const baseClass = "h-6 w-auto max-w-[100px] sm:h-7 sm:max-w-[120px] md:h-8 md:max-w-[140px] object-contain";
   const effectClass = "opacity-50 grayscale transition-all duration-300 ease-out group-hover:opacity-100 group-hover:grayscale-0";
   
@@ -41,7 +42,7 @@ function LogoItem({ logo }: { logo: Logo }) {
       </div>
     </div>
   );
-}
+});
 
 export function LogoCloud({
   logos,
@@ -49,36 +50,56 @@ export function LogoCloud({
   duration = 20,
   ...props
 }: LogoCloudProps) {
-  if (!logos?.length) return null;
+  const marqueeRef = useRef<HTMLDivElement>(null);
+  
+  // Memoize duplicated logos to prevent recreation on every render
+  const duplicatedLogos = useMemo(() => [...logos, ...logos], [logos]);
+  
+  // Stable event handlers
+  const handleMouseEnter = useCallback(() => {
+    if (marqueeRef.current) {
+      marqueeRef.current.style.animationPlayState = "paused";
+    }
+  }, []);
+  
+  const handleMouseLeave = useCallback(() => {
+    if (marqueeRef.current) {
+      marqueeRef.current.style.animationPlayState = "running";
+    }
+  }, []);
 
-  // تكرار الشعارات للحصول على حركة سلسة
-  const duplicatedLogos = [...logos, ...logos];
+  if (!logos?.length) return null;
 
   return (
     <div
       className={cn(
         "relative w-full overflow-hidden",
-        "py-8 sm:py-10 md:py-12",
         className
       )}
       dir="ltr"
       {...props}
     >
-      {/* الخلفية الناعمة */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-50/30 to-transparent" />
+      {/* CSS Keyframes */}
+      <style jsx>{`
+        @keyframes logo-marquee {
+          from {
+            transform: translateX(0);
+          }
+          to {
+            transform: translateX(-50%);
+          }
+        }
+      `}</style>
       
       {/* شريط الشعارات */}
       <div
+        ref={marqueeRef}
         className="relative flex w-max items-center"
         style={{
           animation: `logo-marquee ${duration}s linear infinite`,
         }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.animationPlayState = "paused";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.animationPlayState = "running";
-        }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         {/* المجموعة الأولى */}
         <div className="flex items-center gap-8 sm:gap-12 md:gap-16">
@@ -88,19 +109,13 @@ export function LogoCloud({
         </div>
       </div>
 
-      {/* تأثيرات الحواف الضبابية - متماثلة تماماً */}
+      {/* تأثيرات الحواف الضبابية - تستخدم CSS variables للتوافق مع الوضع الداكن */}
       <div 
-        className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 sm:w-24 md:w-32 lg:w-40"
-        style={{
-          background: "linear-gradient(to right, rgb(255 255 255) 0%, rgb(255 255 255 / 0.9) 30%, rgb(255 255 255 / 0.5) 60%, transparent 100%)"
-        }}
+        className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 sm:w-24 md:w-32 lg:w-40 bg-gradient-to-r from-background via-background/80 to-transparent"
         aria-hidden="true"
       />
       <div 
-        className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 sm:w-24 md:w-32 lg:w-40"
-        style={{
-          background: "linear-gradient(to left, rgb(255 255 255) 0%, rgb(255 255 255 / 0.9) 30%, rgb(255 255 255 / 0.5) 60%, transparent 100%)"
-        }}
+        className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 sm:w-24 md:w-32 lg:w-40 bg-gradient-to-l from-background via-background/80 to-transparent"
         aria-hidden="true"
       />
     </div>
