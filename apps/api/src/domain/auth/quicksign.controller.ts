@@ -224,10 +224,17 @@ export class QuickSignController {
     const ipAddress = req.ip || req.socket.remoteAddress;
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-    // التحقق من Token
-    const verification = await this.quickSignService.verifyQuickSign(token);
+    // 🔒 التحقق من Token واستهلاكه بشكل ذري (يمنع race conditions)
+    const verification = await this.quickSignService.verifyAndConsumeQuickSign(token);
 
     if (!verification.valid) {
+      // 🔒 التعامل مع حالة القفل (race condition)
+      if (verification.error === 'locked') {
+        const errorUrl = `${frontendUrl}/auth/verify?error=processing&message=${encodeURIComponent('جاري معالجة طلب تسجيل الدخول، يرجى الانتظار')}`;
+        if (!isProduction) console.log('🔄 Redirecting to error page (locked):', errorUrl);
+        return res.redirect(errorUrl);
+      }
+
       // 🔒 تسجيل المحاولة الفاشلة
       if (verification.email) {
         await this.accountLockoutService.recordFailedAttempt(
@@ -321,7 +328,7 @@ export class QuickSignController {
         );
         if (trusted) {
           // تخطي 2FA والمتابعة كتسجيل دخول عادي
-          await this.quickSignService.markQuickSignAsUsed(token);
+          // ملاحظة: markQuickSignAsUsed تم استدعاؤها في verifyAndConsumeQuickSign
           await this.ipVerificationService.updateLastKnownIP(verification.userId, ipAddress);
           const user = await this.prisma.user.findUnique({
             where: { id: verification.userId },
@@ -364,8 +371,7 @@ export class QuickSignController {
         verification.email,
       );
 
-      // تعليم QuickSign كمستخدم
-      await this.quickSignService.markQuickSignAsUsed(token);
+      // ملاحظة: markQuickSignAsUsed تم استدعاؤها في verifyAndConsumeQuickSign
       
       // Redirect لصفحة 2FA
       const redirectUrl = `${frontendUrl}/auth/verify-2fa?sessionId=${pendingSessionId}`;
@@ -373,7 +379,7 @@ export class QuickSignController {
     }
 
     // تسجيل الدخول مباشرة (لا يوجد 2FA)
-    await this.quickSignService.markQuickSignAsUsed(token);
+    // ملاحظة: markQuickSignAsUsed تم استدعاؤها في verifyAndConsumeQuickSign
 
     // تحديث IP
     await this.ipVerificationService.updateLastKnownIP(

@@ -209,9 +209,9 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
     const value = formValues[field.id];
     
     const baseInputClass = cn(
-      'w-full px-4 py-3 text-base transition-all outline-none focus:ring-2 focus:ring-offset-0',
+      'w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base transition-all outline-none focus:ring-2 focus:ring-offset-0',
       fieldStyleClasses[theme.fieldStyle] || fieldStyleClasses.outlined,
-      theme.fieldStyle !== 'underlined' && 'rounded-xl'
+      theme.fieldStyle !== 'underlined' && 'rounded-lg sm:rounded-xl'
     );
 
     const inputStyle: React.CSSProperties = {
@@ -226,39 +226,39 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
     return (
       <motion.div 
         key={field.id} 
-        className="space-y-2"
+        className="space-y-1.5 sm:space-y-2"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.05 }}
       >
         {/* Label */}
         <label 
-          className="text-sm font-medium flex items-center gap-2"
+          className="text-xs sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2"
           style={{ color: theme.textColor }}
         >
           {showQuestionNumbers && (
             <span 
-              className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold"
+              className="w-5 h-5 sm:w-6 sm:h-6 rounded-md sm:rounded-lg flex items-center justify-center text-[10px] sm:text-xs font-bold shrink-0"
               style={{ backgroundColor: `${theme.primaryColor}15`, color: theme.primaryColor }}
             >
               {index + 1}
             </span>
           )}
-          <span className="flex items-center gap-2">
+          <span className="flex items-center gap-1.5 sm:gap-2 min-w-0">
             <span 
-              className="w-6 h-6 rounded-lg flex items-center justify-center"
+              className="w-5 h-5 sm:w-6 sm:h-6 rounded-md sm:rounded-lg flex items-center justify-center shrink-0"
               style={{ backgroundColor: `${theme.primaryColor}10`, color: theme.primaryColor }}
             >
               {getFieldIcon(field.type)}
             </span>
-            {field.label}
+            <span className="truncate">{field.label}</span>
           </span>
-          {field.required && <span style={{ color: theme.accentColor }}>*</span>}
+          {field.required && <span className="shrink-0" style={{ color: theme.accentColor }}>*</span>}
         </label>
 
         {/* Field Description */}
         {field.description && (
-          <p className="text-xs opacity-60" style={{ color: theme.textColor }}>
+          <p className="text-[10px] sm:text-xs opacity-60" style={{ color: theme.textColor }}>
             {field.description}
           </p>
         )}
@@ -269,7 +269,7 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
             value={value || ''}
             onChange={(e) => handleValueChange(field.id, e.target.value)}
             placeholder={field.placeholder || 'أدخل النص...'}
-            rows={4}
+            rows={3}
             className={cn(baseInputClass, 'resize-none')}
             style={{ ...inputStyle, '--tw-ring-color': focusRingColor } as React.CSSProperties}
           />
@@ -281,10 +281,10 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
               className={cn(baseInputClass, 'flex items-center justify-between text-right')}
               style={inputStyle}
             >
-              <span className={value ? '' : 'opacity-50'}>
+              <span className={cn('truncate', value ? '' : 'opacity-50')}>
                 {value || field.placeholder || 'اختر...'}
               </span>
-              <ChevronDown className={cn('w-5 h-5 transition-transform', expandedSelect === field.id && 'rotate-180')} />
+              <ChevronDown className={cn('w-4 h-4 sm:w-5 sm:h-5 transition-transform shrink-0', expandedSelect === field.id && 'rotate-180')} />
             </button>
             <AnimatePresence>
               {expandedSelect === field.id && (
@@ -292,7 +292,7 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="absolute z-10 w-full mt-2 rounded-xl border shadow-lg overflow-hidden"
+                  className="absolute z-10 w-full mt-1.5 sm:mt-2 rounded-lg sm:rounded-xl border shadow-lg overflow-hidden max-h-48 overflow-y-auto"
                   style={{ backgroundColor: theme.backgroundColor, borderColor: theme.borderColor }}
                 >
                   {((field.options as (string | { label: string; value: string })[]) || []).map((opt, i) => {
@@ -306,11 +306,11 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
                           handleValueChange(field.id, optLabel);
                           setExpandedSelect(null);
                         }}
-                        className="w-full px-4 py-3 text-right hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center justify-between"
+                        className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-right hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center justify-between text-sm sm:text-base"
                         style={{ color: theme.textColor }}
                       >
-                        <span>{optLabel}</span>
-                        {value === optLabel && <Check className="w-4 h-4" style={{ color: theme.primaryColor }} />}
+                        <span className="truncate">{optLabel}</span>
+                        {value === optLabel && <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" style={{ color: theme.primaryColor }} />}
                       </button>
                     );
                   })}
@@ -319,7 +319,7 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
             </AnimatePresence>
           </div>
         ) : field.type === FieldType.RADIO ? (
-          <div className="space-y-2">
+          <div className="space-y-1.5 sm:space-y-2">
             {((field.options as (string | { label: string; value: string })[]) || []).map((opt, i) => {
               const optLabel = typeof opt === 'string' ? opt : opt.label;
               return (
@@ -327,7 +327,7 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
                   key={i}
                   type="button"
                   onClick={() => handleValueChange(field.id, optLabel)}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl border text-right transition-all"
+                  className="w-full flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg sm:rounded-xl border text-right transition-all text-sm sm:text-base"
                   style={{ 
                     borderColor: value === optLabel ? theme.primaryColor : theme.borderColor,
                     backgroundColor: value === optLabel ? `${theme.primaryColor}10` : 'transparent',
@@ -335,20 +335,20 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
                   }}
                 >
                   <div
-                    className="w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center"
+                    className="w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center"
                     style={{ borderColor: value === optLabel ? theme.primaryColor : theme.borderColor }}
                   >
                     {value === optLabel && (
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: theme.primaryColor }} />
+                      <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full" style={{ backgroundColor: theme.primaryColor }} />
                     )}
                   </div>
-                  <span>{optLabel}</span>
+                  <span className="truncate">{optLabel}</span>
                 </button>
               );
             })}
           </div>
         ) : field.type === FieldType.CHECKBOX ? (
-          <div className="space-y-2">
+          <div className="space-y-1.5 sm:space-y-2">
             {((field.options as (string | { label: string; value: string })[]) || []).map((opt, i) => {
               const optLabel = typeof opt === 'string' ? opt : opt.label;
               const isChecked = Array.isArray(value) && value.includes(optLabel);
@@ -363,7 +363,7 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
                       : [...current, optLabel];
                     handleValueChange(field.id, newValue);
                   }}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl border text-right transition-all"
+                  className="w-full flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg sm:rounded-xl border text-right transition-all text-sm sm:text-base"
                   style={{ 
                     borderColor: isChecked ? theme.primaryColor : theme.borderColor,
                     backgroundColor: isChecked ? `${theme.primaryColor}10` : 'transparent',
@@ -371,15 +371,15 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
                   }}
                 >
                   <div
-                    className="w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center"
+                    className="w-4 h-4 sm:w-5 sm:h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center"
                     style={{ 
                       borderColor: isChecked ? theme.primaryColor : theme.borderColor,
                       backgroundColor: isChecked ? theme.primaryColor : 'transparent',
                     }}
                   >
-                    {isChecked && <Check className="w-3 h-3 text-white" />}
+                    {isChecked && <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />}
                   </div>
-                  <span>{optLabel}</span>
+                  <span className="truncate">{optLabel}</span>
                 </button>
               );
             })}
@@ -388,26 +388,26 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
           <button
             type="button"
             onClick={() => handleValueChange(field.id, !value)}
-            className="flex items-center gap-3"
+            className="flex items-center gap-2 sm:gap-3"
           >
             <div
-              className="w-12 h-7 rounded-full relative transition-colors"
+              className="w-10 h-6 sm:w-12 sm:h-7 rounded-full relative transition-colors"
               style={{ backgroundColor: value ? theme.primaryColor : `${theme.borderColor}50` }}
             >
               <motion.div
-                className="absolute top-1 w-5 h-5 rounded-full bg-white shadow-md"
+                className="absolute top-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white shadow-md"
                 animate={{ right: value ? 6 : 'auto', left: value ? 'auto' : 6 }}
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               />
             </div>
-            <span style={{ color: theme.textColor }}>{field.label}</span>
+            <span className="text-sm sm:text-base" style={{ color: theme.textColor }}>{field.label}</span>
           </button>
         ) : field.type === FieldType.RATING ? (() => {
           const minR = field.minValue ?? 1;
           const maxR = field.maxValue ?? 5;
           const count = Math.max(1, maxR - minR + 1);
           return (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
               {Array.from({ length: count }, (_, i) => {
                 const star = minR + i;
                 return (
@@ -418,7 +418,7 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
                     className="transition-transform hover:scale-110"
                   >
                     <Star
-                      className={cn('w-8 h-8', (value || 0) >= star ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300')}
+                      className={cn('w-6 h-6 sm:w-8 sm:h-8', (value || 0) >= star ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300')}
                     />
                   </button>
                 );
@@ -426,12 +426,12 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
             </div>
           );
         })() : field.type === FieldType.SCALE ? (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs opacity-60" style={{ color: theme.textColor }}>
+          <div className="space-y-1.5 sm:space-y-2">
+            <div className="flex items-center justify-between text-[10px] sm:text-xs opacity-60" style={{ color: theme.textColor }}>
               <span>{field.minValue || 0}</span>
               <span>{field.maxValue || 10}</span>
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-0.5 sm:gap-1 overflow-x-auto">
               {Array.from({ length: (field.maxValue || 10) - (field.minValue || 0) + 1 }, (_, i) => {
                 const num = (field.minValue || 0) + i;
                 return (
@@ -439,7 +439,7 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
                     key={num}
                     type="button"
                     onClick={() => handleValueChange(field.id, num)}
-                    className="flex-1 py-2 rounded-lg text-sm font-medium transition-all"
+                    className="flex-1 min-w-[28px] sm:min-w-[32px] py-1.5 sm:py-2 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium transition-all"
                     style={{ 
                       backgroundColor: value === num ? theme.primaryColor : `${theme.borderColor}30`,
                       color: value === num ? '#fff' : theme.textColor,
@@ -453,25 +453,25 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
           </div>
         ) : field.type === FieldType.FILE || field.type === FieldType.IMAGE ? (
           <div
-            className="flex flex-col items-center justify-center py-8 border-2 border-dashed rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+            className="flex flex-col items-center justify-center py-6 sm:py-8 border-2 border-dashed rounded-lg sm:rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
             style={{ borderColor: theme.borderColor, color: `${theme.textColor}70` }}
           >
-            <Upload className="w-8 h-8 mb-2" />
-            <span className="text-sm font-medium">اضغط لرفع ملف</span>
-            <span className="text-xs mt-1 opacity-60">أو اسحب الملف هنا</span>
+            <Upload className="w-6 h-6 sm:w-8 sm:h-8 mb-1.5 sm:mb-2" />
+            <span className="text-xs sm:text-sm font-medium">اضغط لرفع ملف</span>
+            <span className="text-[10px] sm:text-xs mt-0.5 sm:mt-1 opacity-60">أو اسحب الملف هنا</span>
           </div>
         ) : field.type === FieldType.SIGNATURE ? (
           <div
-            className="flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+            className="flex flex-col items-center justify-center py-8 sm:py-12 border-2 border-dashed rounded-lg sm:rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
             style={{ borderColor: theme.borderColor, color: `${theme.textColor}70` }}
           >
-            <PenTool className="w-8 h-8 mb-2" />
-            <span className="text-sm font-medium">اضغط للتوقيع</span>
+            <PenTool className="w-6 h-6 sm:w-8 sm:h-8 mb-1.5 sm:mb-2" />
+            <span className="text-xs sm:text-sm font-medium">اضغط للتوقيع</span>
           </div>
         ) : field.type === FieldType.HEADING ? (
-          <h2 className="text-xl font-bold" style={{ color: theme.textColor }}>{field.label}</h2>
+          <h2 className="text-lg sm:text-xl font-bold" style={{ color: theme.textColor }}>{field.label}</h2>
         ) : field.type === FieldType.PARAGRAPH ? (
-          <p className="text-base opacity-80" style={{ color: theme.textColor }}>{field.label}</p>
+          <p className="text-sm sm:text-base opacity-80" style={{ color: theme.textColor }}>{field.label}</p>
         ) : field.type === FieldType.DIVIDER ? (
           <hr style={{ borderColor: theme.borderColor }} />
         ) : (
@@ -508,28 +508,31 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
         {/* Top accent line */}
         <div className="h-1 w-full" style={{ backgroundColor: theme.primaryColor }} />
         
-        <div className="max-w-4xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-3">
           {/* Right: Back + Info */}
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               type="button"
               onClick={onClose || (() => window.close())}
-              className="flex items-center gap-1.5 text-sm font-medium transition-colors shrink-0 hover:opacity-80"
+              className="flex items-center gap-1 sm:gap-1.5 text-sm font-medium transition-colors shrink-0 hover:opacity-80"
               style={{ color: theme.primaryColor }}
             >
               <ArrowRight className="w-4 h-4" />
               <span className="hidden sm:inline">رجوع</span>
             </button>
             
-            <div className="h-5 w-px bg-gray-200 dark:bg-gray-700 shrink-0" />
+            <div className="hidden sm:block h-5 w-px bg-gray-200 dark:bg-gray-700 shrink-0" />
             
-            <span className="text-sm text-gray-500 dark:text-gray-400 shrink-0">
+            <span className="hidden sm:inline text-sm text-gray-500 dark:text-gray-400 shrink-0">
               هذه معاينة للنموذج
+            </span>
+            <span className="sm:hidden text-xs text-gray-500 dark:text-gray-400 shrink-0">
+              معاينة
             </span>
           </div>
 
-          {/* Center: URL Bar */}
-          <div className="flex-1 max-w-xl">
+          {/* Center: URL Bar - hidden on mobile */}
+          <div className="hidden sm:block flex-1 max-w-xl">
             <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-full px-4 py-1.5">
               <Link2 className="w-3.5 h-3.5 text-gray-400 shrink-0" />
               {formUrl ? (
@@ -559,12 +562,12 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
           </div>
 
           {/* Left: View Toggle */}
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
             <button
               type="button"
               onClick={() => setViewMode('desktop')}
               className={cn(
-                'p-2 rounded-lg text-sm transition-all',
+                'p-1.5 sm:p-2 rounded-lg text-sm transition-all',
                 viewMode === 'desktop' 
                   ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800' 
                   : 'text-gray-400 hover:text-gray-600'
@@ -577,7 +580,7 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
               type="button"
               onClick={() => setViewMode('mobile')}
               className={cn(
-                'p-2 rounded-lg text-sm transition-all',
+                'p-1.5 sm:p-2 rounded-lg text-sm transition-all',
                 viewMode === 'mobile' 
                   ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800' 
                   : 'text-gray-400 hover:text-gray-600'
@@ -591,7 +594,7 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
       </div>
 
       {/* Main Content */}
-      <main className="py-6 pb-16 px-4">
+      <main className="py-4 sm:py-6 pb-12 sm:pb-16 px-2 sm:px-4">
         <div className="flex justify-center">
           <AnimatePresence mode="wait">
             <motion.div
@@ -602,14 +605,14 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
               transition={{ duration: 0.2 }}
               className={cn(
                 'w-full transition-all duration-300',
-                viewMode === 'mobile' ? 'max-w-md' : 'max-w-2xl'
+                viewMode === 'mobile' ? 'max-w-sm sm:max-w-md' : 'max-w-2xl'
               )}
             >
               {/* Form Container */}
               <div
                 className={cn(
-                  'rounded-3xl shadow-xl overflow-hidden',
-                  viewMode === 'mobile' && 'mx-4'
+                  'rounded-2xl sm:rounded-3xl shadow-xl overflow-hidden',
+                  viewMode === 'mobile' && 'mx-2 sm:mx-4'
                 )}
                 style={{ 
                   backgroundColor: theme.backgroundColor,
@@ -618,7 +621,7 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
               >
                 {/* Banner */}
                 {bannerUrl && (
-                  <div className="relative h-48 overflow-hidden">
+                  <div className="relative h-36 sm:h-48 overflow-hidden">
                     <img 
                       src={bannerUrl} 
                       alt="Banner"
@@ -629,18 +632,18 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
                 )}
 
                 {/* Form Content */}
-                <div className="p-6 sm:p-8">
+                <div className="p-4 sm:p-6 md:p-8">
                   {/* Header */}
-                  <div className="mb-6">
+                  <div className="mb-4 sm:mb-6">
                     <h1 
-                      className="text-2xl sm:text-3xl font-bold mb-2"
+                      className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2"
                       style={{ color: theme.textColor }}
                     >
                       {title || 'عنوان النموذج'}
                     </h1>
                     {description && (
                       <p 
-                        className="text-base opacity-70"
+                        className="text-sm sm:text-base opacity-70"
                         style={{ color: theme.textColor }}
                       >
                         {description}
@@ -650,13 +653,13 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
 
                   {/* Multi-step Progress */}
                   {isMultiStep && steps.length > 0 && showProgressBar && (
-                    <div className="mb-8">
+                    <div className="mb-6 sm:mb-8">
                       {/* Progress Bar */}
-                      <div className="flex gap-2 mb-3">
+                      <div className="flex gap-1.5 sm:gap-2 mb-2 sm:mb-3">
                         {steps.map((step, idx) => (
                           <div
                             key={idx}
-                            className="flex-1 h-2 rounded-full cursor-pointer transition-colors"
+                            className="flex-1 h-1.5 sm:h-2 rounded-full cursor-pointer transition-colors"
                             style={{ 
                               backgroundColor: idx <= currentStep ? theme.primaryColor : `${theme.borderColor}40`
                             }}
@@ -671,24 +674,24 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
                           type="button"
                           onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
                           disabled={currentStep === 0}
-                          className="p-2 rounded-xl disabled:opacity-30 transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                          className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl disabled:opacity-30 transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
                           style={{ color: theme.primaryColor }}
                         >
-                          <ChevronRight className="w-5 h-5" />
+                          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
                         
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 sm:gap-3">
                           <div 
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white"
+                            className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold text-white"
                             style={{ backgroundColor: theme.primaryColor }}
                           >
                             {currentStep + 1}
                           </div>
-                          <div>
-                            <span className="text-sm font-medium" style={{ color: theme.textColor }}>
+                          <div className="min-w-0">
+                            <span className="text-xs sm:text-sm font-medium block truncate" style={{ color: theme.textColor }}>
                               {steps[currentStep]?.title || `الخطوة ${currentStep + 1}`}
                             </span>
-                            <p className="text-xs opacity-50" style={{ color: theme.textColor }}>
+                            <p className="text-[10px] sm:text-xs opacity-50 truncate" style={{ color: theme.textColor }}>
                               {steps[currentStep]?.description}
                             </p>
                           </div>
@@ -698,17 +701,17 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
                           type="button"
                           onClick={() => setCurrentStep(Math.min(steps.length - 1, currentStep + 1))}
                           disabled={currentStep === steps.length - 1}
-                          className="p-2 rounded-xl disabled:opacity-30 transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+                          className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl disabled:opacity-30 transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
                           style={{ color: theme.primaryColor }}
                         >
-                          <ChevronLeft className="w-5 h-5" />
+                          <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
                       </div>
                     </div>
                   )}
 
                   {/* Form Fields */}
-                  <div className="space-y-6">
+                  <div className="space-y-4 sm:space-y-6">
                     <AnimatePresence mode="wait">
                       {displayFields.length > 0 ? (
                         <motion.div
@@ -716,7 +719,7 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
                           initial={{ opacity: 0, x: 20 }}
                           animate={{ opacity: 1, x: 0 }}
                           exit={{ opacity: 0, x: -20 }}
-                          className="space-y-6"
+                          className="space-y-4 sm:space-y-6"
                         >
                           {displayFields.map((field, index) => renderField(field, index))}
                         </motion.div>
@@ -725,19 +728,19 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
                           key="empty"
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          className="text-center py-16"
+                          className="text-center py-10 sm:py-16"
                           style={{ color: `${theme.textColor}40` }}
                         >
                           <div 
-                            className="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center"
+                            className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl mx-auto mb-3 sm:mb-4 flex items-center justify-center"
                             style={{ backgroundColor: `${theme.primaryColor}10` }}
                           >
-                            <FileText className="w-10 h-10" style={{ color: theme.primaryColor }} />
+                            <FileText className="w-8 h-8 sm:w-10 sm:h-10" style={{ color: theme.primaryColor }} />
                           </div>
-                          <p className="text-lg font-medium" style={{ color: theme.textColor }}>
+                          <p className="text-base sm:text-lg font-medium" style={{ color: theme.textColor }}>
                             لا توجد حقول
                           </p>
-                          <p className="text-sm mt-1 opacity-60">
+                          <p className="text-xs sm:text-sm mt-1 opacity-60">
                             أضف حقولاً للنموذج
                           </p>
                         </motion.div>
@@ -747,14 +750,14 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
                     {/* Submit Button */}
                     {displayFields.length > 0 && (
                       <motion.div 
-                        className="pt-6"
+                        className="pt-4 sm:pt-6"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.3 }}
                       >
                         <button
                           type="button"
-                          className="w-full flex items-center justify-center gap-2 py-4 text-white text-base font-semibold rounded-2xl transition-all hover:opacity-90 active:scale-[0.99]"
+                          className="w-full flex items-center justify-center gap-2 py-3 sm:py-4 text-white text-sm sm:text-base font-semibold rounded-xl sm:rounded-2xl transition-all hover:opacity-90 active:scale-[0.99]"
                           style={{ 
                             backgroundColor: theme.primaryColor,
                             boxShadow: `0 8px 24px ${theme.primaryColor}40`
@@ -767,7 +770,7 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
                             }
                           }}
                         >
-                          <Send className="w-5 h-5" />
+                          <Send className="w-4 h-4 sm:w-5 sm:h-5" />
                           {isMultiStep && currentStep < steps.length - 1 ? 'التالي' : 'إرسال'}
                         </button>
                       </motion.div>
@@ -777,10 +780,10 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
 
                 {/* Footer */}
                 <div 
-                  className="px-6 py-4 border-t text-center"
+                  className="px-4 sm:px-6 py-3 sm:py-4 border-t text-center"
                   style={{ borderColor: `${theme.borderColor}30` }}
                 >
-                  <p className="text-xs opacity-50" style={{ color: theme.textColor }}>
+                  <p className="text-[10px] sm:text-xs opacity-50" style={{ color: theme.textColor }}>
                     هذه معاينة فقط • لم يتم حفظ أي بيانات
                   </p>
                 </div>

@@ -24,6 +24,8 @@ export class QuickSignService {
   private readonly QUICKSIGN_EXPIRY_MINUTES = 30;
   private readonly CACHE_PREFIX = 'quicksign:';
   private readonly USER_CACHE_PREFIX = 'user:exists:';
+  private readonly LOCK_PREFIX = 'quicksign:lock:';
+  private readonly LOCK_TTL = 10; // 10 seconds for lock timeout
 
   constructor(
     private prisma: PrismaService,
@@ -36,6 +38,25 @@ export class QuickSignService {
    */
   private hashToken(token: string): string {
     return crypto.createHash('sha256').update(token).digest('hex');
+  }
+
+  /**
+   * 🔒 محاولة الحصول على قفل للتحقق من التوكن
+   * يمنع race conditions عند استخدام نفس الرابط عدة مرات
+   */
+  private async acquireTokenLock(tokenHash: string): Promise<boolean> {
+    const lockKey = `${this.LOCK_PREFIX}${tokenHash}`;
+    // NX = only set if doesn't exist, EX = expire in seconds
+    const result = await this.redis.setNX(lockKey, 'locked', this.LOCK_TTL);
+    return result;
+  }
+
+  /**
+   * 🔒 إطلاق قفل التحقق من التوكن
+   */
+  private async releaseTokenLock(tokenHash: string): Promise<void> {
+    const lockKey = `${this.LOCK_PREFIX}${tokenHash}`;
+    await this.redis.del(lockKey);
   }
 
   /**
@@ -242,9 +263,19 @@ export class QuickSignService {
       const errorName = error?.name || 'UnknownError';
       const errorMessage = error?.message || 'Unknown error';
       
-      // JWT Token Expired
+      // JWT Token Expired - نحاول استخراج البريد من الـ token المنتهي
       if (errorName === 'TokenExpiredError') {
-        return { valid: false, expired: true };
+        try {
+          // 🔒 فك تشفير JWT للحصول على البريد (بدون التحقق من الصلاحية)
+          const decoded = this.jwtService.decode(token) as { email?: string } | null;
+          return { 
+            valid: false, 
+            expired: true,
+            email: decoded?.email,
+          };
+        } catch {
+          return { valid: false, expired: true };
+        }
       }
       
       // Invalid JWT (bad signature, malformed, etc.)
@@ -421,6 +452,53 @@ export class QuickSignService {
     });
 
     return result.count;
+  }
+
+  /**
+   * 🔒 التحقق واستهلاك التوكن بشكل ذري (Atomic)
+   * يمنع race conditions عند فتح الرابط عدة مرات
+   */
+  async verifyAndConsumeQuickSign(token: string): Promise<{
+    valid: boolean;
+    email?: string;
+    type?: QuickSignType;
+    userId?: string;
+    used?: boolean;
+    expired?: boolean;
+    profileCompleted?: boolean;
+    error?: 'locked' | 'already_processing';
+  }> {
+    const tokenHash = this.hashToken(token);
+    
+    // 🔒 محاولة الحصول على قفل
+    const lockAcquired = await this.acquireTokenLock(tokenHash);
+    if (!lockAcquired) {
+      // التوكن قيد المعالجة بالفعل
+      return {
+        valid: false,
+        error: 'locked',
+      };
+    }
+
+    try {
+      // التحقق من التوكن
+      const verification = await this.verifyQuickSign(token);
+      
+      if (!verification.valid) {
+        return verification;
+      }
+
+      // 🔒 تعليم التوكن كمستخدم فوراً (داخل القفل)
+      // فقط للـ LOGIN - SIGNUP يتم تعليمه عند إكمال الملف الشخصي
+      if (verification.type === QuickSignType.LOGIN) {
+        await this.markQuickSignAsUsed(token);
+      }
+
+      return verification;
+    } finally {
+      // 🔒 إطلاق القفل دائماً
+      await this.releaseTokenLock(tokenHash);
+    }
   }
 
   /**

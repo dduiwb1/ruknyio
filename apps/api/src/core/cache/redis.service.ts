@@ -294,6 +294,24 @@ export class RedisService implements OnModuleDestroy {
     }
   }
 
+  // Set if Not eXists - atomic operation for locking
+  async setNX(key: string, value: string, ttlSeconds?: number): Promise<boolean> {
+    if (!this.isConnected) return false;
+    try {
+      let result: 'OK' | null;
+      if (ttlSeconds && ttlSeconds > 0) {
+        // SET key value EX seconds NX - atomic set with expiry only if not exists
+        result = await this.client.set(key, value, 'EX', ttlSeconds, 'NX');
+      } else {
+        result = await this.client.set(key, value, 'NX');
+      }
+      return result === 'OK';
+    } catch (error) {
+      this.logger.error(`Error setNX ${key}:`, error.message);
+      return false;
+    }
+  }
+
   async expire(key: string, seconds: number): Promise<boolean> {
     if (!this.isConnected) return false;
     try {

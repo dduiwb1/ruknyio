@@ -87,7 +87,7 @@ function VerifyContent() {
           <div className="w-full space-y-4 mb-6">
             <div className="text-center p-4 bg-muted/30 rounded-2xl">
               <p className="text-xs text-muted-foreground/60">
-                الروابط السحرية تنتهي صلاحيتها بعد ١٠ دقائق لأسباب أمنية
+                الروابط السحرية تنتهي صلاحيتها بعد ٣٠ دقيقة لأسباب أمنية
               </p>
             </div>
           </div>
