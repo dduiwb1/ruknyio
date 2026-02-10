@@ -272,6 +272,47 @@ export default nextConfig;
 
 ---
 
+## 🚂 نشر الويب على Railway (Rukny-web) — حل "Application failed to respond"
+
+إذا كنت تنشر **الواجهة الأمامية (Next.js)** على Railway كخدمة **Rukny-web** وظهرت رسالة **"Application failed to respond"**، السبب غالباً أن أمر التشغيل يعمل من جذر المستودع بينما مجلد البناء `.next` موجود داخل `apps/web`. يجب أن يعمل `next start` من مجلد `apps/web`.
+
+### الإعداد الصحيح لخدمة Rukny-web
+
+في لوحة Railway → اختر خدمة **Rukny-web** → **Settings**:
+
+**الخيار الأول (مُفضّل):**
+
+| الإعداد | القيمة |
+|--------|--------|
+| **Root Directory** | `apps/web` |
+| **Build Command** | `npm install && npm run build` |
+| **Start Command** | `npm run start` |
+
+**الخيار الثاني (جذر المستودع):**
+
+| الإعداد | القيمة |
+|--------|--------|
+| **Root Directory** | *(اتركه فارغاً)* |
+| **Build Command** | `npm install && npm run build:web` |
+| **Start Command** | `cd apps/web && npx next start` |
+
+### متغيرات البيئة لـ Rukny-web (Variables)
+
+```env
+NEXT_PUBLIC_APP_URL=https://rukny.io
+NEXT_PUBLIC_API_EXTERNAL_URL=https://auth.rukny.io/api/v1
+API_BACKEND_URL=https://auth.rukny.io
+```
+
+Railway يضبط `PORT` تلقائياً؛ Next.js يقرأه ولا حاجة لتعيينه يدوياً.
+
+### بعد التعديل
+
+1. احفظ الإعدادات ثم **Redeploy**.
+2. راجع **Deploy Logs** و **Build Logs** للتأكد من عدم ظهور أخطاء.
+
+---
+
 ## 🔐 إعداد Supabase
 
 ### الخطوة 1: إنشاء مشروع

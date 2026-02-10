@@ -250,6 +250,30 @@ Docker Health Check يتحقق من الـ API
 
 ---
 
+## 🌐 خدمة الويب (Rukny-web) — حل "Application failed to respond"
+
+إذا كانت خدمة **Rukny-web** (Next.js) تعرض "Application failed to respond"، تأكد من أن أمر التشغيل يشغّل `next start` من داخل مجلد `apps/web` (حيث يوجد `.next`).
+
+**في إعدادات خدمة Rukny-web → Settings:**
+
+- **الخيار المُفضّل:**  
+  **Root Directory** = `apps/web`  
+  **Build Command** = `npm install && npm run build`  
+  **Start Command** = `npm run start`
+
+- **بديل (جذر المستودع):**  
+  **Root Directory** = فارغ  
+  **Build Command** = `npm install && npm run build:web`  
+  **Start Command** = `cd apps/web && npx next start`
+
+**متغيرات البيئة لـ Rukny-web:**
+
+- `NEXT_PUBLIC_APP_URL=https://rukny.io`
+- `NEXT_PUBLIC_API_EXTERNAL_URL=https://auth.rukny.io/api/v1`
+- `API_BACKEND_URL=https://auth.rukny.io`
+
+---
+
 ## 📞 روابط مفيدة
 
 - [Railway Docs](https://docs.railway.app)
