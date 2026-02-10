@@ -39,6 +39,7 @@ export class PrismaService
       );
     }
 
+    // Prisma 7: DATABASE_URL is read from env / prisma.config.ts; do not pass datasources here
     super({
       log: [
         // ⚡ Performance: Log slow queries in development
@@ -46,13 +47,6 @@ export class PrismaService
         { emit: 'stdout', level: 'error' },
         { emit: 'stdout', level: 'warn' },
       ],
-      // ⚡ Neon PostgreSQL connection settings
-      // These help with serverless connection pooling
-      datasources: {
-        db: {
-          url: databaseUrl,
-        },
-      },
     });
 
     // ⚡ Query performance monitoring

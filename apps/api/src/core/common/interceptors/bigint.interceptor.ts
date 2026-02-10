@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { Decimal } from '@prisma/client/runtime/library';
 
 function convertBigIntAndDecimal(value: any, visited = new WeakSet()): any {
   if (value === null || value === undefined) return value;
@@ -25,12 +24,11 @@ function convertBigIntAndDecimal(value: any, visited = new WeakSet()): any {
   }
   if (t !== 'object') return value;
 
-  // Handle Prisma Decimal
+  // Handle Prisma Decimal (duck-type; avoids @prisma/client/runtime/library import)
   if (
-    value instanceof Decimal ||
-    (value &&
-      typeof value.toNumber === 'function' &&
-      value.constructor?.name === 'Decimal')
+    value &&
+    typeof value.toNumber === 'function' &&
+    value.constructor?.name === 'Decimal'
   ) {
     try {
       return value.toNumber();
