@@ -3,19 +3,19 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy root package files
+# Copy root package files (from Railway root context)
 COPY package-lock.json ./
 COPY package.json ./
 
 # Copy workspace packages
 COPY packages ./packages
-COPY apps/api ./apps/api
+COPY ./ ./api/
 
 # Install dependencies
 RUN npm ci --omit=dev
 
 # Generate Prisma client and build API
-WORKDIR /app/apps/api
+WORKDIR /app/api
 RUN npx prisma generate
 RUN npm run build
 
@@ -31,14 +31,14 @@ COPY package-lock.json ./
 # Copy only production dependencies
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages ./packages
-COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=builder /app/apps/api/dist ./apps/api/dist
-COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
+COPY --from=builder /app/api/node_modules ./api/node_modules
+COPY --from=builder /app/api/dist ./api/dist
+COPY --from=builder /app/api/package.json ./api/package.json
 
 # Copy Prisma files (needed for migrations)
-COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+COPY --from=builder /app/api/prisma ./api/prisma
 
-WORKDIR /app/apps/api
+WORKDIR /app/api
 
 ENV NODE_ENV=production
 ENV PORT=4000
