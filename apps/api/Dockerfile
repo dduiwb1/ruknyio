@@ -3,23 +3,20 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy root package files (from Railway root context)
+# نسخ جذر الـ monorepo بحيث يكون apps/api تحت /app (ليتعرف npm على الـ workspaces)
 COPY package-lock.json ./
 COPY package.json ./
-
-# Copy workspace packages
 COPY packages ./packages
-COPY ./ ./api/
+COPY apps ./apps
 
-# Install all dependencies (including devDependencies for build: @nestjs/cli, typescript, etc.)
+# تثبيت كل الاعتماديات (بما فيها apps/api و@nestjs/cli)
 RUN npm ci
 
-# Generate Prisma client and build API (workspace apps/api only)
-WORKDIR /app/api
+# توليد Prisma ثم بناء الـ API (من جذر الـ monorepo /app)
 RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 RUN npm run build --workspace=apps/api
 
-# Remove devDependencies to keep runtime image smaller
+# إزالة devDependencies لتقليل حجم الصورة
 RUN npm prune --omit=dev
 
 # Runtime stage
@@ -27,19 +24,12 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json ./
-COPY package-lock.json ./
-
-# Copy only production dependencies and built API (NestJS في apps/api)
+# نسخ الاعتماديات والمخرجات فقط
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages ./packages
-COPY --from=builder /app/api/node_modules ./api/node_modules
-COPY --from=builder /app/api/apps/api/dist ./api/dist
-COPY --from=builder /app/api/apps/api/package.json ./api/package.json
-
-# Copy Prisma files (needed for migrations)
-COPY --from=builder /app/api/apps/api/prisma ./api/prisma
+COPY --from=builder /app/apps/api/dist ./api/dist
+COPY --from=builder /app/apps/api/package.json ./api/package.json
+COPY --from=builder /app/apps/api/prisma ./api/prisma
 
 WORKDIR /app/api
 
