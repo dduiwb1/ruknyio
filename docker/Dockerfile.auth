@@ -1,0 +1,64 @@
+# Build Stage
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy root package files
+COPY package.json package-lock.json ./
+
+# Copy app-specific package files
+COPY apps/auth/package.json apps/auth/package-lock.json ./apps/auth/
+COPY packages ./packages
+
+# Install all dependencies (including devDependencies for build)
+RUN npm ci --verbose
+
+# Copy auth service source
+COPY apps/auth ./apps/auth
+
+# Build TypeScript
+WORKDIR /app/apps/auth
+RUN npm run build
+
+# Generate Prisma Client
+RUN npx prisma generate
+
+# Production Stage
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
+
+# Copy package files
+COPY package.json package-lock.json ./
+COPY apps/auth/package.json apps/auth/package-lock.json ./apps/auth/
+
+# Install production dependencies only
+RUN npm ci --only=production --verbose
+
+# Copy built application from builder
+COPY --from=builder /app/apps/auth/dist ./apps/auth/dist
+COPY --from=builder /app/apps/auth/node_modules/.prisma ./apps/auth/node_modules/.prisma
+COPY --from=builder /app/packages ./packages
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001 && \
+    chown -R nodejs:nodejs /app
+
+USER nodejs
+
+# Expose port
+EXPOSE 3001
+
+# Health check endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3001/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})" || exit 1
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["/sbin/dumb-init", "--"]
+
+# Start application
+CMD ["node", "apps/auth/dist/main.js"]
