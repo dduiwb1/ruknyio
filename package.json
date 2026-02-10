@@ -13,7 +13,7 @@
     "dev:web": "npm run dev --workspace=apps/web",
     "build": "npm run build --workspaces",
     "build:web": "npm run build --workspace=apps/web",
-    "build:api": "npm run build --workspace=apps/api",
+    "build:api": "npm run prisma:generate && npm run build --workspace=apps/api",
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",

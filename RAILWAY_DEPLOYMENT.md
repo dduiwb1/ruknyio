@@ -196,7 +196,14 @@ Docker Health Check يتحقق من الـ API
 3. تأكد من وجود الملف `railway.json` في جذر المستودع (يحدد مسار الـ Dockerfile: `apps/api/Dockerfile`)
 
 ### المشكلة: Build فشل مع "nest: not found" أو "Could not resolve @prisma/client"
-**الحل**: لا تعيد تفعيل `postinstall` في `apps/api`؛ الـ Dockerfile يشغّل `prisma generate` صراحةً بعد `npm ci`. تأكد أن **Root Directory** فارغ.
+**الحل (عند استخدام Railpack):**
+1. **Root Directory** يجب أن يكون فارغاً.
+2. في **Settings → Build** عيّن **Build command** إلى:
+   ```bash
+   npm install && npm run build:api
+   ```
+   (يشغّل `prisma generate` من جذر المستودع ثم بناء الـ API، ويتجنّب خطأ عدم وجود `@prisma/client`.)
+3. لا تستخدم `postinstall` في `apps/api`؛ الـ client يُولَّد من الجذر عبر `build:api`.
 
 ### المشكلة: Database connection failed
 **الحل**: تأكد من `DATABASE_URL` في Variables صحيحة

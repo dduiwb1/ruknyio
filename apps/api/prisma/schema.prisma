@@ -1,6 +1,7 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
+  // Monorepo: generate into root node_modules so hoisted @prisma/client finds it (Railway/build)
+  output   = "../../../node_modules/.prisma/client"
 }
 
 // Prisma 7: connection URLs in prisma.config.ts
