@@ -1,4 +1,4 @@
-# Simple Dockerfile for Railway
+# Simple Dockerfile for Railway - Feb 10 2026
 FROM node:20-alpine
 
 WORKDIR /app
