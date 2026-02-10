@@ -1,7 +1,8 @@
 generator client {
   provider      = "prisma-client-js"
   // Use library (Rust) engine to avoid WASM path resolution issues in monorepo/Railway
-  engineType    = "library"
+  engineType    = "binary"
+  binaryTargets = ["native"]
   // Monorepo: generate into root node_modules so hoisted @prisma/client finds it
   output        = "../../../node_modules/.prisma/client"
 }
