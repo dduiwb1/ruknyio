@@ -2,6 +2,10 @@
   "name": "rukny-io",
   "version": "1.0.0",
   "private": true,
+  "overrides": {
+    "@prisma/client": "^7.3.0",
+    "prisma": "^7.3.0"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -17,7 +21,7 @@
     "test": "npm run test --workspaces",
     "lint": "npm run lint --workspaces",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "prisma:generate": "npx prisma generate --schema=apps/api/prisma/schema.prisma"
+    "prisma:generate": "NODE_PATH=./node_modules node_modules/.bin/prisma generate --schema=apps/api/prisma/schema.prisma"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^6.0.0",

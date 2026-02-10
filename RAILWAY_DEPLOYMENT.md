@@ -202,8 +202,8 @@ Docker Health Check يتحقق من الـ API
    ```bash
    npm install && npm run build:api
    ```
-   (يشغّل `prisma generate` من جذر المستودع ثم بناء الـ API، ويتجنّب خطأ عدم وجود `@prisma/client`.)
-3. لا تستخدم `postinstall` في `apps/api`؛ الـ client يُولَّد من الجذر عبر `build:api`.
+3. المشروع يستخدم **overrides** في الجذر لربط إصدار واحد من `@prisma/client` و`prisma`، وسكربت `prisma:generate` يعيّن **NODE_PATH=./node_modules** حتى يجد Prisma الحزمة. بعد أي تعديل على `overrides` شغّل مرة واحدة من الجذر: `npm install` ثم commit لملف `package-lock.json`.
+4. لا تستخدم `postinstall` في `apps/api`؛ الـ client يُولَّد من الجذر عبر `build:api`.
 
 ### المشكلة: Database connection failed
 **الحل**: تأكد من `DATABASE_URL` في Variables صحيحة
