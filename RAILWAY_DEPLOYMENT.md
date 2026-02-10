@@ -7,8 +7,41 @@
 3. **البناء:** Railway يكتشف `railway.json` ويبني باستخدام **Dockerfile** من `apps/api/Dockerfile` تلقائياً.
 4. **المتغيرات:** أضف في Variables على الأقل: `DATABASE_URL`, `PORT=4000`, `NODE_ENV=production`, `JWT_SECRET`, `CORS_ORIGINS`. إن استخدمت Neon أضف `DIRECT_URL`.
 5. **الدومين:** من تبويب Networking اضغط Generate Domain أو أضف دومين مخصص (مثل `api.rukny.io`).
-6. **Migrations:** بعد أول نشر ناجح شغّل من جهازك: `railway link` ثم `railway run npm run migrate` (من مجلد `apps/api`).
+6. **Migrations:** بعد أول نشر ناجح شغّل الـ migrations يدوياً مرة واحدة (أمر التشغيل لا يشغّلها تلقائياً). انظر القسم «تشغيل migrations» أدناه.
 7. **النشر التلقائي:** أي `git push origin main` يطلق بناء ونشر جديد تلقائياً.
+
+---
+
+## 🗄️ تشغيل Migrations (رفع قاعدة البيانات)
+
+**لماذا قاعدة البيانات لم تُرفع؟**  
+أمر التشغيل على Railway هو `npm run start:prod --workspace=apps/api` (يشغّل الـ API فقط). لا يشغّل **prisma migrate deploy** تلقائياً، لذلك الجداول لا تُنشأ إلا إذا شغّلتها أنت مرة واحدة (وبعد كل تعديل على الـ schema).
+
+**ما الذي تفعله الآن (من جهازك، مرة واحدة بعد أول نشر ناجح):**
+
+1. ثبّت [Railway CLI](https://docs.railway.app/develop/cli) إن لم يكن مثبتاً:
+   ```bash
+   npm i -g @railway/cli
+   ```
+
+2. من **جذر المستودع** (المجلد الذي فيه `package.json`):
+   ```bash
+   railway login
+   railway link
+   ```
+   اختر المشروع والخدمة (API) عند الطلب.
+
+3. تشغيل الـ migrations (باستخدام متغيرات البيئة من Railway: `DATABASE_URL` و `DIRECT_URL`):
+   ```bash
+   railway run npm run migrate
+   ```
+   هذا ينفّذ `prisma migrate deploy` على قاعدة الإنتاج.
+
+4. تأكد من النجاح: يجب أن ترى رسالة مثل `Applied X migration(s).` ثم جرّب الـ API (تسجيل دخول أو أي endpoint يحتاج DB).
+
+**ملاحظات:**
+- إن استخدمت **Neon**، تأكد من وجود `DIRECT_URL` في Railway Variables (مطلوب لـ Prisma 7 migrations).
+- بعد أي تغيير على `schema.prisma` وتصدير migration جديد، شغّل مرة أخرى: `railway run npm run migrate`.
 
 ---
 
@@ -108,19 +141,8 @@ Root Directory: (اتركه فارغاً أو ".")  ← مهم: سياق الب�
 من Terminal المحلي:
 
 ```bash
-# تسجيل الدخول
 railway login
-
-# الذهاب للمجلد
-cd apps/api
-
-# ربط المشروع
-railway link  # اختر المشروع من القائمة
-
-# تشغيل Migrations
-railway run pnpm prisma migrate deploy
-
-# أو إذا كنت تستخدم npm:
+railway link   # اختر المشروع والخدمة (من جذر المستودع)
 railway run npm run migrate
 ```
 
@@ -180,7 +202,7 @@ Docker Health Check يتحقق من الـ API
 - [ ] Dockerfile موجود في `apps/api/`
 - [ ] `railway.json` في جذر المستودع (يحدد `dockerfilePath: apps/api/Dockerfile`)
 - [ ] **Root Directory** في Railway = فارغ (جذر المستودع)
-- [ ] Migrations تمت بنجاح: `railway run npm run migrate`
+- [ ] Migrations تمت بنجاح (من جذر المستودع): `railway run npm run migrate` — راجع قسم «تشغيل Migrations» أعلاه.
 - [ ] Health endpoint يرد: `curl https://your-url.up.railway.app/api/health`
 - [ ] Frontend متصل ب API بشكل صحيح
 
