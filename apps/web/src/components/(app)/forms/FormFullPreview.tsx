@@ -39,6 +39,7 @@ import { FieldType } from '@/lib/hooks/useForms';
 import { type FormFieldInput } from './FieldEditor';
 import { type FormStepInput } from './StepEditor';
 import { type FormTheme, DEFAULT_THEME } from './FormThemeCustomizer';
+import { EmailFieldWithVerification } from './EmailFieldWithVerification';
 
 // ============================================
 // Types
@@ -62,6 +63,7 @@ interface FormFullPreviewProps {
   data: FormPreviewData;
   onClose?: () => void;
   formUrl?: string | null;
+  formSlug?: string;
 }
 
 // ============================================
@@ -152,7 +154,7 @@ const getFieldIcon = (type: FieldType) => {
 // Main Component
 // ============================================
 
-export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps) {
+export function FormFullPreview({ data, onClose, formUrl, formSlug }: FormFullPreviewProps) {
   const {
     title,
     description,
@@ -272,6 +274,18 @@ export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps
             rows={3}
             className={cn(baseInputClass, 'resize-none')}
             style={{ ...inputStyle, '--tw-ring-color': focusRingColor } as React.CSSProperties}
+          />
+        ) : field.type === FieldType.EMAIL && field.emailVerification && formSlug ? (
+          <EmailFieldWithVerification
+            fieldId={field.id}
+            label=""
+            description={field.description}
+            placeholder={field.placeholder || 'example@email.com'}
+            required={field.required}
+            emailVerification={true}
+            formSlug={formSlug}
+            value={value || ''}
+            onChange={(val) => handleValueChange(field.id, val)}
           />
         ) : field.type === FieldType.SELECT ? (
           <div className="relative">

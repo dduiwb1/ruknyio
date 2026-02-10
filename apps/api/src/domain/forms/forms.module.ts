@@ -22,6 +22,7 @@ import {
   FormsSubmissionService,
   FormsExportService,
   FormsStepsService,
+  FormEmailVerificationService,
 } from './services';
 
 @Module({
@@ -50,6 +51,7 @@ import {
     ValidationService,
     ConditionalLogicService,
     WebhookService,
+    FormEmailVerificationService,
     S3Service,
     RecaptchaEnterpriseService,
   ],

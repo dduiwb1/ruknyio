@@ -1,0 +1,83 @@
+# Node modules
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Build artifacts
+dist/
+build/
+.next/
+.nuxt/
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.production.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+.DS_Store
+*.sublime-workspace
+.editorconfig
+.prettierrc
+.eslintrc*
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Testing
+test/
+*.test.ts
+*.spec.ts
+coverage/
+.jest/
+jest.config.js
+
+# Database
+prisma/migrations/
+*.db
+*.sqlite
+
+# Logs
+logs/
+*.log
+lerna-debug.log
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Source maps
+*.map
+
+# Documentation
+docs/
+README.md
+CHANGELOG.md
+LICENSE
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.circleci/
+Jenkinsfile
+
+# Other
+.tmp/
+temp/
+*.tmp
+*.pid
+*.seed
+*.pid.lock
+.cache/

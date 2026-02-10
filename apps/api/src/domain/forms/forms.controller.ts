@@ -23,14 +23,18 @@ import {
 } from '@nestjs/swagger';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { FormsService } from './forms.service';
-import { CreateFormDto, UpdateFormDto, SubmitFormDto, FormStatus } from './dto';
+import { CreateFormDto, UpdateFormDto, SubmitFormDto, FormStatus, SendVerificationCodeDto, VerifyEmailCodeDto } from './dto';
 import { JwtAuthGuard } from '../../core/common/guards/auth/jwt-auth.guard';
 import { OptionalUserId } from '../../core/common/decorators/auth/optional-user.decorator';
+import { FormEmailVerificationService } from './services/form-email-verification.service';
 
 @ApiTags('Forms')
 @Controller('forms')
 export class FormsController {
-  constructor(private readonly formsService: FormsService) {}
+  constructor(
+    private readonly formsService: FormsService,
+    private readonly emailVerificationService: FormEmailVerificationService,
+  ) {}
 
   // ==================== PUBLIC ENDPOINTS ====================
 
@@ -68,6 +72,49 @@ export class FormsController {
   ) {
     const form = await this.formsService.findBySlug(slug);
     return this.formsService.submitForm(form.id, submitFormDto, userId);
+  }
+
+  @Post('public/:slug/send-verification-code')
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 attempts per minute per IP
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Send email verification code (public)' })
+  @ApiResponse({ status: 200, description: 'Verification code sent successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid email or too many attempts' })
+  @ApiResponse({ status: 404, description: 'Form not found' })
+  async sendVerificationCode(
+    @Param('slug') slug: string,
+    @Body() dto: SendVerificationCodeDto,
+    @Request() req,
+  ) {
+    const form = await this.formsService.findBySlug(slug);
+    return this.emailVerificationService.sendVerificationCode(
+      form.id,
+      dto.fieldId,
+      dto.email,
+      req.ip,
+      req.get('user-agent'),
+    );
+  }
+
+  @Post('public/:slug/verify-email-code')
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 attempts per minute per IP
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify email code (public)' })
+  @ApiResponse({ status: 200, description: 'Email verified successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid code or expired' })
+  @ApiResponse({ status: 404, description: 'Form not found' })
+  async verifyEmailCode(
+    @Param('slug') slug: string,
+    @Body() dto: VerifyEmailCodeDto,
+    @Request() req,
+  ) {
+    const form = await this.formsService.findBySlug(slug);
+    return this.emailVerificationService.verifyCode(
+      form.id,
+      dto.email,
+      dto.code,
+      req.ip,
+    );
   }
 
   // ==================== AUTHENTICATED ENDPOINTS ====================

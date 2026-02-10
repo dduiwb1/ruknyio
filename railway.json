@@ -1,0 +1,11 @@
+{
+  "build": {
+    "builder": "dockerfile",
+    "dockerfile": "apps/api/Dockerfile"
+  },
+  "deploy": {
+    "startCommand": "pnpm start:prod",
+    "restartPolicyCondition": "on-failure",
+    "restartPolicyMaxRetries": 10
+  }
+}

@@ -1,9 +1,13 @@
 # 🌐 Domain Setup Guide - Rukny.io
 
-## الدومينات المستخدمة:
+## الدومينات المستخدمة
 
-- **Frontend**: `https://rukny.xyz` (Vercel)
-- **Backend API**: `https://api.rukny.xyz` (Render)
+| البيئة     | Frontend      | Backend API       |
+|-----------|---------------|-------------------|
+| تجريبية  | `https://rukny.xyz`  | `https://api.rukny.xyz`  |
+| رئيسية    | `https://rukny.io`   | `https://api.rukny.io`   |
+
+**لتفاصيل النشر (كيف تنشر على التجريبي والرئيسي):** راجع [دليل النشر (DEPLOYMENT.md)](./DEPLOYMENT.md).
 
 ---
 
@@ -46,18 +50,36 @@ Render سيقوم تلقائياً بتفعيل Let's Encrypt SSL certificate ب
 
 ## 🔧 متغيرات البيئة المطلوبة
 
-### في Render (Backend):
+### في Render (Backend)
+
+**للبيئة التجريبية (rukny.xyz):**
 ```bash
 FRONTEND_URL=https://rukny.xyz
 COOKIE_DOMAIN=.rukny.xyz
 COOKIE_SECURE=true
 ```
 
-### في Vercel (Frontend):
+**للبيئة الرئيسية (rukny.io):**
+```bash
+FRONTEND_URL=https://rukny.io
+COOKIE_DOMAIN=.rukny.io
+COOKIE_SECURE=true
+```
+
+### في Vercel (Frontend)
+
+**تجريبي (rukny.xyz):**
 ```bash
 NEXT_PUBLIC_API_EXTERNAL_URL=https://api.rukny.xyz/api/v1
 API_BACKEND_URL=https://api.rukny.xyz
 NEXT_PUBLIC_APP_URL=https://rukny.xyz
+```
+
+**رئيسي (rukny.io):**
+```bash
+NEXT_PUBLIC_API_EXTERNAL_URL=https://api.rukny.io/api/v1
+API_BACKEND_URL=https://api.rukny.io
+NEXT_PUBLIC_APP_URL=https://rukny.io
 ```
 
 ---

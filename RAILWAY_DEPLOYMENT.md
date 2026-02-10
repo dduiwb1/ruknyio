@@ -1,0 +1,197 @@
+# 🚀 Railway Deployment Guide - API Only
+
+## 📋 الخطوات الأساسية
+
+### الخطوة 1: تسجيل الدخول إلى Railway
+```bash
+railway login
+```
+
+### الخطوة 2: إنشاء مشروع جديد (من لوحة التحكم)
+1. اذهب إلى https://railway.app
+2. الضغط على **New Project**
+3. اختيار **Deploy from GitHub repo**
+4. ربط مستودع `Rukny.io`
+
+### الخطوة 3: إضافة PostgreSQL Database
+
+من لوحة تحكم Railway:
+1. اضغط **+ New** بجانب المشروع
+2. اختر **Database** → **PostgreSQL**
+3. انتظر حتى ينتهي التثبيت (~1 دقيقة)
+4. اذهب إلى PostgreSQL → **Variables**
+5. **انسخ** `DATABASE_URL` بالكامل
+
+### الخطوة 4: متغيرات البيئة
+
+في Railway Dashboard:
+1. اختر المشروع
+2. اضغط على **Variables**
+3. أضف المتغيرات التالية:
+
+```env
+# Basic
+NODE_ENV=production
+PORT=4000
+
+# Database (ستكون موجودة تلقائياً)
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+
+# JWT
+JWT_SECRET=your-super-secret-key-minimum-32-chars-long-change-this
+JWT_EXPIRATION=7d
+
+# CORS
+CORS_ORIGINS=http://localhost:3000,http://192.168.1.x:3000,http://yourfrontend.com
+
+# Mail (if needed)
+# MAIL_HOST=smtp.gmail.com
+# MAIL_PORT=587
+# MAIL_USER=your-email@gmail.com
+# MAIL_PASSWORD=your-password
+
+# AWS S3 (if using file uploads)
+# AWS_ACCESS_KEY_ID=your-key
+# AWS_SECRET_ACCESS_KEY=your-secret
+# AWS_REGION=us-east-1
+# AWS_S3_BUCKET=your-bucket
+```
+
+### الخطوة 5: إعداد الخدمة
+
+1. في Railway Dashboard
+2. اضغط **+ New** → **GitHub Repo**
+3. اختر نفس المستودع
+4. في **Settings** اكتب التالي:
+
+#### General
+```
+Name: api
+Root Directory: apps/api
+```
+
+#### Build
+```
+Build Command: npm install && npm run build && npx prisma generate
+Start Command: npm run start:prod
+```
+
+#### Networking (Domain)
+- اضغط **Generate Domain** أو أضف custom domain مثل `api.rukny.io`
+- ستحصل على رابط مثل: `xxxxx.up.railway.app`
+
+### الخطوة 6: تشغيل Migrations
+
+من Terminal المحلي:
+
+```bash
+# تسجيل الدخول
+railway login
+
+# الذهاب للمجلد
+cd apps/api
+
+# ربط المشروع
+railway link  # اختر المشروع من القائمة
+
+# تشغيل Migrations
+railway run pnpm prisma migrate deploy
+
+# أو إذا كنت تستخدم npm:
+railway run npm run migrate
+```
+
+### الخطوة 7: التحقق من أن التطبيق يعمل
+
+```bash
+# اختبر من Browser أو Terminal
+curl https://your-project.up.railway.app/api/health
+
+# يجب أن يرجع:
+# {"status":"ok"}
+```
+
+---
+
+## 🐳 ما يفعله الـ Dockerfile
+
+```dockerfile
+1. Build Stage:
+   ✅ Ubuntu Alpine + Node 20 (صغير الحجم)
+   ✅ تثبيت npm dependencies
+   ✅ توليد Prisma client
+   ✅ Compile TypeScript → JavaScript
+
+2. Runtime Stage:
+   ✅ صورة جديدة نظيفة (بدون build tools)
+   ✅ نسخ الملفات المترجمة فقط
+   ✅ Health check كل 30 ثانية
+```
+
+---
+
+## 🚀 الـ Deploy التلقائي
+
+لا تحتاج تفعل شيء! Railway يراقب الـ GitHub branch `main` تلقائياً:
+
+```
+git push origin main 
+  ↓
+GitHub Webhook يُخبر Railway
+  ↓
+Railway يبني الـ Docker image
+  ↓
+Railway يشغل Container الجديد
+  ↓
+Docker Health Check يتحقق من الـ API
+```
+
+---
+
+## ✅ قائمة التحقق
+
+- [ ] حساب Railway جاهز ومرتبط مع GitHub
+- [ ] مشروع Railway تم إنشاؤه
+- [ ] PostgreSQL تم إضافة
+- [ ] متغيرات البيئة مُضافة
+- [ ] Dockerfile موجود في `apps/api/`
+- [ ] `railway.json` موجود في root
+- [ ] Migrations تمت بنجاح: `railway run npm run migrate`
+- [ ] Health endpoint يرد: `curl https://your-url.up.railway.app/api/health`
+- [ ] Frontend متصل ب API بشكل صحيح
+
+---
+
+## 🔧 استكشاف المشاكل
+
+### المشكلة: Build فشل مع "Unknown command: prisma"
+**الحل**: تأكد من وجود `postinstall` script في `package.json`
+```json
+{
+  "scripts": {
+    "postinstall": "npx prisma generate"
+  }
+}
+```
+
+### المشكلة: Database connection failed
+**الحل**: تأكد من `DATABASE_URL` في Variables صحيحة
+
+### المشكلة: CORS Error
+**الحل**: أضف Frontend URL في متغير `CORS_ORIGINS`
+
+### المشكلة: POST request returns 404
+**الحل**: تأكد من أن routes مسجلة بشكل صحيح في الـ Controllers
+
+---
+
+## 📞 روابط مفيدة
+
+- [Railway Docs](https://docs.railway.app)
+- [Railway CLI](https://docs.railway.app/cli/commands)
+- [Prisma Deployment](https://www.prisma.io/docs/guides/deployment/deployment-guides/deploying-to-railway)
+- [NestJS Deployment](https://docs.nestjs.com/deployment/overview)
+
+---
+
+*تم التحديث: 10 فبراير 2026*
