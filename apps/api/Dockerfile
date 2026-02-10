@@ -16,7 +16,7 @@ RUN npm ci --omit=dev
 
 # Generate Prisma client and build API (workspace apps/api only)
 WORKDIR /app/api
-RUN npx prisma generate
+RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 RUN npm run build --workspace=apps/api
 
 # Runtime stage
