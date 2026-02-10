@@ -11,13 +11,16 @@ COPY package.json ./
 COPY packages ./packages
 COPY ./ ./api/
 
-# Install dependencies
-RUN npm ci --omit=dev
+# Install all dependencies (including devDependencies for build: @nestjs/cli, typescript, etc.)
+RUN npm ci
 
 # Generate Prisma client and build API (workspace apps/api only)
 WORKDIR /app/api
 RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 RUN npm run build --workspace=apps/api
+
+# Remove devDependencies to keep runtime image smaller
+RUN npm prune --omit=dev
 
 # Runtime stage
 FROM node:20-alpine
