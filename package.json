@@ -23,6 +23,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "prisma:generate": "node scripts/run-prisma-generate.js",
     "migrate": "prisma migrate deploy --schema=apps/api/prisma/schema.prisma",
+    "db:push": "prisma db push --schema=apps/api/prisma/schema.prisma",
     "build:railway": "npm install --include=dev && npm run prisma:generate && npm run build --workspace=apps/api"
   },
   "devDependencies": {

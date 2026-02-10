@@ -40,8 +40,19 @@
 4. تأكد من النجاح: يجب أن ترى رسالة مثل `Applied X migration(s).` ثم جرّب الـ API (تسجيل دخول أو أي endpoint يحتاج DB).
 
 **ملاحظات:**
-- إن استخدمت **Neon**، تأكد من وجود `DIRECT_URL` في Railway Variables (مطلوب لـ Prisma 7 migrations).
+- إن استخدمت **Neon**، تأكد من وجود `DIRECT_URL` في Railway Variables (مطلوب لـ Prisma 7 migrations). مع **PostgreSQL على Railway** يكفي `DATABASE_URL` فقط.
 - بعد أي تغيير على `schema.prisma` وتصدير migration جديد، شغّل مرة أخرى: `railway run npm run migrate`.
+
+**إذا لم تُنشأ الجداول بعد `railway run npm run migrate`:**
+
+1. تحقق أنك ربطت الخدمة الصحيحة: `railway link` ثم اختر خدمة **API** (التي فيها `DATABASE_URL` من Postgres-kuot).
+2. تحقق من الخرج: يجب أن ترى شيئاً مثل `Applying migration \`20251224154015_rulny\`` ثم `Applied X migration(s).` إن ظهر خطأ، انسخه كاملاً.
+3. **بديل للتطبيق الأولي فقط** (قاعدة فارغة ولم تنجح الـ migrations):  
+   شغّل مرة واحدة:
+   ```bash
+   railway run npm run db:push
+   ```
+   هذا يطبّق الـ schema مباشرة على القاعدة ويُنشئ كل الجداول. لا يستخدم سجل الـ migrations (مناسب لأول رفع فقط). بعد ذلك استخدم `npm run migrate` لأي تحديث لاحق.
 
 ---
 
