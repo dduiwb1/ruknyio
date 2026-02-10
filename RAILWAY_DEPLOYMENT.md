@@ -67,14 +67,13 @@ CORS_ORIGINS=http://localhost:3000,http://192.168.1.x:3000,http://yourfrontend.c
 #### General
 ```
 Name: api
-Root Directory: apps/api
+Root Directory: (اتركه فارغاً أو ".")  ← مهم: سياق البناء يجب أن يكون جذر المستودع
 ```
 
-#### Build
-```
-Build Command: npm install && npm run build && npx prisma generate
-Start Command: npm run start:prod
-```
+#### Build (استخدام Docker)
+- البناء يتم عبر **Dockerfile**.
+- **لا تضبط Root Directory على `apps/api`** — اتركه فارغاً حتى يكون سياق البناء جذر المستودع (حيث يوجد `package-lock.json`).
+- مسار الـ Dockerfile: في **Variables** أضف `RAILWAY_DOCKERFILE_PATH=apps/api/Dockerfile` أو استخدم الإعداد من لوحة التحكم إن وُجد.
 
 #### Networking (Domain)
 - اضغط **Generate Domain** أو أضف custom domain مثل `api.rukny.io`
@@ -155,7 +154,8 @@ Docker Health Check يتحقق من الـ API
 - [ ] PostgreSQL تم إضافة
 - [ ] متغيرات البيئة مُضافة
 - [ ] Dockerfile موجود في `apps/api/`
-- [ ] `railway.json` موجود في root
+- [ ] `railway.json` في جذر المستودع (يحدد `dockerfilePath: apps/api/Dockerfile`)
+- [ ] **Root Directory** في Railway = فارغ (جذر المستودع)
 - [ ] Migrations تمت بنجاح: `railway run npm run migrate`
 - [ ] Health endpoint يرد: `curl https://your-url.up.railway.app/api/health`
 - [ ] Frontend متصل ب API بشكل صحيح
@@ -163,6 +163,13 @@ Docker Health Check يتحقق من الـ API
 ---
 
 ## 🔧 استكشاف المشاكل
+
+### المشكلة: `"/package-lock.json": not found` أو فشل بناء Docker
+**السبب:** تم ضبط Root Directory على `apps/api` فسياق البناء يصبح ذلك المجلد فقط ولا يوجد فيه `package-lock.json`.
+**الحل:**
+1. في Railway → الخدمة → **Settings** → **General**
+2. ضع **Root Directory** فارغاً (أو `.`) لاستخدام جذر المستودع
+3. تأكد من وجود الملف `railway.json` في جذر المستودع (يحدد مسار الـ Dockerfile: `apps/api/Dockerfile`)
 
 ### المشكلة: Build فشل مع "Unknown command: prisma"
 **الحل**: تأكد من وجود `postinstall` script في `package.json`

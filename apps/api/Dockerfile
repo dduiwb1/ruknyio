@@ -14,10 +14,10 @@ COPY ./ ./api/
 # Install dependencies
 RUN npm ci --omit=dev
 
-# Generate Prisma client and build API
+# Generate Prisma client and build API (workspace apps/api only)
 WORKDIR /app/api
 RUN npx prisma generate
-RUN npm run build
+RUN npm run build --workspace=apps/api
 
 # Runtime stage
 FROM node:20-alpine
@@ -28,15 +28,15 @@ WORKDIR /app
 COPY package.json ./
 COPY package-lock.json ./
 
-# Copy only production dependencies
+# Copy only production dependencies and built API (NestJS في apps/api)
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/api/node_modules ./api/node_modules
-COPY --from=builder /app/api/dist ./api/dist
-COPY --from=builder /app/api/package.json ./api/package.json
+COPY --from=builder /app/api/apps/api/dist ./api/dist
+COPY --from=builder /app/api/apps/api/package.json ./api/package.json
 
 # Copy Prisma files (needed for migrations)
-COPY --from=builder /app/api/prisma ./api/prisma
+COPY --from=builder /app/api/apps/api/prisma ./api/prisma
 
 WORKDIR /app/api
 
