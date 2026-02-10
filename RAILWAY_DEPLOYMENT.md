@@ -195,15 +195,16 @@ Docker Health Check يتحقق من الـ API
 2. ضع **Root Directory** فارغاً (أو `.`) لاستخدام جذر المستودع
 3. تأكد من وجود الملف `railway.json` في جذر المستودع (يحدد مسار الـ Dockerfile: `apps/api/Dockerfile`)
 
-### المشكلة: Build فشل مع "nest: not found" أو "Could not resolve @prisma/client"
+### المشكلة: Build فشل مع "nest: not found" أو "Could not resolve @prisma/client" أو "query_compiler_fast_bg.postgresql.wasm-base64.js"
 **الحل (عند استخدام Railpack):**
 1. **Root Directory** يجب أن يكون فارغاً.
-2. في **Settings → Build** عيّن **Build command** إلى:
+2. في **Settings → Build** عيّن **Build command** إلى (مهم جداً):
    ```bash
-   npm install && npm run build:api
+   npm run build:railway
    ```
-3. المشروع يستخدم **overrides** في الجذر لربط إصدار واحد من `@prisma/client` و`prisma`، وسكربت `prisma:generate` يعيّن **NODE_PATH=./node_modules** حتى يجد Prisma الحزمة. بعد أي تعديل على `overrides` شغّل مرة واحدة من الجذر: `npm install` ثم commit لملف `package-lock.json`.
-4. لا تستخدم `postinstall` في `apps/api`؛ الـ client يُولَّد من الجذر عبر `build:api`.
+   هذا الأمر يثبّت التبعيات مع `NODE_ENV=development` (حتى يتوفر حزمة `@prisma/client` كاملة مع ملفات الـ runtime)، ثم يشغّل `prisma generate` عبر سكربت Node يضبط **NODE_PATH**، ثم يبني الـ API.
+3. لا تستخدم `npm install && npm run build:api` كأمر بناء—استخدم **فقط** `npm run build:railway`.
+4. بعد أي تعديل على `overrides` في الجذر شغّل مرة واحدة: `npm install` ثم commit لملف `package-lock.json`.
 
 ### المشكلة: Database connection failed
 **الحل**: تأكد من `DATABASE_URL` في Variables صحيحة
