@@ -8,5 +8,7 @@ export default defineConfig({
   },
   datasource: {
     url: env('DATABASE_URL'),
+    // للمنصات التي تستخدم connection pooling (مثل Neon) استخدم DIRECT_URL للـ migrations
+    directUrl: process.env.DIRECT_URL || process.env.DATABASE_URL,
   },
 });
