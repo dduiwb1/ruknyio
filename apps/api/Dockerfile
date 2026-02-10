@@ -36,7 +36,7 @@ COPY --from=builder /app/apps/api/prisma ./api/prisma
 WORKDIR /app/api
 
 ENV NODE_ENV=production
-ENV PORT=4000
+ENV PORT=3001
 
 # Health check - simple HTTP check every 30s
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \

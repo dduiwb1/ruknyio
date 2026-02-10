@@ -1,6 +1,18 @@
 # 🚀 Railway Deployment Guide - API Only
 
-## 📋 الخطوات الأساسية
+## طريقة رفع المشروع على الموقع (ملخص)
+
+1. **ربط GitHub:** في [railway.app](https://railway.app) → New Project → Deploy from GitHub repo → اختر المستودع.
+2. **Root Directory:** في إعدادات الخدمة اترك **Root Directory** فارغاً (جذر المستودع).
+3. **البناء:** Railway يكتشف `railway.json` ويبني باستخدام **Dockerfile** من `apps/api/Dockerfile` تلقائياً.
+4. **المتغيرات:** أضف في Variables على الأقل: `DATABASE_URL`, `PORT=4000`, `NODE_ENV=production`, `JWT_SECRET`, `CORS_ORIGINS`. إن استخدمت Neon أضف `DIRECT_URL`.
+5. **الدومين:** من تبويب Networking اضغط Generate Domain أو أضف دومين مخصص (مثل `api.rukny.io`).
+6. **Migrations:** بعد أول نشر ناجح شغّل من جهازك: `railway link` ثم `railway run npm run migrate` (من مجلد `apps/api`).
+7. **النشر التلقائي:** أي `git push origin main` يطلق بناء ونشر جديد تلقائياً.
+
+---
+
+## 📋 الخطوات الأساسية (تفصيل)
 
 ### الخطوة 1: تسجيل الدخول إلى Railway
 ```bash
@@ -183,15 +195,8 @@ Docker Health Check يتحقق من الـ API
 2. ضع **Root Directory** فارغاً (أو `.`) لاستخدام جذر المستودع
 3. تأكد من وجود الملف `railway.json` في جذر المستودع (يحدد مسار الـ Dockerfile: `apps/api/Dockerfile`)
 
-### المشكلة: Build فشل مع "Unknown command: prisma"
-**الحل**: تأكد من وجود `postinstall` script في `package.json`
-```json
-{
-  "scripts": {
-    "postinstall": "npx prisma generate"
-  }
-}
-```
+### المشكلة: Build فشل مع "nest: not found" أو "Could not resolve @prisma/client"
+**الحل**: لا تعيد تفعيل `postinstall` في `apps/api`؛ الـ Dockerfile يشغّل `prisma generate` صراحةً بعد `npm ci`. تأكد أن **Root Directory** فارغ.
 
 ### المشكلة: Database connection failed
 **الحل**: تأكد من `DATABASE_URL` في Variables صحيحة
