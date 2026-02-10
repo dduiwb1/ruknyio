@@ -12,7 +12,9 @@ COPY apps ./apps
 # تثبيت كل الاعتماديات (بما فيها apps/api و@nestjs/cli)
 RUN npm ci
 
-# توليد Prisma ثم بناء الـ API (من جذر الـ monorepo /app)
+# توليد Prisma (Prisma 7 يقرأ من prisma.config.ts؛ أثناء البناء نمرر قيم وهمية)
+ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
+ENV DIRECT_URL="postgresql://build:build@localhost:5432/build"
 RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 RUN npm run build --workspace=apps/api
 

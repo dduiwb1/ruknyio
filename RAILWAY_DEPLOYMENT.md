@@ -13,14 +13,24 @@ railway login
 3. اختيار **Deploy from GitHub repo**
 4. ربط مستودع `Rukny.io`
 
-### الخطوة 3: إضافة PostgreSQL Database
+### الخطوة 3: قاعدة البيانات (PostgreSQL أو Neon)
 
+**خيار أ – PostgreSQL في Railway:**
 من لوحة تحكم Railway:
 1. اضغط **+ New** بجانب المشروع
 2. اختر **Database** → **PostgreSQL**
 3. انتظر حتى ينتهي التثبيت (~1 دقيقة)
 4. اذهب إلى PostgreSQL → **Variables**
 5. **انسخ** `DATABASE_URL` بالكامل
+
+**خيار ب – Neon (Prisma 7):**
+1. أنشئ مشروعاً في [Neon](https://neon.tech) وانسخ رابط الاتصال.
+2. في Neon ستجد عادةً:
+   - **Connection string (pooled)** → استخدمها كـ `DATABASE_URL`
+   - **Connection string (direct)** → استخدمها كـ `DIRECT_URL` (مطلوب للـ migrations مع Prisma 7)
+3. أضف في Railway Variables:
+   - `DATABASE_URL` = الرابط المجمع من Neon
+   - `DIRECT_URL` = الرابط المباشر من Neon
 
 ### الخطوة 4: متغيرات البيئة
 
@@ -34,8 +44,10 @@ railway login
 NODE_ENV=production
 PORT=4000
 
-# Database (ستكون موجودة تلقائياً)
+# Database (Railway Postgres أو Neon)
 DATABASE_URL=${{Postgres.DATABASE_URL}}
+# عند استخدام Neon مع Prisma 7 أضف أيضاً:
+# DIRECT_URL=رابط_الاتصال_المباشر_من_Neon
 
 # JWT
 JWT_SECRET=your-super-secret-key-minimum-32-chars-long-change-this
