@@ -4,6 +4,7 @@ import {
   OnModuleDestroy,
   Logger,
 } from '@nestjs/common';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { DB_PERFORMANCE } from '../database.constants';
 
@@ -39,8 +40,10 @@ export class PrismaService
       );
     }
 
-    // Prisma 7: DATABASE_URL is read from env / prisma.config.ts; do not pass datasources here
+    // Prisma 7: engine type "client" requires adapter (or accelerateUrl)
+    const adapter = new PrismaPg({ connectionString: databaseUrl });
     super({
+      adapter,
       log: [
         // ⚡ Performance: Log slow queries in development
         { emit: 'event', level: 'query' },
