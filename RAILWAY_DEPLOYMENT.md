@@ -250,21 +250,23 @@ Docker Health Check يتحقق من الـ API
 
 ---
 
-## 🌐 خدمة الويب (Rukny-web) — حل "Application failed to respond"
+## 🌐 خدمة الويب (Rukny-web) — حل 502 و "connection dial timeout"
 
-إذا كانت خدمة **Rukny-web** (Next.js) تعرض "Application failed to respond"، تأكد من أن أمر التشغيل يشغّل `next start` من داخل مجلد `apps/web` (حيث يوجد `.next`).
+إذا ظهر **502** أو **"connection dial timeout"** أو **"Application failed to respond"**، فبروكسي Railway لا يصل إلى عملية تشغيل Next.js (إما لا يوجد أمر تشغيل أو التطبيق يتعطّل). يجب أن تعمل عملية طويلة المدى وتستمع على `PORT`.
 
 **في إعدادات خدمة Rukny-web → Settings:**
 
-- **الخيار المُفضّل:**  
+- **الخيار المُفضّل (يُنصح به):**  
   **Root Directory** = `apps/web`  
   **Build Command** = `npm install && npm run build`  
-  **Start Command** = `npm run start`
+  **Start Command** = اتركه فارغاً أو ضع `npx next start`  
+
+  المشروع يتضمن `apps/web/railpack.json` و `apps/web/Procfile` لتعريف أمر التشغيل؛ عند استخدام Root = `apps/web` يكتشف Railpack الأمر تلقائياً.
 
 - **بديل (جذر المستودع):**  
   **Root Directory** = فارغ  
   **Build Command** = `npm install && npm run build:web`  
-  **Start Command** = `cd apps/web && npx next start`
+  **Start Command** = `cd apps/web && npx next start` **(مطلوب تعبئته يدوياً)**
 
 **متغيرات البيئة لـ Rukny-web:**
 
