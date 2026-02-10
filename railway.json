@@ -1,8 +1,7 @@
 {
   "build": {
     "builder": "dockerfile",
-    "dockerfilePath": "apps/api/Dockerfile",
-    "dockerContext": "."
+    "dockerfilePath": "Dockerfile"
   },
   "deploy": {
     "startCommand": "npm run start:prod",
