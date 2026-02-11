@@ -1,15 +1,12 @@
 generator client {
-  provider      = "prisma-client-js"
-  // Use binary (Rust) engine to avoid WASM path resolution in monorepo/Railway
-  engineType    = "binary"
-  binaryTargets = ["native"]
-  // Monorepo: generate into root node_modules so hoisted @prisma/client finds it
-  output        = "../../../node_modules/.prisma/client"
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
-// Prisma 7: connection URLs in prisma.config.ts
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -483,7 +480,6 @@ model Form {
   integrations             FormIntegration[]
   steps                    form_steps[]
   submissions              form_submissions[] @relation("submissions")
-  emailVerifications       form_email_verifications[]
   events                   Event?             @relation(fields: [linkedEventId], references: [id])
   stores                   Store?             @relation(fields: [linkedStoreId], references: [id])
   user                     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -526,31 +522,30 @@ model FormIntegration {
 }
 
 model FormField {
-  id                   String      @id @default(uuid())
-  formId               String
-  label                String
-  description          String?
-  type                 FieldType
-  order                Int
-  required             Boolean     @default(false)
-  placeholder          String?
-  defaultValue         String?
-  options              Json?
-  validationRules      Json?
-  conditionalLogic     Json?
-  allowedFileTypes     String[]    @default([])
-  maxFileSize          Int?
-  maxFiles             Int?        @default(1)
-  minValue             Int?
-  maxValue             Int?
-  minLabel             String?
-  maxLabel             String?
-  emailVerification    Boolean     @default(false)
-  createdAt            DateTime    @default(now())
-  updatedAt            DateTime    @updatedAt
-  stepId               String?
-  form                 Form        @relation(fields: [formId], references: [id], onDelete: Cascade)
-  form_steps           form_steps? @relation(fields: [stepId], references: [id])
+  id               String      @id @default(uuid())
+  formId           String
+  label            String
+  description      String?
+  type             FieldType
+  order            Int
+  required         Boolean     @default(false)
+  placeholder      String?
+  defaultValue     String?
+  options          Json?
+  validationRules  Json?
+  conditionalLogic Json?
+  allowedFileTypes String[]    @default([])
+  maxFileSize      Int?
+  maxFiles         Int?        @default(1)
+  minValue         Int?
+  maxValue         Int?
+  minLabel         String?
+  maxLabel         String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  stepId           String?
+  form             Form        @relation(fields: [formId], references: [id], onDelete: Cascade)
+  form_steps       form_steps? @relation(fields: [stepId], references: [id])
 
   @@index([formId])
   @@index([order])
@@ -793,31 +788,6 @@ model form_submissions {
   @@index([completedAt])
   @@index([formId])
   @@index([userId])
-}
-
-model form_email_verifications {
-  id              String   @id @default(uuid())
-  formId          String
-  fieldId         String
-  email           String
-  code            String   @unique
-  verified        Boolean  @default(false)
-  verifiedAt      DateTime?
-  expiresAt       DateTime
-  attempts        Int      @default(0)
-  maxAttempts     Int      @default(3)
-  ipAddress       String?
-  userAgent       String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  form            Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
-
-  @@index([formId])
-  @@index([email])
-  @@index([code])
-  @@index([expiresAt])
-  @@index([verified])
-  @@map("form_email_verifications")
 }
 
 model ip_blocklist {
