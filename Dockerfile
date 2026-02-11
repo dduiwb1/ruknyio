@@ -18,10 +18,10 @@ RUN npm ci
 COPY . .
 
 # Generate Prisma client (config file handles schema location)
-RUN cd apps/api && npx prisma generate
+RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 
-# Build ONLY the API from its directory so npm can find dependencies
-RUN cd apps/api && npm run build
+# Build ONLY the API using npm prefix (keeps root node_modules in PATH)
+RUN npm run build --prefix=apps/api
 
 # ============================================
 # Stage 2: Runtime (Production)
