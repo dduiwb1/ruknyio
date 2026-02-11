@@ -17,8 +17,8 @@ RUN npm ci
 # Copy the entire workspace
 COPY . .
 
-# Generate Prisma client
-RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
+# Generate Prisma client (config file handles schema location)
+RUN cd apps/api && npx prisma generate && cd ../..
 
 # Build ONLY the API (not web, packages, etc.)
 RUN npm run build --workspace=apps/api
