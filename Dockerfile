@@ -20,8 +20,8 @@ COPY . .
 # Generate Prisma client (config file handles schema location)
 RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 
-# Build ONLY the API - use npx directly (works regardless of PATH)
-RUN npx nest build apps/api
+# Build ONLY the API using tsc directly with proper tsconfig
+RUN npx tsc --project apps/api/tsconfig.build.json
 
 # ============================================
 # Stage 2: Runtime (Production)
