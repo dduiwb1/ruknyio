@@ -10,7 +10,6 @@ WORKDIR /app
 
 # Copy package files for the entire monorepo
 COPY package*.json ./
-COPY .nvmrc ./
 
 # Install all dependencies (production and dev)
 RUN npm ci
