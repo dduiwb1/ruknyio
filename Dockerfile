@@ -17,8 +17,11 @@ RUN npm ci
 # Copy the entire workspace
 COPY . .
 
-# Build the entire workspace (monorepo)
-RUN npm run build
+# Generate Prisma client
+RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
+
+# Build ONLY the API (not web, packages, etc.)
+RUN npm run build --workspace=apps/api
 
 # ============================================
 # Stage 2: Runtime (Production)
@@ -40,6 +43,7 @@ RUN npm ci --omit=dev --ignore-scripts && \
 COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=builder /app/apps/api/prisma ./prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Create upload directories
 RUN mkdir -p /app/uploads/avatars /app/temp/videos && \
