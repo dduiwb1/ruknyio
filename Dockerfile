@@ -20,8 +20,11 @@ COPY . .
 # Generate Prisma client (config file handles schema location)
 RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 
-# Build ONLY the API using direct path to nest binary (avoids PATH issues)
-RUN NODE_PATH=/app/node_modules ./node_modules/.bin/nest build --sourceRoot=apps/api/src --outDir=apps/api/dist
+# Build ONLY the API - set PATH to include root node_modules/.bin
+ENV PATH=/app/node_modules/.bin:$PATH
+WORKDIR /app/apps/api
+RUN nest build
+WORKDIR /app
 
 # ============================================
 # Stage 2: Runtime (Production)
