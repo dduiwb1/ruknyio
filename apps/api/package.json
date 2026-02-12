@@ -24,9 +24,6 @@
     "db:seed": "ts-node prisma/seed.ts",
     "cleanup:sessions": "ts-node src/scripts/cleanup-sessions.ts"
   },
-  "prisma": {
-    "seed": "ts-node prisma/seed.ts"
-  },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.958.0",
     "@aws-sdk/s3-request-presigner": "^3.958.0",
