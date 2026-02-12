@@ -12,7 +12,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install all dependencies (production and dev)
-RUN npm ci
+RUN npm install
 
 # Copy the entire workspace
 COPY . .
@@ -36,7 +36,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install ONLY production dependencies
-RUN npm ci --omit=dev --ignore-scripts && \
+RUN npm install --omit=dev --ignore-scripts && \
     npm cache clean --force
 
 # Copy built application from builder stage
