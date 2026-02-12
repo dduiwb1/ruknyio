@@ -59,7 +59,7 @@ export class FormEmailVerificationService {
     }
 
     // Clean up expired verifications
-    await this.prisma.form_email_verifications.deleteMany({
+    await this.prisma.formEmailVerification.deleteMany({
       where: {
         formId,
         expiresAt: { lt: new Date() },
@@ -67,7 +67,7 @@ export class FormEmailVerificationService {
     });
 
     // Check if there's already an active verification for this email
-    const existingVerification = await this.prisma.form_email_verifications.findFirst({
+    const existingVerification = await this.prisma.formEmailVerification.findFirst({
       where: {
         formId,
         email,
@@ -87,7 +87,7 @@ export class FormEmailVerificationService {
     const expiresAt = new Date(Date.now() + this.VERIFICATION_CODE_EXPIRY);
 
     // Save verification code
-    const verification = await this.prisma.form_email_verifications.create({
+    const verification = await this.prisma.formEmailVerification.create({
       data: {
         formId,
         fieldId,
@@ -119,7 +119,7 @@ export class FormEmailVerificationService {
     } catch (error) {
       this.logger.error(`Failed to send verification email: ${error.message}`);
       // Delete verification record if email sending failed
-      await this.prisma.form_email_verifications.delete({
+      await this.prisma.formEmailVerification.delete({
         where: { id: verification.id },
       });
       throw new BadRequestException('Failed to send verification code');
@@ -136,7 +136,7 @@ export class FormEmailVerificationService {
     ipAddress?: string,
   ): Promise<{ success: boolean; message: string }> {
     // Find verification record
-    const verification = await this.prisma.form_email_verifications.findFirst({
+    const verification = await this.prisma.formEmailVerification.findFirst({
       where: {
         formId,
         email,
@@ -150,7 +150,7 @@ export class FormEmailVerificationService {
 
     // Check if expired
     if (new Date() > verification.expiresAt) {
-      await this.prisma.form_email_verifications.delete({
+      await this.prisma.formEmailVerification.delete({
         where: { id: verification.id },
       });
       throw new BadRequestException('Verification code has expired');
@@ -166,7 +166,7 @@ export class FormEmailVerificationService {
     // Verify code
     if (verification.code !== code) {
       // Increment attempts
-      await this.prisma.form_email_verifications.update({
+      await this.prisma.formEmailVerification.update({
         where: { id: verification.id },
         data: { attempts: { increment: 1 } },
       });
@@ -178,7 +178,7 @@ export class FormEmailVerificationService {
     }
 
     // Mark as verified
-    await this.prisma.form_email_verifications.update({
+    await this.prisma.formEmailVerification.update({
       where: { id: verification.id },
       data: {
         verified: true,
@@ -201,7 +201,7 @@ export class FormEmailVerificationService {
     formId: string,
     email: string,
   ): Promise<boolean> {
-    const verification = await this.prisma.form_email_verifications.findFirst({
+    const verification = await this.prisma.formEmailVerification.findFirst({
       where: {
         formId,
         email,
@@ -216,7 +216,7 @@ export class FormEmailVerificationService {
    * Clean up old verification codes (should be run by cron job)
    */
   async cleanupExpiredVerifications(): Promise<number> {
-    const result = await this.prisma.form_email_verifications.deleteMany({
+    const result = await this.prisma.formEmailVerification.deleteMany({
       where: {
         expiresAt: { lt: new Date() },
       },
