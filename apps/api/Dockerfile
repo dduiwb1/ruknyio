@@ -57,4 +57,5 @@ ENV NODE_ENV=production
 EXPOSE 3001
 
 ENTRYPOINT ["/sbin/dumb-init", "--"]
-CMD ["sh", "-c", "npm run migrate 2>&1 && npm run start:prod"]
+# Run migrate then start; echo so we see in logs if we reach start (if crash, error appears after "Starting API...")
+CMD ["sh", "-c", "npm run migrate 2>&1 && echo 'Starting API...' && exec node dist/main.js"]
