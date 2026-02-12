@@ -35,8 +35,10 @@ export const API_URL = '/api/v1';
 
 /**
  * App URL - The frontend URL
+ * Prefer runtime origin in the browser to avoid build-time env gaps.
  */
-export const APP_URL = env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const runtimeAppUrl = typeof window !== 'undefined' ? window.location.origin : undefined;
+export const APP_URL = env.NEXT_PUBLIC_APP_URL || runtimeAppUrl || 'http://localhost:3000';
 
 /**
  * API External URL - For browser redirects (OAuth, magic links)
