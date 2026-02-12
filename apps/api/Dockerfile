@@ -21,8 +21,10 @@ RUN npm install
 # Copy the rest of the app (context = apps/api → we get prisma/, src/, etc.)
 COPY . .
 
-# Prisma: use Prisma config (handles datasource URL via prisma.config.ts)
-RUN npx prisma generate --config=prisma/prisma.config.ts
+# Prisma generate: dummy URLs (no DB connection; only validates config and generates client)
+RUN DATABASE_URL="postgresql://build:build@localhost:5432/build" \
+    DIRECT_URL="postgresql://build:build@localhost:5432/build" \
+    npx prisma generate --config=prisma/prisma.config.ts
 
 # Build the API (nest build or tsc from /app)
 RUN npm run build
