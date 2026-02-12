@@ -25,3 +25,18 @@
 
 ### 4) بعد تعديل Variables
 احفظ المتغيرات ثم من **Deployments** اختر **Redeploy** لآخر نشر حتى يعيد التشغيل بالإعدادات الجديدة.
+
+---
+
+## 502 Bad Gateway عند استدعاء rukny.io/api/auth/*
+
+الطلبات تمر: **المتصفح → Vercel (rukny.io) → Backend (Railway)**. الـ 502 يعني أن Vercel لا يصل إلى الـ Backend.
+
+**الحل:** في مشروع **Vercel** (الفرونت)، اضبط متغير البيئة:
+
+| المتغير | القيمة |
+|--------|--------|
+| **API_BACKEND_URL** | عنوان الـ API العام على Railway، **بدون** `/api/v1` في النهاية. مثال: `https://auth.rukny.io` أو `https://xxx.up.railway.app` |
+
+- من أين تأخذ الرابط: Railway → API Service → **Settings** → **Networking / Domains** → انسخ الـ URL.
+- بعد الحفظ: **Redeploy** لمشروع الفرونت على Vercel.
