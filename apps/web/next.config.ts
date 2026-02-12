@@ -8,6 +8,8 @@ const withBundleAnalyzer = bundleAnalyzer({
 const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
+  // Required for Docker/Railway: standalone output for smaller image
+  output: "standalone",
 
   // ⚡ Performance optimizations
   experimental: {
