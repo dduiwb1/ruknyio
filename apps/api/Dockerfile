@@ -21,8 +21,8 @@ RUN npm install
 # Copy the rest of the app (context = apps/api → we get prisma/, src/, etc.)
 COPY . .
 
-# Prisma: use path relative to /app (works when context is apps/api)
-RUN npx prisma generate --schema=prisma/schema.prisma
+# Prisma: use Prisma config (handles datasource URL via prisma.config.ts)
+RUN npx prisma generate --config=prisma/prisma.config.ts
 
 # Build the API (nest build or tsc from /app)
 RUN npm run build
