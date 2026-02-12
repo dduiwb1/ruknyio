@@ -47,22 +47,11 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Proxy API requests to backend
-  async rewrites() {
-    const apiUrl = process.env.API_BACKEND_URL || "http://localhost:3001";
-
-    return [
-      {
-        source: "/api/v1/:path*",
-        destination: `${apiUrl}/api/v1/:path*`,
-      },
-      // Proxy /uploads (avatars, etc.) to API so img src="/uploads/..." works
-      {
-        source: "/uploads/:path*",
-        destination: `${apiUrl}/uploads/:path*`,
-      },
-    ];
-  },
+  // ℹ️ Note: API proxy is handled by route handlers in app/api/[...path]/route.ts
+  // Those handlers read API_BACKEND_URL at runtime, not build-time
+  // So no rewrites needed here - request flow:
+  // 1. Browser → /api/v1/* → route handler
+  // 2. Route handler reads env.API_BACKEND_URL (runtime) → backend API
 
   // 🔒 Security headers
   async headers() {
