@@ -8,19 +8,19 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files for the entire monorepo
+# Copy root package files
 COPY package*.json ./
 
 # Install all dependencies (production and dev)
 RUN npm install
 
-# Copy the entire workspace
+# Copy the entire monorepo
 COPY . .
 
-# Generate Prisma client (config file handles schema location)
+# Generate Prisma client  
 RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 
-# Build ONLY the API using tsc directly with proper tsconfig
+# Build ONLY the API
 RUN npx tsc --project apps/api/tsconfig.build.json
 
 # ============================================
@@ -32,7 +32,7 @@ RUN apk add --no-cache dumb-init
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files from builder
 COPY package*.json ./
 
 # Install ONLY production dependencies
@@ -52,7 +52,7 @@ RUN mkdir -p /app/uploads/avatars /app/temp/videos && \
 # Set environment to production
 ENV NODE_ENV=production
 
-# Expose port (Railway will set PORT env var if needed)
+# Expose port
 EXPOSE 3001
 
 # Use dumb-init to properly handle signals
