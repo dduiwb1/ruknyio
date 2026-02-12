@@ -3,10 +3,8 @@
 # Optimized for production deployment on Railway
 # ============================================
 #
-# IMPORTANT: Build context MUST be the repository ROOT (monorepo root).
-# In Railway: leave "Root Directory" empty or set to "." so the full
-# repo is sent. Do NOT set Root Directory to "apps/api" or this build
-# will fail (Prisma schema path and COPY paths assume repo root).
+# Build context: EITHER repo root OR apps/api (Railway may use apps/api).
+# Paths below work when context is apps/api (COPY . . then paths are under /app).
 # ============================================
 
 # Stage 1: Builder
@@ -14,55 +12,47 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy root package files (monorepo root)
+# Copy package files (from build context: root or apps/api)
 COPY package*.json ./
 
-# Install all dependencies (production and dev)
+# Install all dependencies (including dev for build)
 RUN npm install
 
-# Copy the entire monorepo (requires build context = repo root)
+# Copy the rest of the app (context = apps/api → we get prisma/, src/, etc.)
 COPY . .
 
-# Generate Prisma client (path relative to repo root)
-RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
+# Prisma: use path relative to /app (works when context is apps/api)
+RUN npx prisma generate --schema=prisma/schema.prisma
 
-# Build ONLY the API
-RUN npx tsc --project apps/api/tsconfig.build.json
+# Build the API (nest build or tsc from /app)
+RUN npm run build
 
 # ============================================
 # Stage 2: Runtime (Production)
 FROM node:20-alpine
 
-# Install dumb-init to handle signals properly
 RUN apk add --no-cache dumb-init
 
 WORKDIR /app
 
-# Copy package files from builder
 COPY package*.json ./
-
-# Install ONLY production dependencies
 RUN npm install --omit=dev --ignore-scripts && \
     npm cache clean --force
 
-# Copy built application from builder stage
-COPY --from=builder /app/apps/api/dist ./dist
-COPY --from=builder /app/apps/api/prisma ./prisma
+# Built app and Prisma (paths relative to builder /app)
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+# Prisma CLI for migrations at runtime
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
 
-# Create upload directories
 RUN mkdir -p /app/uploads/avatars /app/temp/videos && \
     chmod -R 755 /app/uploads /app/temp
 
-# Set environment to production
 ENV NODE_ENV=production
-
-# Expose port
 EXPOSE 3001
 
-# Use dumb-init to properly handle signals
 ENTRYPOINT ["/sbin/dumb-init", "--"]
-
-# Run migrations and start the app
 CMD ["sh", "-c", "npm run migrate 2>&1 && npm run start:prod"]
