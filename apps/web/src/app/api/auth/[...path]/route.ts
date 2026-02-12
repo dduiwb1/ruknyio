@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const API_URL = process.env.API_BACKEND_URL || 'http://localhost:3001';
+const BACKEND_TIMEOUT_MS = 25_000; // 25s for auth/DB operations
 
 // Headers that should not be forwarded
 const EXCLUDED_REQUEST_HEADERS = ['host', 'connection', 'content-length'];
@@ -72,8 +73,14 @@ async function proxyRequest(request: NextRequest, method: string) {
       });
     }
 
-    // Make the request to the backend
-    const response = await fetch(targetUrl, fetchOptions);
+    // Make the request to the backend (with timeout)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), BACKEND_TIMEOUT_MS);
+    const response = await fetch(targetUrl, {
+      ...fetchOptions,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
 
     // Get response body
     const responseBody = await response.text();
@@ -109,10 +116,9 @@ async function proxyRequest(request: NextRequest, method: string) {
       headers: responseHeaders,
     });
   } catch (error: any) {
-    // Enhanced error logging
     const errorMessage = error?.message || 'Unknown error';
-    const errorCode = error?.cause?.code || error?.code || 'UNKNOWN';
-    
+    const errorCode = error?.cause?.code || error?.code || error?.name || 'UNKNOWN';
+
     console.error('[Auth Proxy] Error:', {
       message: errorMessage,
       code: errorCode,
@@ -120,23 +126,20 @@ async function proxyRequest(request: NextRequest, method: string) {
       method,
     });
 
-    // Provide helpful error messages based on error type
-    if (errorCode === 'ECONNREFUSED') {
-      return NextResponse.json(
-        {
-          error: 'Backend service unavailable',
-          message: `Cannot connect to backend API at ${API_URL}. Please ensure the backend server is running on port 3001.`,
-          hint: 'Run `npm run dev:api` or `npm run dev` from the project root to start the backend server.',
-        },
-        { status: 502 }
-      );
-    }
+    const isTimeout = errorCode === 'ABORT_ERR' || error?.name === 'AbortError';
+    const isRefused = errorCode === 'ECONNREFUSED';
+    const isNetwork = ['ENOTFOUND', 'ETIMEDOUT', 'ECONNRESET'].includes(errorCode);
 
     return NextResponse.json(
       {
-        error: 'Proxy error',
-        message: 'Failed to connect to auth service',
-        details: errorMessage,
+        error: 'Backend service unavailable',
+        message: isTimeout
+          ? `Backend at ${API_URL} did not respond in time.`
+          : isRefused || isNetwork
+            ? `Cannot reach backend at ${API_URL}. Check that the API (e.g. auth.rukny.io) is running on Railway.`
+            : 'Failed to connect to auth service',
+        code: errorCode,
+        hint: 'Open https://auth.rukny.io or https://auth.rukny.io/api/v1/health in a browser. If you see "Application failed to respond", fix the API deploy (env vars, logs) on Railway.',
       },
       { status: 502 }
     );
