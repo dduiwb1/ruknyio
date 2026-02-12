@@ -27,19 +27,47 @@ and ensures `users` has `phoneNumber`, `phoneVerified`, `phoneVerifiedAt`, and `
 
 ## What you need to do
 
+### If `prisma migrate deploy` says "No pending migrations"
+
+Your DB is likely in a **divergent** state: the database has a migration applied that no longer exists locally (e.g. `20260204_add_userfile_blurhash`). Prisma then won't apply new migrations until the histories match.
+
+**Fix it once (against your Railway DB), then deploy:**
+
+1. **Resolve the missing/failed migration** so the DB history matches your repo:
+
+   ```bash
+   cd apps/api
+   # Use DATABASE_URL and DIRECT_URL from Railway (Variables)
+   npx prisma migrate resolve --rolled-back "20260204_add_userfile_blurhash"
+   ```
+
+2. **Apply the new migration** (creates the missing tables):
+
+   ```bash
+   npx prisma migrate deploy
+   ```
+
+   You should see `20260213000000_add_auth_lockout_and_whatsapp_tables` applied.
+
+3. **Redeploy the API** on Railway. Future deploys will run `npm run migrate` at startup as usual.
+
+### If there is no divergent migration
+
 1. **Commit and push** the new migration (and this doc) to your repo.
 2. **Redeploy the API service** on Railway.
 
-On startup, the API runs `npm run migrate` (see `apps/api/Dockerfile`), which runs `prisma migrate deploy`. That will apply the new migration and create the tables. No manual SQL or Railway shell is required.
+On startup, the API runs `npm run migrate` (see `apps/api/Dockerfile`), which runs `prisma migrate deploy` and will apply any pending migrations.
 
-## If you see a failed migration (P3009)
+## Check status
 
-If a previous migration was marked as failed on Railway, resolve it first, then redeploy:
+To see which migrations Prisma sees and what's applied:
 
 ```bash
 cd apps/api
-# Set DATABASE_URL and DIRECT_URL from Railway variables
-npx prisma migrate resolve --rolled-back "MIGRATION_NAME"
+npx prisma migrate status
 ```
 
-See `apps/api/prisma/resolve-failed-migration.md` for details.
+- **"Migrations not yet applied"** lists what will run on next `migrate deploy`.
+- **"Migrations from the database are not found locally"** means you must run `migrate resolve --rolled-back "MIGRATION_NAME"` (as above) before deploy will apply new ones.
+
+See `apps/api/prisma/resolve-failed-migration.md` for more on failed/rolled-back migrations.
