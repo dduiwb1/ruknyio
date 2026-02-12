@@ -31,6 +31,6 @@ COPY --from=builder /app/public ./public
 
 EXPOSE 3000
 
-ENTRYPOINT ["/sbin/dumb-init", "--"]
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 # Railway injects PORT via process.env.PORT
 CMD ["node", "server.js"]
