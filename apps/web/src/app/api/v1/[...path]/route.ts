@@ -8,7 +8,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_URL = process.env.API_BACKEND_URL || 'http://localhost:3001';
+function getApiUrl(): string {
+  return process.env.API_BACKEND_URL || 'https://auth.rukny.io';
+}
 
 const EXCLUDED_REQUEST_HEADERS = ['host', 'connection', 'content-length'];
 const EXCLUDED_RESPONSE_HEADERS = ['content-encoding', 'transfer-encoding'];
@@ -16,7 +18,8 @@ const EXCLUDED_RESPONSE_HEADERS = ['content-encoding', 'transfer-encoding'];
 async function proxyRequest(request: NextRequest, method: string) {
   const url = new URL(request.url);
   const pathSegments = url.pathname.replace(/^\/api\/v1\/?/, '') || '';
-  const targetUrl = `${API_URL}/api/v1/${pathSegments}${url.search}`;
+  const apiUrl = getApiUrl();
+  const targetUrl = `${apiUrl}/api/v1/${pathSegments}${url.search}`;
 
   const headers = new Headers();
   request.headers.forEach((value, key) => {
@@ -82,7 +85,7 @@ async function proxyRequest(request: NextRequest, method: string) {
       return NextResponse.json(
         {
           error: 'Backend service unavailable',
-          message: `Cannot connect to backend API at ${API_URL}. Ensure the backend is running (e.g. npm run dev:api).`,
+          message: `Cannot connect to backend API at ${apiUrl}. Ensure the backend is running (e.g. npm run dev:api).`,
         },
         { status: 502 }
       );

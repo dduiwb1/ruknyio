@@ -10,7 +10,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-const API_URL = process.env.API_BACKEND_URL || 'http://localhost:3001';
+function getApiUrl(): string {
+  return process.env.API_BACKEND_URL || 'https://auth.rukny.io';
+}
 const BACKEND_TIMEOUT_MS = 25_000; // 25s for auth/DB operations
 
 // Headers that should not be forwarded
@@ -21,7 +23,8 @@ async function proxyRequest(request: NextRequest, method: string) {
   // Get the path from the URL
   const url = new URL(request.url);
   const pathSegments = url.pathname.replace('/api/auth/', '');
-  const targetUrl = `${API_URL}/api/v1/auth/${pathSegments}${url.search}`;
+  const apiUrl = getApiUrl();
+  const targetUrl = `${apiUrl}/api/v1/auth/${pathSegments}${url.search}`;
 
   // Forward headers including cookies
   const headers = new Headers();
@@ -134,9 +137,9 @@ async function proxyRequest(request: NextRequest, method: string) {
       {
         error: 'Backend service unavailable',
         message: isTimeout
-          ? `Backend at ${API_URL} did not respond in time.`
+          ? `Backend at ${apiUrl} did not respond in time.`
           : isRefused || isNetwork
-            ? `Cannot reach backend at ${API_URL}. Check that the API (e.g. auth.rukny.io) is running on Railway.`
+            ? `Cannot reach backend at ${apiUrl}. Check that the API (e.g. auth.rukny.io) is running on Railway.`
             : 'Failed to connect to auth service',
         code: errorCode,
         hint: 'Open https://auth.rukny.io or https://auth.rukny.io/api/v1/health in a browser. If you see "Application failed to respond", fix the API deploy (env vars, logs) on Railway.',
