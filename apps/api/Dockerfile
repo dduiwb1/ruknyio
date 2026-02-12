@@ -2,22 +2,28 @@
 # MULTI-STAGE BUILD FOR NESTJS API
 # Optimized for production deployment on Railway
 # ============================================
+#
+# IMPORTANT: Build context MUST be the repository ROOT (monorepo root).
+# In Railway: leave "Root Directory" empty or set to "." so the full
+# repo is sent. Do NOT set Root Directory to "apps/api" or this build
+# will fail (Prisma schema path and COPY paths assume repo root).
+# ============================================
 
 # Stage 1: Builder
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy root package files
+# Copy root package files (monorepo root)
 COPY package*.json ./
 
 # Install all dependencies (production and dev)
 RUN npm install
 
-# Copy the entire monorepo
+# Copy the entire monorepo (requires build context = repo root)
 COPY . .
 
-# Generate Prisma client  
+# Generate Prisma client (path relative to repo root)
 RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 
 # Build ONLY the API
