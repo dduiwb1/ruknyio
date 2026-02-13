@@ -123,20 +123,43 @@ async function proxyRequest(request: NextRequest, method: string) {
 
     // Create response with proper headers
     const responseHeaders = new Headers();
-    // 🔒 Forward ALL Set-Cookie headers with full attributes (HttpOnly, Max-Age, etc.)
-    // Fetch API merges multiple set-cookie into one; getSetCookie() returns each separately (Node 19+)
-    const setCookies = typeof response.headers.getSetCookie === 'function'
-      ? response.headers.getSetCookie()
-      : [response.headers.get('set-cookie')].filter(Boolean) as string[];
-    for (const cookie of setCookies) {
-      responseHeaders.append('set-cookie', cookie);
+    
+    // Debug: Log all response headers
+    if (pathSegments === 'oauth/exchange') {
+      console.log('[Auth Proxy] Backend response headers:');
+      response.headers.forEach((value, key) => {
+        if (key.toLowerCase() === 'set-cookie') {
+          console.log(`  ${key}: [CSRF/AUTH token - hidden]`);
+        } else {
+          console.log(`  ${key}: ${value}`);
+        }
+      });
     }
+    
+    // 🔒 Forward ALL response headers from backend
     response.headers.forEach((value, key) => {
-      if (key.toLowerCase() === 'set-cookie') return; // already handled above
-      if (!EXCLUDED_RESPONSE_HEADERS.includes(key.toLowerCase())) {
+      // For set-cookie, we need to append (not set) because there can be multiple
+      if (key.toLowerCase() === 'set-cookie') {
+        responseHeaders.append('set-cookie', value);
+      } else if (!EXCLUDED_RESPONSE_HEADERS.includes(key.toLowerCase())) {
         responseHeaders.set(key, value);
       }
     });
+    
+    if (pathSegments === 'oauth/exchange') {
+      console.log('[Auth Proxy] Final response headers for Set-Cookie:');
+      const allSetCookies: string[] = [];
+      responseHeaders.forEach((value, key) => {
+        if (key.toLowerCase() === 'set-cookie') {
+          allSetCookies.push(value);
+        }
+      });
+      console.log(`  Total Set-Cookie headers: ${allSetCookies.length}`);
+      allSetCookies.forEach((cookie, idx) => {
+        const preview = cookie.substring(0, 50);
+        console.log(`    ${idx + 1}. ${preview}...`);
+      });
+    }
 
     return new NextResponse(responseBody, {
       status: response.status,
