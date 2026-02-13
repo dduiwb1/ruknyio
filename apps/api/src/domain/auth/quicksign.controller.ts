@@ -224,6 +224,15 @@ export class QuickSignController {
     const ipAddress = req.ip || req.socket.remoteAddress;
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
+    // 🔒 Debug: Log incoming token
+    if (!isProduction) {
+      console.log('[QuickSign] Verify endpoint called with token:', {
+        tokenLength: token.length,
+        tokenPreview: token.substring(0, 50) + '...',
+        hasThreeParts: (token.match(/\./g) || []).length === 2,
+      });
+    }
+
     // 🔒 التحقق من Token واستهلاكه بشكل ذري (يمنع race conditions)
     const verification = await this.quickSignService.verifyAndConsumeQuickSign(token);
 

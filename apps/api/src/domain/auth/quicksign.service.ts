@@ -160,6 +160,15 @@ export class QuickSignService {
     try {
       const tokenHash = this.hashToken(token);
 
+      // 🔒 Debug: Log token verification
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[QuickSign.verifyQuickSign] Starting verification:', {
+          tokenLength: token.length,
+          tokenPreview: token.substring(0, 30) + '...',
+          tokenHashPreview: tokenHash.substring(0, 20) + '...',
+        });
+      }
+
       // 🔒 فك تشفير JWT أولاً للتحقق من الصلاحية
       const payload = this.jwtService.verify(token);
 
@@ -202,6 +211,14 @@ export class QuickSignService {
           }
         }
 
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[QuickSign.verifyQuickSign] Token verified from Redis:', {
+            email: cachedData.email,
+            type: cachedData.type,
+            valid: true,
+          });
+        }
+
         return {
           valid: true,
           email: cachedData.email,
@@ -226,6 +243,11 @@ export class QuickSignService {
       });
 
       if (!quickSign) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[QuickSign.verifyQuickSign] Token NOT found in DB:', {
+            tokenHashPreview: tokenHash.substring(0, 20) + '...',
+          });
+        }
         return { valid: false };
       }
 
@@ -280,11 +302,12 @@ export class QuickSignService {
       
       // Invalid JWT (bad signature, malformed, etc.)
       if (errorName === 'JsonWebTokenError') {
+        console.error('[QuickSign.verifyQuickSign] Invalid JWT:', errorMessage);
         return { valid: false };
       }
       
       // Other errors (database, network, etc.)
-      console.error(`[QuickSign] Unexpected error during verification:`, error);
+      console.error(`[QuickSign.verifyQuickSign] Unexpected error:`, error);
       return { valid: false };
     }
   }

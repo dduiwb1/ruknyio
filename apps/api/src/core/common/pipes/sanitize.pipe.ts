@@ -39,6 +39,17 @@ export class SanitizePipe implements PipeTransform {
     'formstatus',
   ];
 
+  // حقول التوكن والمفاتيح التي يجب الحفاظ عليها كما هي
+  private readonly TOKEN_FIELDS = [
+    'token',
+    'quicksigntoken',
+    'accesstoken',
+    'refreshtoken',
+    'code',
+    'jwt',
+    'jwttoken',
+  ];
+
   // قيم الـ enum المسموح بها (لن تُحذف)
   private readonly ALLOWED_ENUM_VALUES = [
     'TEXT', 'TEXTAREA', 'NUMBER', 'EMAIL', 'PHONE', 'DATE', 'TIME', 'DATETIME',
@@ -65,8 +76,18 @@ export class SanitizePipe implements PipeTransform {
       return value;
     }
 
+    // 🔒 الحصول على اسم الحقل من metadata (مهم للـ @Param و @Query)
+    const fieldName = metadata.data;
+
     if (typeof value === 'string') {
-      return this.sanitizeString(value);
+      const sanitized = this.sanitizeString(value, fieldName);
+      
+      // 🔒 Debug logging for token fields (only in development)
+      if (fieldName && this.isTokenField(fieldName) && process.env.NODE_ENV === 'development') {
+        console.log(`[SanitizePipe] Token field detected: ${fieldName}, length: ${value.length} → ${sanitized.length}`);
+      }
+      
+      return sanitized;
     }
 
     if (typeof value === 'object') {
@@ -81,6 +102,11 @@ export class SanitizePipe implements PipeTransform {
    */
   private sanitizeString(str: string, fieldName?: string): string {
     if (!str) return str;
+
+    // إذا كان حقل token، احفظه كما هو بدون تعديل
+    if (fieldName && this.isTokenField(fieldName)) {
+      return str;
+    }
 
     // Preserve JWT-like tokens (used in auth links) to avoid corrupting them
     if (this.isJwtLike(str)) {
@@ -190,9 +216,24 @@ export class SanitizePipe implements PipeTransform {
   }
 
   /**
+   * التحقق من أن الحقل هو حقل token
+   */
+  private isTokenField(fieldName: string): boolean {
+    return this.TOKEN_FIELDS.includes(fieldName.toLowerCase());
+  }
+
+  /**
    * Detect JWT-like strings (base64url header.payload.signature)
+   * Format: xxxxx.yyyyy.zzzzz
+   * JWT يجب أن يكون بطول معقول (عادة 100+ حرف)
    */
   private isJwtLike(str: string): boolean {
+    // JWT يجب أن يكون بطول معقول (عادة 100+ حرف قد يصل 1000+)
+    if (str.length < 50 || str.length > 2000) {
+      return false;
+    }
+    // التحقق من الصيغة: ثلاثة أجزاء مفصولة بنقاط
+    // كل جزء يحتوي على base64url characters فقط
     return /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/.test(str);
   }
 
