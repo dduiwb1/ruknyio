@@ -261,19 +261,42 @@ export function getLinkedInAuthUrl(): string {
  * Called after OAuth redirect with one-time code
  */
 export async function exchangeOAuthCode(code: string): Promise<AuthResponse> {
-  const { data } = await api.post<AuthResponse>('/auth/oauth/exchange', { code });
+  console.log('[exchangeOAuthCode] Starting code exchange:', code.substring(0, 20) + '...');
   
-  // Runtime validation with Zod schema
-  const validated = AuthResponseSchema.parse(data);
-  
-  if (validated.access_token) {
-    setAccessToken(validated.access_token);
-  }
-  if (typeof validated.expires_in === 'number') {
-    scheduleSilentRefresh(validated.expires_in);
-  }
+  try {
+    const { data } = await api.post<AuthResponse>('/auth/oauth/exchange', { code });
+    
+    console.log('[exchangeOAuthCode] Raw response from API:', {
+      success: data.success,
+      hasCsrfToken: !!data.csrf_token,
+      csrfTokenPreview: data.csrf_token?.substring(0, 20) + '...',
+      hasUser: !!data.user,
+      userId: data.user?.id,
+      ​needsProfileCompletion: data.needsProfileCompletion,
+    });
+    
+    // Runtime validation with Zod schema
+    const validated = AuthResponseSchema.parse(data);
+    
+    console.log('[exchangeOAuthCode] Validated response:', {
+      success: validated.success,
+      hasCsrfToken: !!validated.csrf_token,
+      hasUser: !!validated.user,
+    });
+    
+    if (validated.access_token) {
+      setAccessToken(validated.access_token);
+    }
+    if (typeof validated.expires_in === 'number') {
+      scheduleSilentRefresh(validated.expires_in);
+    }
 
-  return validated;
+    console.log('[exchangeOAuthCode] ✅ Code exchange successful');
+    return validated;
+  } catch (error) {
+    console.error('[exchangeOAuthCode] ❌ Code exchange failed:', error instanceof Error ? error.message : error);
+    throw error;
+  }
 }
 
 // ============ WebSocket Token ============

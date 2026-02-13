@@ -246,13 +246,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
+      console.log('[AuthProvider] Calling exchangeOAuthCode...');
       const response = await exchangeOAuthCode(code);
-      console.log('[AuthProvider] exchangeOAuthCode response:', response);
+      console.log('[AuthProvider] exchangeOAuthCode response received:', {
+        success: response.success,
+        hasCsrfToken: !!response.csrf_token,
+        csrfTokenPreview: response.csrf_token?.substring(0, 20) + '...',
+        hasUser: !!response.user,
+        userId: response.user?.id,
+        needsProfileCompletion: response.needsProfileCompletion,
+      });
       
       // 🔒 Store CSRF token and update refresh time
       if (response.csrf_token) {
+        console.log('[AuthProvider] ✅ Setting CSRF token from response:', response.csrf_token.substring(0, 20) + '...');
         setCsrfToken(response.csrf_token);
         updateLastRefreshTime();
+      } else {
+        console.warn('[AuthProvider] ⚠️ No CSRF token in response!');
       }
       
       if (response.user) {
@@ -278,6 +289,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         });
       }
       
+      console.log('[AuthProvider] ✅ handleOAuthCallback completed successfully');
       return response;
     } catch (err) {
       console.error('[AuthProvider] handleOAuthCallback error:', err);

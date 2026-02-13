@@ -324,31 +324,63 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { access_token, refresh_token, user, needsProfileCompletion } = await this.oauthCodeService.exchange(body.code);
-    
-    // 🔒 Access Token في httpOnly Cookie
-    if (access_token) {
-      setAccessTokenCookie(res, access_token);
-    }
-    
-    // 🔒 Refresh Token في httpOnly Cookie
-    if (refresh_token) {
-      setRefreshTokenCookie(res, refresh_token);
-    }
+    // 🔒 Debug: Log incoming code exchange request
+    console.log('[OAuth Exchange] Code exchange started:', {
+      codeLength: body.code?.length,
+      codePreview: body.code?.substring(0, 20) + '...',
+    });
 
-    // 🔒 توليد CSRF Token
-    const csrfToken = generateCsrfToken();
-    setCsrfTokenCookie(res, csrfToken);
+    try {
+      const exchanged = await this.oauthCodeService.exchange(body.code);
+      console.log('[OAuth Exchange] Code exchanged successfully:', {
+        hasAccessToken: !!exchanged.access_token,
+        hasRefreshToken: !!exchanged.refresh_token,
+        userId: exchanged.user?.id,
+        needsProfileCompletion: exchanged.needsProfileCompletion,
+      });
+
+      const { access_token, refresh_token, user, needsProfileCompletion } = exchanged;
     
-    // 🔒 Response - لا نُرسل التوكنات في الـ body
-    return { 
-      success: true,
-      csrf_token: csrfToken,
-      expires_in: 30 * 60, // 30 minutes - matches access token JWT and cookie
-      user,
-      needsProfileCompletion,
-      message: 'Tokens stored in httpOnly cookies',
-    };
+      // 🔒 Access Token في httpOnly Cookie
+      if (access_token) {
+        setAccessTokenCookie(res, access_token);
+        console.log('[OAuth Exchange] ✅ Access token cookie set');
+      }
+      
+      // 🔒 Refresh Token في httpOnly Cookie
+      if (refresh_token) {
+        setRefreshTokenCookie(res, refresh_token);
+        console.log('[OAuth Exchange] ✅ Refresh token cookie set');
+      }
+
+      // 🔒 توليد CSRF Token
+      const csrfToken = generateCsrfToken();
+      setCsrfTokenCookie(res, csrfToken);
+      console.log('[OAuth Exchange] ✅ CSRF token cookie set:', csrfToken.substring(0, 20) + '...');
+      
+      // 🔒 Response - لا نُرسل التوكنات في الـ body
+      const response = { 
+        success: true,
+        csrf_token: csrfToken,
+        expires_in: 30 * 60, // 30 minutes - matches access token JWT and cookie
+        user,
+        needsProfileCompletion,
+        message: 'Tokens stored in httpOnly cookies',
+      };
+
+      console.log('[OAuth Exchange] Response body has csrf_token:', !!response.csrf_token);
+      console.log('[OAuth Exchange] Complete response:', {
+        success: response.success,
+        hasCsrfToken: !!response.csrf_token,
+        userId: response.user?.id,
+        needsProfileCompletion: response.needsProfileCompletion,
+      });
+
+      return response;
+    } catch (error) {
+      console.error('[OAuth Exchange] ❌ Code exchange failed:', error instanceof Error ? error.message : error);
+      throw error;
+    }
   }
 
   @Get('linkedin')

@@ -23,12 +23,21 @@ function CallbackContent() {
     const code = searchParams.get('code');
     const errorParam = searchParams.get('error');
 
+    console.log('[ClientCallback] Callback page loaded with:', {
+      hasCode: !!code,
+      codePreview: code?.substring(0, 20) + '...',
+      hasError: !!errorParam,
+    });
+
     if (errorParam) {
-      setError(decodeURIComponent(errorParam));
+      const decodedError = decodeURIComponent(errorParam);
+      console.log('[ClientCallback] ❌ Error parameter received:', decodedError);
+      setError(decodedError);
       return;
     }
 
     if (!code) {
+      console.log('[ClientCallback] ❌ No code parameter found');
       setError('لم يتم استلام رمز التفويض');
       return;
     }
@@ -36,19 +45,26 @@ function CallbackContent() {
     // Exchange OAuth code for tokens
     const exchangeCode = async () => {
       try {
+        console.log('[ClientCallback] Calling handleOAuthCallback with code:', code.substring(0, 20) + '...');
         const response = await handleOAuthCallback(code);
+        console.log('[ClientCallback] handleOAuthCallback completed:', {
+          needsProfileCompletion: response.needsProfileCompletion,
+        });
 
         // Check if profile needs completion
         if (response.needsProfileCompletion) {
+          console.log('[ClientCallback] ➡️ Redirecting to /complete-profile');
           router.push('/complete-profile');
         } else {
           // Redirect to app or stored callback URL
           const callbackUrl = sessionStorage.getItem('oauth_callback') || '/app';
+          console.log('[ClientCallback] ➡️ Redirecting to:', callbackUrl);
           sessionStorage.removeItem('oauth_callback');
           router.push(callbackUrl);
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'فشل التوثيق';
+        console.error('[ClientCallback] ❌ Exchange failed:', message);
         setError(message);
       }
     };

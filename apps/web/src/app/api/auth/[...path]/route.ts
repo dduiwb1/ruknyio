@@ -26,6 +26,14 @@ async function proxyRequest(request: NextRequest, method: string) {
   const apiUrl = getApiUrl();
   const targetUrl = `${apiUrl}/api/v1/auth/${pathSegments}${url.search}`;
 
+  // Debug: Log oauth/exchange requests
+  if (pathSegments === 'oauth/exchange') {
+    console.log('[Auth Proxy] OAuth exchange request:', {
+      targetUrl,
+      method,
+    });
+  }
+
   // Forward headers including cookies
   const headers = new Headers();
   request.headers.forEach((value, key) => {
@@ -55,6 +63,14 @@ async function proxyRequest(request: NextRequest, method: string) {
       try {
         const body = await request.json();
         fetchOptions.body = JSON.stringify(body);
+        
+        // Debug: Log oauth/exchange body
+        if (pathSegments === 'oauth/exchange') {
+          console.log('[Auth Proxy] OAuth exchange body:', {
+            codeLength: body.code?.length,
+            codePreview: body.code?.substring(0, 20) + '...',
+          });
+        }
       } catch {
         // No body or invalid JSON
       }
@@ -88,11 +104,20 @@ async function proxyRequest(request: NextRequest, method: string) {
     // Get response body
     const responseBody = await response.text();
 
-    // 🔒 Debug logging for refresh endpoint
+    // 🔒 Debug logging for refresh and oauth exchange endpoints
     if (pathSegments === 'refresh') {
       console.log('[Auth Proxy] Refresh response:', {
         status: response.status,
         hasSetCookie: response.headers.has('set-cookie'),
+      });
+    }
+
+    if (pathSegments === 'oauth/exchange') {
+      console.log('[Auth Proxy] OAuth exchange response:', {
+        status: response.status,
+        hasSetCookie: response.headers.has('set-cookie'),
+        bodyLength: responseBody.length,
+        bodyPreview: responseBody.substring(0, 100),
       });
     }
 

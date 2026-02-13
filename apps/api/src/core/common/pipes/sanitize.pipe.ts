@@ -80,11 +80,32 @@ export class SanitizePipe implements PipeTransform {
     const fieldName = metadata.data;
 
     if (typeof value === 'string') {
+      // 🔒 Debug logging - log ALL string values to trace the token
+      const isToken = fieldName && this.isTokenField(fieldName);
+      const looksLikeToken = this.isJwtLike(value);
+      
+      if (process.env.NODE_ENV === 'development' && (isToken || looksLikeToken)) {
+        console.log(`[SanitizePipe.transform] String parameter:`, {
+          fieldName,
+          paramType: metadata.type,
+          length: value.length,
+          isTokenField: isToken,
+          looksLikeJWT: looksLikeToken,
+          preview: value.substring(0, 50) + '...',
+        });
+      }
+      
       const sanitized = this.sanitizeString(value, fieldName);
       
-      // 🔒 Debug logging for token fields (only in development)
-      if (fieldName && this.isTokenField(fieldName) && process.env.NODE_ENV === 'development') {
-        console.log(`[SanitizePipe] Token field detected: ${fieldName}, length: ${value.length} → ${sanitized.length}`);
+      // 🔒 Log if something changed
+      if (value !== sanitized && (isToken || looksLikeToken)) {
+        console.warn(`[SanitizePipe] ⚠️ TOKEN WAS MODIFIED!`, {
+          fieldName,
+          originalLength: value.length,
+          sanitizedLength: sanitized.length,
+          originalPreview: value.substring(0, 30),
+          sanitizedPreview: sanitized.substring(0, 30),
+        });
       }
       
       return sanitized;
