@@ -174,7 +174,20 @@ function buildSetCookieHeader(
     const domain = opts.domain.startsWith('.') ? opts.domain : `.${opts.domain}`;
     parts.push(`Domain=${domain}`);
   }
-  return parts.filter(Boolean).join('; ');
+  const header = parts.filter(Boolean).join('; ');
+  
+  // Debug logging
+  console.log(`[Cookie] Building Set-Cookie for ${name}:`, {
+    domain: opts.domain,
+    finalDomain: opts.domain ? (opts.domain.startsWith('.') ? opts.domain : `.${opts.domain}`) : 'none',
+    httpOnly: opts.httpOnly,
+    secure: opts.secure,
+    sameSite: opts.sameSite,
+    maxAge: `${Math.floor(opts.maxAge / 1000)}s`,
+    headerLength: header.length,
+  });
+  
+  return header;
 }
 
 /**

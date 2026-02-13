@@ -133,7 +133,10 @@ export async function completeProfile(input: CompleteProfileInput): Promise<{ su
  * Check username availability
  */
 export async function checkUsername(username: string): Promise<{ available: boolean; suggestions?: string[] }> {
-  const { data } = await api.post<{ available: boolean; suggestions?: string[] }>('/auth/quicksign/check-username', { username });
+  const safeUsername = encodeURIComponent(username.trim());
+  const { data } = await api.get<{ available: boolean; suggestions?: string[] }>(
+    `/auth/quicksign/check-username/${safeUsername}`,
+  );
   // Runtime validation
   return z.object({
     available: z.boolean(),

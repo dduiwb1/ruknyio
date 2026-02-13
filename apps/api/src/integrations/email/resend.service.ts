@@ -202,8 +202,13 @@ export class ResendService {
       deviceType?: string;
     },
   ): Promise<EmailResult> {
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'https://rukny.store');
-    const quickSignLink = `${frontendUrl}/quicksign/verify?token=${token}`;
+    const quickSignBaseUrl =
+      this.configService.get<string>('AUTH_BASE_URL') ||
+      this.configService.get<string>('API_BASE_URL') ||
+      this.configService.get<string>('BACKEND_URL') ||
+      'http://localhost:3001';
+    const normalizedQuickSignBaseUrl = quickSignBaseUrl.replace(/\/+$/, '');
+    const quickSignLink = `${normalizedQuickSignBaseUrl}/api/v1/auth/quicksign/verify/${token}`;
     const userName = to.split('@')[0];
 
     const html = this.getBaseTemplate({
@@ -245,8 +250,13 @@ export class ResendService {
       deviceType?: string;
     },
   ): Promise<EmailResult> {
-    const frontendUrl = this.configService.get<string>('FRONTEND_URL', 'https://rukny.store');
-    const quickSignLink = `${frontendUrl}/quicksign/verify?token=${token}`;
+    const quickSignBaseUrl =
+      this.configService.get<string>('AUTH_BASE_URL') ||
+      this.configService.get<string>('API_BASE_URL') ||
+      this.configService.get<string>('BACKEND_URL') ||
+      'http://localhost:3001';
+    const normalizedQuickSignBaseUrl = quickSignBaseUrl.replace(/\/+$/, '');
+    const quickSignLink = `${normalizedQuickSignBaseUrl}/api/v1/auth/quicksign/verify/${token}`;
 
     const html = this.getBaseTemplate({
       greeting: 'Welcome to Rukny!',

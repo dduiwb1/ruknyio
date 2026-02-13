@@ -343,20 +343,28 @@ export class AuthController {
     
       // 🔒 Access Token في httpOnly Cookie
       if (access_token) {
+        console.log('[OAuth Exchange] Setting access_token cookie...');
         setAccessTokenCookie(res, access_token);
-        console.log('[OAuth Exchange] ✅ Access token cookie set');
+        console.log('[OAuth Exchange] ✅ Access token cookie appended');
       }
       
       // 🔒 Refresh Token في httpOnly Cookie
       if (refresh_token) {
+        console.log('[OAuth Exchange] Setting refresh_token cookie...');
         setRefreshTokenCookie(res, refresh_token);
-        console.log('[OAuth Exchange] ✅ Refresh token cookie set');
+        console.log('[OAuth Exchange] ✅ Refresh token cookie appended');
       }
 
       // 🔒 توليد CSRF Token
       const csrfToken = generateCsrfToken();
+      console.log('[OAuth Exchange] Generated CSRF token:', csrfToken.substring(0, 20) + '...');
+      console.log('[OAuth Exchange] Setting CSRF token cookie...');
       setCsrfTokenCookie(res, csrfToken);
-      console.log('[OAuth Exchange] ✅ CSRF token cookie set:', csrfToken.substring(0, 20) + '...');
+      console.log('[OAuth Exchange] ✅ CSRF token cookie appended');
+      
+      // Log all Set-Cookie headers in response
+      console.log('[OAuth Exchange] Response headers before return:');
+      res.getHeaders()['set-cookie'] && console.log('  Set-Cookie count:', (res.getHeaders()['set-cookie'] as string[]).length);
       
       // 🔒 Response - لا نُرسل التوكنات في الـ body
       const response = { 
@@ -368,8 +376,7 @@ export class AuthController {
         message: 'Tokens stored in httpOnly cookies',
       };
 
-      console.log('[OAuth Exchange] Response body has csrf_token:', !!response.csrf_token);
-      console.log('[OAuth Exchange] Complete response:', {
+      console.log('[OAuth Exchange] ✅ Response ready:', {
         success: response.success,
         hasCsrfToken: !!response.csrf_token,
         userId: response.user?.id,

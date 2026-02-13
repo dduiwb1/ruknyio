@@ -2060,9 +2060,13 @@ export class EmailService {
         'notifications@rukny.store',
       );
       const fromName = this.configService.get('SMTP_FROM_NAME', 'Rukny');
-      const frontendUrl = this.getFrontendUrl();
-
-      const quickSignLink = `${frontendUrl}/quicksign/verify?token=${token}`;
+      const quickSignBaseUrl =
+        this.configService.get('AUTH_BASE_URL') ||
+        this.configService.get('API_BASE_URL') ||
+        this.configService.get('BACKEND_URL') ||
+        'http://localhost:3001';
+      const normalizedQuickSignBaseUrl = quickSignBaseUrl.replace(/\/+$/, '');
+      const quickSignLink = `${normalizedQuickSignBaseUrl}/api/v1/auth/quicksign/verify/${token}`;
 
       // قراءة template من الملف - دعم development و production
       const isDevelopment = !__dirname.includes('dist');
@@ -2124,9 +2128,13 @@ export class EmailService {
         'notifications@rukny.store',
       );
       const fromName = this.configService.get('SMTP_FROM_NAME', 'Rukny');
-      const frontendUrl = this.getFrontendUrl();
-
-      const quickSignLink = `${frontendUrl}/quicksign/verify?token=${token}`;
+      const quickSignBaseUrl =
+        this.configService.get('AUTH_BASE_URL') ||
+        this.configService.get('API_BASE_URL') ||
+        this.configService.get('BACKEND_URL') ||
+        'http://localhost:3001';
+      const normalizedQuickSignBaseUrl = quickSignBaseUrl.replace(/\/+$/, '');
+      const quickSignLink = `${normalizedQuickSignBaseUrl}/api/v1/auth/quicksign/verify/${token}`;
 
       // قراءة template من الملف - دعم development و production
       const isDevelopment = !__dirname.includes('dist');
