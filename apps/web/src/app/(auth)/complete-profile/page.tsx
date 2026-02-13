@@ -109,7 +109,7 @@ function CompleteProfileContent() {
   const searchParams = useSearchParams();
   const urlToken = searchParams.get('token');
   const [quickSignToken, setQuickSignToken] = useState<string | null>(null);
-  const { setUser, user: currentUser, isAuthenticated } = useAuthContext();
+  const { setUser, user: currentUser, isAuthenticated, needsProfileCompletion } = useAuthContext();
 
   // Multi-step state
   const [currentStep, setCurrentStep] = useState(1);
@@ -152,6 +152,9 @@ function CompleteProfileContent() {
     const token = getProfileToken(urlToken);
     if (token) {
       setQuickSignToken(token);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('profile_completion_token', token);
+      }
     }
   }, [urlToken]);
 
@@ -160,20 +163,25 @@ function CompleteProfileContent() {
     if (isSubmitting) return;
     
     if (isAuthenticated) {
+      if (needsProfileCompletion) {
+        setIsOAuthUser(true);
+        return;
+      }
       router.push('/');
       return;
     }
 
     if (quickSignToken) {
       setIsOAuthUser(false);
-    } else {
-      console.warn('⚠️ No token and not authenticated, redirecting to login');
-      const timer = setTimeout(() => {
-        router.push('/login');
-      }, 3000);
-      return () => clearTimeout(timer);
+      return;
     }
-  }, [isAuthenticated, quickSignToken, router, currentUser, isSubmitting]);
+
+    console.warn('⚠️ No token and not authenticated, redirecting to login');
+    const timer = setTimeout(() => {
+      router.push('/login');
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, needsProfileCompletion, quickSignToken, router, currentUser, isSubmitting]);
 
   // Composition flag to support IME (Arabic/other) input without aggressive sanitization
   const isComposing = useRef(false);

@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
   // Required for Docker/Railway: standalone output for smaller image
   output: "standalone",
 
+  // Metadata base for OG images and social sharing
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || 'https://rukny.io'
+  ),
+
   // ⚡ Performance optimizations
   experimental: {
     // Optimize package imports

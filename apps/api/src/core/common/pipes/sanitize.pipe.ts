@@ -82,6 +82,11 @@ export class SanitizePipe implements PipeTransform {
   private sanitizeString(str: string, fieldName?: string): string {
     if (!str) return str;
 
+    // Preserve JWT-like tokens (used in auth links) to avoid corrupting them
+    if (this.isJwtLike(str)) {
+      return str;
+    }
+
     // إذا كان حقل enum (مثل type, status)، تحقق من أنه قيمة مسموح بها وأرجعه بدون تعديل
     if (fieldName && this.isEnumField(fieldName)) {
       if (this.isAllowedEnumValue(str)) {
@@ -182,6 +187,13 @@ export class SanitizePipe implements PipeTransform {
     return (
       /^[a-zA-Z0-9\-_]+\//.test(str) && !str.includes('<') && !str.includes('>')
     );
+  }
+
+  /**
+   * Detect JWT-like strings (base64url header.payload.signature)
+   */
+  private isJwtLike(str: string): boolean {
+    return /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/.test(str);
   }
 
   /**
