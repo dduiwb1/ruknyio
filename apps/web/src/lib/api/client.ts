@@ -93,18 +93,46 @@ let csrfToken: string | null = null;
  */
 export function getCsrfToken(): string | null {
   if (typeof window === 'undefined') return null;
-  // Try memory first, then cookie
+  
+  // Try memory first
   if (csrfToken) return csrfToken;
+  
+  // Then try to read from cookie (persisted)
   // CSRF cookie is not httpOnly, so we can read it
   const match = document.cookie.match(/(?:^|; )(?:__Secure-)?csrf_token=([^;]*)/);
-  return match ? match[1] : null;
+  if (match) {
+    csrfToken = match[1];
+    return csrfToken;
+  }
+  
+  return null;
 }
 
 /**
  * Store CSRF token (from login response)
+ * Store both in memory and as a cookie for persistence across page reloads
  */
 export function setCsrfToken(token: string): void {
+  // Store in memory for immediate access
   csrfToken = token;
+  
+  // Also store in a regular (non-httpOnly) cookie for persistence
+  if (typeof window === 'undefined') return;
+  
+  const isSecure = window.location.protocol === 'https:';
+  const cookieParts = [
+    `csrf_token=${token}`,
+    'Path=/',
+    'Max-Age=' + (24 * 60 * 60), // 24 hours
+    'SameSite=Lax', // Lax for OAuth flow
+  ];
+  
+  if (isSecure) {
+    cookieParts.push('Secure');
+  }
+  
+  document.cookie = cookieParts.join('; ');
+  console.log('[Auth] ✅ CSRF token stored in cookie:', token.substring(0, 20) + '...');
 }
 
 /**
@@ -112,6 +140,10 @@ export function setCsrfToken(token: string): void {
  */
 export function clearCsrfToken(): void {
   csrfToken = null;
+  
+  // Clear from cookie as well
+  if (typeof window === 'undefined') return;
+  document.cookie = 'csrf_token=; Path=/; Max-Age=0; SameSite=Lax';
 }
 
 /**
