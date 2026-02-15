@@ -73,20 +73,11 @@ uploads/*
 
 # Documentation
 README.md
-docs/
 *.md
 
-# Package manager lock files (we use npm ci so not needed in image)
+# Package manager lock files
 yarn.lock
 pnpm-lock.yaml
 
-# Railway-specific
-railway.json
-railway.toml
-
 # VS Code workspace settings
 *.code-workspace
-
-# Environment
-.env.production
-.env.production.local
