@@ -110,7 +110,7 @@ class PerformanceTracker {
    */
   private logMetric(metric: PerformanceMetric): void {
     if (this.config.logToConsole) {
-      console.log(`[Performance] ${formatMetric(metric)}`);
+      // Performance metric tracked
     }
   }
 
@@ -148,7 +148,7 @@ class PerformanceTracker {
     } catch (error) {
       // Silently fail - don't break the app if metrics fail
       if (this.config.logToConsole) {
-        console.warn('[Performance] Failed to send metric:', error);
+        // Failed to send metric
       }
     }
   }
@@ -191,7 +191,7 @@ export function trackWebVital(
 
   const thresholds = WEB_VITALS_THRESHOLDS[name.toLowerCase() as keyof typeof WEB_VITALS_THRESHOLDS];
   if (!thresholds) {
-    console.warn(`[Performance] Unknown Web Vital: ${name}`);
+    // Unknown Web Vital
     return;
   }
 

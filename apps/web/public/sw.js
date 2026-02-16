@@ -22,11 +22,8 @@ const STATIC_ASSETS = [
 
 // ============ Install Event ============
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing Service Worker...');
-  
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
-      console.log('[SW] Caching static assets');
       return cache.addAll(STATIC_ASSETS);
     })
   );
@@ -37,7 +34,6 @@ self.addEventListener('install', (event) => {
 
 // ============ Activate Event ============
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating Service Worker...');
   
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -178,7 +174,7 @@ function isStaticAsset(pathname) {
 // ============ Push Notifications ============
 
 self.addEventListener('push', (event) => {
-  console.log('[SW] Push received');
+// Push notification received
   
   let data = { title: 'ركني', body: 'لديك إشعار جديد' };
   
@@ -210,7 +206,7 @@ self.addEventListener('push', (event) => {
 
 // Handle notification click
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked');
+// Notification clicked
   
   event.notification.close();
   
@@ -235,7 +231,7 @@ self.addEventListener('notificationclick', (event) => {
 // ============ Background Sync ============
 
 self.addEventListener('sync', (event) => {
-  console.log('[SW] Background sync:', event.tag);
+// Background sync triggered
   
   if (event.tag === 'sync-pending-requests') {
     event.waitUntil(syncPendingRequests());
@@ -245,7 +241,7 @@ self.addEventListener('sync', (event) => {
 async function syncPendingRequests() {
   // This would sync any queued offline requests
   // Implementation depends on your offline queue strategy
-  console.log('[SW] Syncing pending requests...');
+// Syncing pending requests
 }
 
 // ============ Periodic Background Sync ============
@@ -257,8 +253,8 @@ self.addEventListener('periodicsync', (event) => {
 });
 
 async function updateContent() {
-  console.log('[SW] Periodic content update');
+// Periodic content update
   // Refresh cached content periodically
 }
 
-console.log('[SW] Service Worker loaded');
+// Service Worker fully loaded and ready

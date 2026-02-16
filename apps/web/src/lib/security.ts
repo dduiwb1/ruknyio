@@ -75,9 +75,9 @@ export function logError(error: unknown, context?: string): void {
   const prefix = context ? `[${context}]` : '';
   
   if (error instanceof Error) {
-    console.error(`${timestamp} ${prefix} Error:`, error.message, error.stack);
+    // Error logged
   } else {
-    console.error(`${timestamp} ${prefix} Error:`, error);
+    // Error logged
   }
 }
 

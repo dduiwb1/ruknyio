@@ -85,17 +85,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Initialize auth state on mount
   useEffect(() => {
     const initAuth = async () => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[AuthProvider] initAuth started');
-      }
-      
       // 🔒 Skip init if we're on OAuth callback page (will be handled by callback component)
       if (typeof window !== 'undefined') {
         const url = new URL(window.location.href);
         if (url.pathname.includes('/auth/callback') && url.searchParams.has('code')) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('[AuthProvider] OAuth callback detected, skipping initAuth');
-          }
           setState(prev => ({ ...prev, isLoading: false }));
           return;
         }
@@ -105,17 +98,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // 🔒 Check if we have a CSRF token (indicates logged-in state)
         // Access token is in httpOnly cookie (not accessible from JS)
         const csrfToken = getCsrfToken();
-        console.log('[AuthProvider] CSRF token:', csrfToken ? 'exists' : 'null');
 
         if (!csrfToken) {
           // Try to refresh token from cookie
           try {
-            console.log('[AuthProvider] No CSRF token, trying to refresh from cookie...');
             await refreshToken();
-            console.log('[AuthProvider] Refresh successful');
           } catch (err) {
             // No valid session - clear any stale tokens
-            console.log('[AuthProvider] Refresh failed:', err);
             clearCsrfToken();
             setState(prev => ({ ...prev, isLoading: false }));
             return;
@@ -123,9 +112,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
 
         // Get current user
-        console.log('[AuthProvider] Getting current user...');
         const user = await getCurrentUser();
-        console.log('[AuthProvider] getCurrentUser result:', user);
         setState({
           user,
           isLoading: false,
@@ -133,15 +120,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           needsProfileCompletion: !user.name || !user.username,
           error: null,
         });
-        console.log('[AuthProvider] Auth state set to authenticated');
       } catch (err) {
         // Clear CSRF token
         // Don't log error if it's just "Unauthorized" - this is expected when no user is logged in
-        if (err instanceof Error && !err.message.includes('Unauthorized')) {
-          console.error('[AuthProvider] initAuth error:', err);
-        } else {
-          console.log('[AuthProvider] No authenticated session found');
-        }
         clearCsrfToken();
         setState({
           user: null,
@@ -165,7 +146,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         await refreshToken();
         // 🔒 Update session timeout tracker
         updateLastRefreshTime();
-        console.log('[AuthProvider] Proactive token refresh successful');
+        // Token refresh successful
       } catch {
         // Token refresh failed, log out
         clearCsrfToken();
@@ -240,34 +221,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Handle OAuth callback
   const handleOAuthCallback = useCallback(async (code: string): Promise<AuthResponse> => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[AuthProvider] handleOAuthCallback started with code:', code);
-    }
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      console.log('[AuthProvider] Calling exchangeOAuthCode...');
       const response = await exchangeOAuthCode(code);
-      console.log('[AuthProvider] exchangeOAuthCode response received:', {
-        success: response.success,
-        hasCsrfToken: !!response.csrf_token,
-        csrfTokenPreview: response.csrf_token?.substring(0, 20) + '...',
-        hasUser: !!response.user,
-        userId: response.user?.id,
-        needsProfileCompletion: response.needsProfileCompletion,
-      });
       
       // 🔒 Store CSRF token and update refresh time
       if (response.csrf_token) {
-        console.log('[AuthProvider] ✅ Setting CSRF token from response:', response.csrf_token.substring(0, 20) + '...');
+        // Setting CSRF token from response
         setCsrfToken(response.csrf_token);
         updateLastRefreshTime();
       } else {
-        console.warn('[AuthProvider] ⚠️ No CSRF token in response!');
+        // No CSRF token in response
       }
       
       if (response.user) {
-        console.log('[AuthProvider] Setting user from response:', response.user);
+        // Setting user from response
         setState({
           user: response.user,
           isLoading: false,
@@ -277,9 +246,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         });
       } else {
         // 🔒 Access token is in httpOnly cookie, fetch user
-        console.log('[AuthProvider] Fetching user with getCurrentUser...');
         const user = await getCurrentUser();
-        console.log('[AuthProvider] getCurrentUser result:', user);
         setState({
           user,
           isLoading: false,
@@ -289,10 +256,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         });
       }
       
-      console.log('[AuthProvider] ✅ handleOAuthCallback completed successfully');
       return response;
     } catch (err) {
-      console.error('[AuthProvider] handleOAuthCallback error:', err);
       const message = err instanceof Error ? err.message : 'OAuth authentication failed';
       setState(prev => ({ ...prev, isLoading: false, error: message }));
       throw err;

@@ -382,7 +382,7 @@ export default function EditFormPage() {
         }
       } catch (err) {
         setLoadError('حدث خطأ أثناء تحميل النموذج');
-        console.error('Error loading form:', err);
+        // Error loading form
       } finally {
         setIsPageLoading(false);
       }

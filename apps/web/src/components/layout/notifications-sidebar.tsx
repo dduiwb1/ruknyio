@@ -133,7 +133,7 @@ export function NotificationsSidebar({ className }: NotificationsSidebarProps) {
           setActivities(formattedActivities);
         }
       } catch (error) {
-        console.error('Error fetching activities:', error);
+        // Error fetching activities
       } finally {
         setLoading(false);
       }

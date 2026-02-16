@@ -80,7 +80,7 @@ async function proxyRequest(request: NextRequest, method: string) {
   } catch (error: any) {
     const errorMessage = error?.message || 'Unknown error';
     const errorCode = error?.cause?.code || error?.code || 'UNKNOWN';
-    console.error('[API v1 Proxy] Error:', { message: errorMessage, code: errorCode, targetUrl, method });
+    // API proxy error
     if (errorCode === 'ECONNREFUSED') {
       return NextResponse.json(
         {

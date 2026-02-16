@@ -56,7 +56,7 @@ export function IPProtectionSettings({ onSettingsChange }: IPProtectionSettingsP
         });
       }
     } catch (err) {
-      console.error('Error loading IP alert settings:', err);
+      // Error loading IP alert settings
       setSettings({
         alertOnNewIP: true,
         trustedIpCount: 0,

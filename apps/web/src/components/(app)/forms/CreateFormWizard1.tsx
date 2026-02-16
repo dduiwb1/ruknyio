@@ -746,7 +746,7 @@ export function CreateFormWizard({ initialDraft, initialSlug }: { initialDraft?:
         if (VALID_FIELD_TYPES.includes(typeStr)) {
           return typeStr;
         }
-        console.warn(`Invalid field type "${typeStr}", defaulting to TEXT`);
+        // Invalid field type, defaulting to TEXT
         return 'TEXT';
       };
 
@@ -816,7 +816,7 @@ export function CreateFormWizard({ initialDraft, initialSlug }: { initialDraft?:
             return; // Don't continue with normal redirect
           }
         } catch (gsError) {
-          console.error('Google Sheets connection error:', gsError);
+          // Google Sheets connection error
           toast.error('فشل في ربط Google Sheets. يمكنك ربطه لاحقاً من صفحة الردود.');
         }
       }

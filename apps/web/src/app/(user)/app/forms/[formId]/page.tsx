@@ -232,7 +232,7 @@ export default function FormDetailsPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      // Failed to copy
       // Fallback method
       const textArea = document.createElement('textarea');
       textArea.value = formLink;

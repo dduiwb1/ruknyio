@@ -181,7 +181,7 @@ export default function NotificationsPage() {
           setActivities(formattedActivities);
         }
       } catch (error) {
-        console.error('Error fetching notifications:', error);
+        // Error fetching notifications
       } finally {
         setLoading(false);
       }

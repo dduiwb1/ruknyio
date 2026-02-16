@@ -282,7 +282,7 @@ export default function PublicProfilePage() {
         }
 
       } catch (err: any) {
-        console.error('Error fetching profile:', err);
+        // Error fetching profile
         setError(err.message || 'Profile not found');
       } finally {
         setLoading(false);
@@ -329,7 +329,7 @@ export default function PublicProfilePage() {
         });
       }
     } catch (err: any) {
-      console.error('Error toggling follow:', err);
+      // Error toggling follow
       // Show appropriate error message
       const errorMessage = err?.response?.data?.message || err?.message || 'حدث خطأ';
       if (errorMessage.includes('cannot follow yourself') || errorMessage.includes('You cannot follow yourself')) {

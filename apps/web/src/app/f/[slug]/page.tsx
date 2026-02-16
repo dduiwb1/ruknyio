@@ -330,7 +330,7 @@ export default function PublicFormPage() {
         setError('فشل في إرسال النموذج');
       }
     } catch (error: any) {
-      console.error('Form submission error:', error);
+      // Form submission error
       if (error.message?.includes('reCAPTCHA')) {
         setError('فشل في التحقق الأمني. يرجى المحاولة مرة أخرى.');
       } else {

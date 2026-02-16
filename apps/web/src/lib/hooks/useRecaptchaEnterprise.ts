@@ -27,7 +27,7 @@ export function useRecaptchaEnterprise({
       if (!window.grecaptcha?.enterprise) {
         const error = 'reCAPTCHA Enterprise script not loaded';
         onError?.(error);
-        console.warn(error);
+        // reCAPTCHA load warning
         return null;
       }
 
@@ -46,7 +46,7 @@ export function useRecaptchaEnterprise({
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'reCAPTCHA error';
       onError?.(errorMsg);
-      console.error('reCAPTCHA Enterprise error:', err);
+      // reCAPTCHA Enterprise error
       return null;
     }
   }, [siteKey, onError]);

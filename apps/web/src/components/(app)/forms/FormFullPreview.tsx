@@ -182,7 +182,7 @@ export function FormFullPreview({ data, onClose, formUrl, formSlug }: FormFullPr
       setCopiedUrl(true);
       setTimeout(() => setCopiedUrl(false), 2000);
     } catch (err) {
-      console.error('Failed to copy URL:', err);
+      // Failed to copy URL
     }
   };
 

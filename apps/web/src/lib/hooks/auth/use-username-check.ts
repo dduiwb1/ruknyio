@@ -91,7 +91,7 @@ export function useUsernameCheck(username: string, debounceMs = 500): UsernameCh
           return;
         }
         
-        console.error('Username check error:', err);
+        // Username check error
         setAvailable(null);
         setError('خطأ في التحقق من اسم المستخدم');
       } finally {

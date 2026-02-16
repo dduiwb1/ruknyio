@@ -170,7 +170,7 @@ export function PhonePreview({ className }: PhonePreviewProps) {
           setProfile(null);
         }
       } catch (error) {
-        console.error('Error fetching profile:', error);
+        // Error fetching profile
         setProfile(null);
       } finally {
         setLoading(false);
@@ -202,7 +202,7 @@ export function PhonePreview({ className }: PhonePreviewProps) {
         setProfile(data);
       }
     } catch (error) {
-      console.error('Error refreshing profile:', error);
+      // Error refreshing profile
     } finally {
       setLoading(false);
     }
@@ -246,7 +246,7 @@ export function PhonePreview({ className }: PhonePreviewProps) {
         }
       } catch (error) {
         if (!controller.signal.aborted) {
-          console.error('Error fetching preview content:', error);
+          // Error fetching preview content
           setEvents([]);
           setForms([]);
         }

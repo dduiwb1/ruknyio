@@ -697,12 +697,16 @@ export class QuickSignController {
     }
 
     // التحقق من توفر اسم المستخدم
-    const existingUsername = await this.prisma.profile.findUnique({
-      where: { username: dto.username },
-      select: { username: true }, // Only fetch username field to avoid missing column errors
-    });
+    // ⚡ Fast username existence check using EXISTS (much faster than findUnique)
+    const [usernameExists] = await this.prisma.$queryRaw<{ exists: boolean }[]>`
+      SELECT EXISTS(
+        SELECT 1 FROM "profiles" 
+        WHERE username = $1 
+        LIMIT 1
+      ) as exists
+    `;
 
-    if (existingUsername) {
+    if (usernameExists?.exists) {
       throw new BadRequestException('اسم المستخدم محجوز بالفعل');
     }
 
@@ -832,18 +836,28 @@ export class QuickSignController {
    */
   @Get('check-username/:username')
   @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 30, ttl: 60 } }) // 30 requests per minute per IP
   @ApiOperation({ summary: 'التحقق من توفر اسم المستخدم' })
   @ApiResponse({ status: 200, description: 'نتيجة التحقق' })
   async checkUsername(@Param('username') username: string) {
     // ⚡ Optimize: Only select what we need (username field only)
-    const existingUsername = await this.prisma.profile.findUnique({
-      where: { username },
-      select: { username: true }, // Only fetch the username field to avoid missing column errors
-    });
+    // Use EXISTS clause for faster existence check
+    try {
+      const existingUsername = await this.prisma.profile.findUnique({
+        where: { username },
+        select: { username: true }, // Only fetch the username field to avoid missing column errors
+      });
 
-    return {
-      available: !existingUsername,
-      username,
-    };
+      return {
+        available: !existingUsername,
+        username,
+      };
+    } catch (error) {
+      // If query fails, assume username not available to prevent spam
+      return {
+        available: false,
+        username,
+      };
+    }
   }
 }

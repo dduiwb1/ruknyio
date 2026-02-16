@@ -191,7 +191,7 @@ export function calculateFormula(
     
     return typeof result === 'number' && !isNaN(result) ? result : null;
   } catch (error) {
-    console.error('Formula calculation error:', error);
+    // Formula calculation error
     return null;
   }
 }

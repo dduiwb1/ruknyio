@@ -19,13 +19,13 @@ export async function registerServiceWorker(
   options: SWRegistrationOptions = {}
 ): Promise<ServiceWorkerRegistration | null> {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
-    console.log('[PWA] Service workers not supported');
+    // Service workers not supported
     return null;
   }
 
   // Only register in production
   if (process.env.NODE_ENV !== 'production') {
-    console.log('[PWA] Skipping SW registration in development');
+    // Skipping SW registration in development
     return null;
   }
 
@@ -35,7 +35,7 @@ export async function registerServiceWorker(
     });
 
     swRegistration = registration;
-    console.log('[PWA] Service Worker registered:', registration.scope);
+    // Service Worker registered
 
     // Check for updates
     registration.addEventListener('updatefound', () => {
@@ -46,11 +46,11 @@ export async function registerServiceWorker(
         if (newWorker.state === 'installed') {
           if (navigator.serviceWorker.controller) {
             // New update available
-            console.log('[PWA] New content available');
+            // New content available
             options.onUpdate?.(registration);
           } else {
             // First install
-            console.log('[PWA] Content cached for offline use');
+            // Content cached for offline use
             options.onSuccess?.(registration);
           }
         }
@@ -59,12 +59,12 @@ export async function registerServiceWorker(
 
     // Handle controller change (new SW activated)
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      console.log('[PWA] New service worker activated');
+      // New service worker activated
     });
 
     return registration;
   } catch (error) {
-    console.error('[PWA] Registration failed:', error);
+    // Registration failed
     options.onError?.(error as Error);
     return null;
   }
@@ -81,10 +81,10 @@ export async function unregisterServiceWorker(): Promise<boolean> {
   try {
     const registration = await navigator.serviceWorker.ready;
     const result = await registration.unregister();
-    console.log('[PWA] Service Worker unregistered:', result);
+    // Service Worker unregistered
     return result;
   } catch (error) {
-    console.error('[PWA] Unregistration failed:', error);
+    // Unregistration failed
     return false;
   }
 }
@@ -101,7 +101,7 @@ export function hasUpdate(): boolean {
  */
 export async function applyUpdate(): Promise<void> {
   if (!swRegistration?.waiting) {
-    console.log('[PWA] No update waiting');
+    // No update waiting
     return;
   }
 
@@ -141,7 +141,7 @@ export function canInstall(): boolean {
  */
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
   if (!('Notification' in window)) {
-    console.log('[PWA] Notifications not supported');
+    // Notifications not supported
     return 'denied';
   }
 
@@ -150,7 +150,7 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
   }
 
   const permission = await Notification.requestPermission();
-  console.log('[PWA] Notification permission:', permission);
+  // Notification permission set
   return permission;
 }
 
@@ -161,7 +161,7 @@ export async function subscribeToPush(
   vapidPublicKey: string
 ): Promise<PushSubscription | null> {
   if (!swRegistration) {
-    console.log('[PWA] No service worker registration');
+    // No service worker registration
     return null;
   }
 
@@ -171,10 +171,10 @@ export async function subscribeToPush(
       applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
     });
 
-    console.log('[PWA] Push subscription:', subscription);
+    // Push subscription created
     return subscription;
   } catch (error) {
-    console.error('[PWA] Push subscription failed:', error);
+    // Push subscription failed
     return null;
   }
 }

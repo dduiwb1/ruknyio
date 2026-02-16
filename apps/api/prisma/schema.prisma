@@ -104,6 +104,8 @@ model Profile {
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   socialLinks  SocialLink[]
 
+  @@index([username]) // Explicit index for faster lookups
+  @@index([userId])   // For relation queries
   @@map("profiles")
 }
 

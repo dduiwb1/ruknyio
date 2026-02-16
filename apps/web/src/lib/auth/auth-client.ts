@@ -22,7 +22,7 @@ export class AuthClient {
       await refreshToken();
       return true;
     } catch (error) {
-      console.error('Token refresh error:', error);
+      // Token refresh error
       return false;
     }
   }
@@ -32,7 +32,7 @@ export class AuthClient {
       const { logout } = await import('@/lib/api/auth');
       await logout();
     } catch (error) {
-      console.error('Logout error:', error);
+      // Logout error
     }
   }
 

@@ -28,7 +28,7 @@ async function proxyRequest(request: NextRequest, method: string) {
 
   // Debug: Log oauth/exchange requests
   if (pathSegments === 'oauth/exchange') {
-    console.log('[Auth Proxy] OAuth exchange request:', {
+    // OAuth exchange request
       targetUrl,
       method,
     });
@@ -66,7 +66,7 @@ async function proxyRequest(request: NextRequest, method: string) {
         
         // Debug: Log oauth/exchange body
         if (pathSegments === 'oauth/exchange') {
-          console.log('[Auth Proxy] OAuth exchange body:', {
+          // OAuth exchange body
             codeLength: body.code?.length,
             codePreview: body.code?.substring(0, 20) + '...',
           });
@@ -86,7 +86,7 @@ async function proxyRequest(request: NextRequest, method: string) {
   try {
     // 🔒 Debug logging for refresh endpoint
     if (pathSegments === 'refresh') {
-      console.log('[Auth Proxy] Refresh request:', {
+      // Refresh request
         hasCookies: !!cookies,
         cookieNames: cookies ? cookies.split(';').map(c => c.trim().split('=')[0]) : [],
       });
@@ -106,14 +106,14 @@ async function proxyRequest(request: NextRequest, method: string) {
 
     // 🔒 Debug logging for refresh and oauth exchange endpoints
     if (pathSegments === 'refresh') {
-      console.log('[Auth Proxy] Refresh response:', {
+      // Refresh response
         status: response.status,
         hasSetCookie: response.headers.has('set-cookie'),
       });
     }
 
     if (pathSegments === 'oauth/exchange') {
-      console.log('[Auth Proxy] OAuth exchange response:', {
+      // OAuth exchange response
         status: response.status,
         hasSetCookie: response.headers.has('set-cookie'),
         bodyLength: responseBody.length,
@@ -170,7 +170,7 @@ async function proxyRequest(request: NextRequest, method: string) {
     const errorMessage = error?.message || 'Unknown error';
     const errorCode = error?.cause?.code || error?.code || error?.name || 'UNKNOWN';
 
-    console.error('[Auth Proxy] Error:', {
+    // Auth proxy error
       message: errorMessage,
       code: errorCode,
       targetUrl,

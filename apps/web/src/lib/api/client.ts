@@ -96,7 +96,7 @@ export function getCsrfToken(): string | null {
   
   // Try memory first
   if (csrfToken) {
-    console.log('[CSRF] Found token in memory:', csrfToken.substring(0, 20) + '...');
+    // CSRF token found in memory
     return csrfToken;
   }
   
@@ -105,11 +105,11 @@ export function getCsrfToken(): string | null {
   const match = document.cookie.match(/(?:^|; )(?:__Secure-)?csrf_token=([^;]*)/);
   if (match) {
     csrfToken = match[1];
-    console.log('[CSRF] Found token in cookie:', csrfToken.substring(0, 20) + '...');
+    // CSRF token found in cookie
     return csrfToken;
   }
   
-  console.log('[CSRF] No CSRF token found. Available cookies:', document.cookie.substring(0, 100));
+  // No CSRF token found
   return null;
 }
 
@@ -119,18 +119,18 @@ export function getCsrfToken(): string | null {
  */
 export function setCsrfToken(token: string): void {
   if (!token) {
-    console.warn('[CSRF] Attempted to setCsrfToken with empty/null token');
+    // Attempted to set empty CSRF token
     return;
   }
   
-  console.log('[CSRF] Storing CSRF token:', token.substring(0, 20) + '...');
+  // Storing CSRF token
   
   // Store in memory for immediate access
   csrfToken = token;
   
   // Also store in a regular (non-httpOnly) cookie for persistence
   if (typeof window === 'undefined') {
-    console.warn('[CSRF] Cannot set cookie - window is undefined (SSR?)');
+    // Cannot set cookie - SSR environment
     return;
   }
   
@@ -147,12 +147,12 @@ export function setCsrfToken(token: string): void {
   }
   
   const cookieString = cookieParts.join('; ');
-  console.log('[CSRF] Setting cookie with attributes:', cookieParts.join(' | '));
+  // CSRF cookie set
   document.cookie = cookieString;
   
   // Verify it was set
   const verify = document.cookie.includes('csrf_token');
-  console.log('[CSRF] Cookie set verification:', verify ? '✅ Success' : '❌ Failed');
+  // CSRF cookie verification
 }
 
 /**
@@ -181,7 +181,7 @@ export function getAccessToken(): string | null {
  */
 export function setAccessToken(token: string): void {
   // No-op - access token is managed via httpOnly cookie
-  console.warn('[Auth] setAccessToken is deprecated - token is now in httpOnly cookie');
+  // setAccessToken is deprecated - token is in httpOnly cookie
 }
 
 /**

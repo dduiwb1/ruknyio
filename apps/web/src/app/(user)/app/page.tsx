@@ -152,7 +152,7 @@ export default function DashboardPage() {
           setRecentOrders(ordersData.data || ordersData || []);
         }
       } catch (error) {
-        console.error("Error fetching dashboard data:", error);
+        // Error fetching dashboard data
       } finally {
         setLoading(false);
       }

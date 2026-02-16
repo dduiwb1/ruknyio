@@ -82,7 +82,7 @@ export function PWAPrompt() {
         setShowInstall(false);
       }
     } catch (error) {
-      console.error('[PWA] Install error:', error);
+      // PWA install error
     }
 
     setInstallPrompt(null);
