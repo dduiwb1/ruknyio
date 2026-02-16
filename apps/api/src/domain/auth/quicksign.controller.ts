@@ -699,6 +699,7 @@ export class QuickSignController {
     // التحقق من توفر اسم المستخدم
     const existingUsername = await this.prisma.profile.findUnique({
       where: { username: dto.username },
+      select: { username: true }, // Only fetch username field to avoid missing column errors
     });
 
     if (existingUsername) {
@@ -834,8 +835,10 @@ export class QuickSignController {
   @ApiOperation({ summary: 'التحقق من توفر اسم المستخدم' })
   @ApiResponse({ status: 200, description: 'نتيجة التحقق' })
   async checkUsername(@Param('username') username: string) {
+    // ⚡ Optimize: Only select what we need (username field only)
     const existingUsername = await this.prisma.profile.findUnique({
       where: { username },
+      select: { username: true }, // Only fetch the username field to avoid missing column errors
     });
 
     return {

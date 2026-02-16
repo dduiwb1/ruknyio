@@ -93,7 +93,17 @@ export class PrismaService
     
     this.keepaliveInterval = setInterval(async () => {
       try {
-        await this.$queryRaw`SELECT 1`;
+        // Timeout the keepalive ping to prevent blocking other queries
+        // If it takes more than 2 seconds, we have a serious connection issue
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Keepalive timeout')), 2000)
+        );
+        
+        await Promise.race([
+          this.$queryRaw`SELECT 1`,
+          timeoutPromise
+        ]);
+        
         this.logger.debug('🔄 Database keepalive ping successful');
       } catch (error) {
         this.logger.warn('⚠️ Keepalive ping failed, will reconnect on next query');

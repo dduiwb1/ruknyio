@@ -47,6 +47,14 @@ async function bootstrap() {
   // Security: Cookie Parser
   app.use(cookieParser());
 
+  // ⚡ Performance: Skip favicon/favicon.ico requests (don't log 404 errors)
+  app.use((req, res, next) => {
+    if (req.path === '/favicon.ico' || req.path === '/favicon.png' || req.path === '/manifest.json') {
+      return res.status(204).send();
+    }
+    next();
+  });
+
   // Security: CSRF Protection
   // ✅ Using SameSite=Lax cookies for CSRF protection instead of tokens
   // This is the recommended approach for SPA + API architecture
