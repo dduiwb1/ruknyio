@@ -88,16 +88,18 @@ export class UserController {
     description: 'Active sessions retrieved successfully',
   })
   async getSessions(@Request() req) {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    return this.userService.getSessions(req.user.id, token);
+    // استخدام sessionId من JWT مباشرة
+    const currentSessionId = req.user?.sessionId;
+    return this.userService.getSessions(req.user.id, currentSessionId);
   }
 
   @Delete('sessions/:sessionId')
   @ApiOperation({ summary: 'Delete specific session (logout from device)' })
   @ApiResponse({ status: 200, description: 'Session deleted successfully' })
   async deleteSession(@Request() req, @Param('sessionId') sessionId: string) {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    return this.userService.deleteSession(req.user.id, sessionId, token);
+    // استخراج sessionId من JWT للتأكد من عدم حذف الجلسة الحالية
+    const currentSessionId = req.user?.sessionId;
+    return this.userService.deleteSession(req.user.id, sessionId, currentSessionId);
   }
 
   @Delete('sessions')
@@ -109,8 +111,9 @@ export class UserController {
     description: 'All other sessions deleted successfully',
   })
   async deleteOtherSessions(@Request() req) {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    return this.userService.deleteOtherSessions(req.user.id, token);
+    // استخراج sessionId من JWT
+    const currentSessionId = req.user?.sessionId;
+    return this.userService.deleteOtherSessions(req.user.id, currentSessionId);
   }
 
   @Get('security-logs')

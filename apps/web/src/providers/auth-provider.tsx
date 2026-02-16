@@ -294,14 +294,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setState(prev => ({ ...prev, isLoading: true }));
 
     try {
+      // Call logout API
       await apiLogout();
-    } catch {
+    } catch (error) {
       // Ignore logout API errors - still clear local state
+      console.warn('Logout API error:', error);
     } finally {
-      // 🔒 Clear CSRF token
+      // 🔒 Clear CSRF token and stop silent refresh
       clearCsrfToken();
       
-      // Clear local state
+      // Clear local state immediately
       setState({
         user: null,
         isLoading: false,
@@ -310,9 +312,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         error: null,
       });
       
-      // Redirect to login page
+      // Force redirect with page reload to ensure clean state
       if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+        // Use replace to prevent back button issues
+        window.location.replace('/login');
       }
     }
   }, []);

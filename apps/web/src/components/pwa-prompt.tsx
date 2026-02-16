@@ -146,7 +146,7 @@ export function PWAPrompt() {
       {/* Update Notification */}
       {showUpdate && (
         <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-50 animate-in slide-in-from-bottom-4 duration-300">
-          <div className="bg-blue-600 text-white rounded-2xl shadow-2xl p-4">
+          <div className="bg-blue-600 text-white rounded-4xl shadow-2xl p-4">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0 w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                 <RefreshCw className="w-5 h-5" />

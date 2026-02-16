@@ -188,10 +188,15 @@ export function useSecuritySettings() {
     }
   }, []);
 
-  const deleteSession = useCallback(async (sessionId: string): Promise<boolean> => {
+  const deleteSession = useCallback(async (sessionId: string, isCurrent: boolean = false): Promise<boolean> => {
     try {
       setIsLoading(true);
       setError(null);
+      
+      // 🔒 منع حذف الجلسة الحالية
+      if (isCurrent) {
+        throw new Error('لا يمكن حذف الجلسة الحالية. استخدم تسجيل الخروج بدلاً من ذلك.');
+      }
       
       const response = await secureFetch(`${API_URL}/user/sessions/${sessionId}`, {
         method: 'DELETE',

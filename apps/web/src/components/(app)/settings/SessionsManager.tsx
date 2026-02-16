@@ -48,9 +48,14 @@ export function SessionsManager() {
     setLoadingSessions(false);
   };
 
-  const handleDeleteSession = async (sessionId: string) => {
+  const handleDeleteSession = async (sessionId: string, isCurrent: boolean) => {
+    // 🔒 منع حذف الجلسة الحالية
+    if (isCurrent) {
+      return;
+    }
+    
     setDeletingId(sessionId);
-    const success = await deleteSession(sessionId);
+    const success = await deleteSession(sessionId, isCurrent);
     if (success) {
       setSessions(prev => prev.filter(s => s.id !== sessionId));
     }
@@ -177,9 +182,10 @@ export function SessionsManager() {
 
                   {!session.isCurrent && (
                     <button
-                      onClick={() => handleDeleteSession(session.id)}
+                      onClick={() => handleDeleteSession(session.id, session.isCurrent)}
                       disabled={deletingId === session.id}
                       className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors disabled:opacity-50"
+                      title="إنهاء هذه الجلسة"
                     >
                       {deletingId === session.id ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
