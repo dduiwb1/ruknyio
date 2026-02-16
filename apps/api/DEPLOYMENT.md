@@ -1,5 +1,8 @@
 # 🚀 دليل النشر - Rukny API
 
+> ⚠️ **ملاحظة مهمة:** Docker معطّل في البيئة الإنتاجية. نستخدم Node.js native deployment لسرعة أفضل وتكلفة أقل.  
+> ملف `Dockerfile.local` متوفر للتطوير المحلي فقط.
+
 تم تجهيز المشروع للنشر على عدة منصات استضافة. اختر المنصة المناسبة لك:
 
 ---
@@ -26,7 +29,7 @@ sh start.sh
 
 ---
 
-### 🎨 **Render**
+### 🎨 **Render** (الطريقة الموصى بها)
 استخدم الملف `render.yaml` الموجود، أو أضف في لوحة التحكم:
 
 **Build Command:**
@@ -39,13 +42,21 @@ npm install; npx prisma generate; npm run build
 npm run deploy
 ```
 
+**⚡ مزايا Render مع Node.js Native:**
+- ✅ Build أسرع (بدون Docker layers)
+- ✅ استهلاك موارد أقل
+- ✅ تكلفة أقل
+- ✅ Auto-detection للـ Node.js environment
+
 ---
 
-### 🐳 **Docker (أي منصة)**
+### 🐳 **Docker (للتطوير المحلي فقط)**
+
+> ⚠️ Docker **غير مستخدم** في الإنتاج. هذا للتطوير المحلي فقط.
 
 **بناء الصورة:**
 ```bash
-docker build -t rukny-api .
+docker build -f Dockerfile.local -t rukny-api .
 ```
 
 **تشغيل الحاوية:**
