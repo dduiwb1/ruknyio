@@ -470,11 +470,8 @@ function CompleteProfileContent() {
               >
                 {/* Header */}
                 <div className="text-center mb-10">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 mb-6">
-                    <User className="h-7 w-7 text-primary" />
-                  </div>
                   <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-3">
-                    مرحباً بك! 👋
+                    مرحباً بك! 
                   </h1>
                   <p className="text-sm text-muted-foreground">
                     دعنا ننشئ حسابك في بضع خطوات بسيطة
@@ -595,7 +592,7 @@ function CompleteProfileContent() {
                     />
                   </div>
                   <p className="text-xs text-muted-foreground/60 pr-1">
-                    💬 لتلقي إشعارات الطلبات والتواصل مع العملاء
+                     لتلقي إشعارات الطلبات والتواصل مع العملاء
                   </p>
                 </div>
               </motion.div>
@@ -613,11 +610,8 @@ function CompleteProfileContent() {
               >
                 {/* Header */}
                 <div className="text-center mb-10">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 mb-6">
-                    <Store className="h-7 w-7 text-emerald-600 dark:text-emerald-400" />
-                  </div>
                   <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-3">
-                    أخبرنا عن متجرك 🏪
+                    أخبرنا عن متجرك 
                   </h1>
                   <p className="text-sm text-muted-foreground">
                     سيتم إنشاء متجرك تلقائياً على <span className="font-semibold text-emerald-600 dark:text-emerald-400">@{formData.username || 'username'}</span>
@@ -884,7 +878,7 @@ function CompleteProfileContent() {
 
         {/* Footer */}
         <p className="text-xs text-muted-foreground/70 text-center mt-8 px-4">
-          🔒 بإنشاء حسابك، أنت توافق على{' '}
+           بإنشاء حسابك، أنت توافق على{' '}
           <a href="/terms" className="underline underline-offset-2 hover:text-foreground transition-colors">
             شروط الاستخدام
           </a>

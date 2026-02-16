@@ -684,6 +684,84 @@ export class QuickSignController {
         throw new BadRequestException('البريد مسجل بالفعل. يرجى تسجيل الدخول.');
       }
       if ((verification as any).used) {
+        // 🔄 Idempotent behavior: If token is used but user exists, log them in instead of error
+        if (verification.email) {
+          const existingUser = await this.prisma.user.findUnique({
+            where: { email: verification.email },
+            select: {
+              id: true,
+              email: true,
+              role: true,
+              profileCompleted: true,
+              profile: { 
+                select: { 
+                  name: true, 
+                  username: true, 
+                  avatar: true 
+                } 
+              },
+            },
+          });
+
+          // If user exists and profile is completed, log them in
+          if (existingUser && existingUser.profileCompleted) {
+            // Parse device info
+            const parser = new UAParser(userAgent);
+            const result = parser.getResult();
+
+            // Generate tokens and set cookies
+            const { tokens } = await this.tokenService.generateTokenPair(
+              existingUser.id,
+              existingUser.email,
+              { userId: existingUser.id, userAgent, ipAddress },
+            );
+
+            setAccessTokenCookie(res, tokens.accessToken);
+            setRefreshTokenCookie(res, tokens.refreshToken);
+            const csrfToken = generateCsrfToken();
+            setCsrfTokenCookie(res, csrfToken);
+
+            // Security log
+            await this.securityLogService.createLog({
+              userId: existingUser.id,
+              action: 'LOGIN_SUCCESS',
+              status: 'SUCCESS',
+              description: 'تسجيل دخول إلى حساب موجود (token مستخدم مسبقاً)',
+              ipAddress,
+              deviceType: result.device.type || 'desktop',
+              browser: result.browser.name || 'Unknown',
+              os: result.os.name || 'Unknown',
+              userAgent,
+            });
+
+            // Get user's store
+            const store = await this.prisma.store.findFirst({
+              where: { userId: existingUser.id },
+              select: { id: true, name: true, slug: true },
+            });
+
+            return {
+              success: true,
+              user: {
+                id: existingUser.id,
+                email: existingUser.email,
+                role: existingUser.role,
+                profileCompleted: existingUser.profileCompleted,
+                name: existingUser.profile?.name,
+                username: existingUser.profile?.username,
+                avatar: existingUser.profile?.avatar,
+              },
+              store: store ? {
+                id: store.id,
+                name: store.name,
+                slug: store.slug,
+              } : null,
+              csrf_token: csrfToken,
+              expires_in: 30 * 60,
+              message: 'تم تسجيل الدخول بنجاح',
+            };
+          }
+        }
         throw new BadRequestException('هذا الرابط تم استخدامه مسبقاً');
       }
       if ((verification as any).expired) {
