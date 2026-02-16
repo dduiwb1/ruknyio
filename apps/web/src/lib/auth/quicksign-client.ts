@@ -28,9 +28,8 @@ export interface CompleteProfileData {
 export interface CompleteProfileResponse {
   success: boolean;
   message?: string;
-  access_token: string;
-  refresh_token?: string;
   csrf_token?: string;
+  expires_in?: number;
   user: User;
   store?: {
     id: string;
@@ -48,9 +47,8 @@ const StoreSchema = z.object({
 const CompleteProfileResponseSchema = z.object({
   success: z.boolean(),
   message: z.string().optional(),
-  access_token: z.string(),
-  refresh_token: z.string().optional(),
   csrf_token: z.string().optional(),
+  expires_in: z.number().optional(),
   user: UserSchema,
   store: StoreSchema.optional(),
 });

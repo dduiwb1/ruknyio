@@ -274,10 +274,6 @@ function VerifyContent() {
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           className="flex flex-col items-center w-full max-w-sm"
         >
-          {/* Error Icon */}
-          <div className="flex items-center justify-center w-20 h-20 rounded-full bg-amber-100 dark:bg-amber-900/30 mb-6">
-            <AlertTriangle className="w-10 h-10 text-amber-600 dark:text-amber-400" />
-          </div>
 
           {/* Header */}
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2 text-center">

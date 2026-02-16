@@ -329,7 +329,6 @@ function CompleteProfileContent() {
     setRateLimitError(null);
     setStoreCreationError(null);
 
-    let accessToken: string | null = null;
     let storeSlug: string | null = null;
 
     try {
@@ -370,7 +369,6 @@ function CompleteProfileContent() {
           setCsrfToken(response.csrf_token);
         }
         setUser(response.user);
-        accessToken = response.access_token;
         
         // Store created automatically by backend
         if (response.store) {
