@@ -66,7 +66,7 @@ export const quickSignClient = {
     const { data: response } = await api.post<CompleteProfileResponse>(
       '/auth/quicksign/complete-profile',
       {
-        token: data.quickSignToken,
+        quickSignToken: data.quickSignToken,
         name: data.name,
         username: data.username,
         isVendor: data.isVendor ?? true,
