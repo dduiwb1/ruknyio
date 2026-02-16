@@ -23,6 +23,7 @@ export const envSchema = z.object({
   // OAuth
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_CALLBACK_URL: z.string().optional(),
   LINKEDIN_CLIENT_ID: z.string().optional(),
   LINKEDIN_CLIENT_SECRET: z.string().optional(),
 

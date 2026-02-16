@@ -28,10 +28,7 @@ async function proxyRequest(request: NextRequest, method: string) {
 
   // Debug: Log oauth/exchange requests
   if (pathSegments === 'oauth/exchange') {
-    // OAuth exchange request
-      targetUrl,
-      method,
-    });
+    // OAuth exchange request handling
   }
 
   // Forward headers including cookies
@@ -66,10 +63,7 @@ async function proxyRequest(request: NextRequest, method: string) {
         
         // Debug: Log oauth/exchange body
         if (pathSegments === 'oauth/exchange') {
-          // OAuth exchange body
-            codeLength: body.code?.length,
-            codePreview: body.code?.substring(0, 20) + '...',
-          });
+          // OAuth exchange body handling
         }
       } catch {
         // No body or invalid JSON
@@ -84,12 +78,9 @@ async function proxyRequest(request: NextRequest, method: string) {
   }
 
   try {
-    // 🔒 Debug logging for refresh endpoint
+    // Debug logging for refresh endpoint
     if (pathSegments === 'refresh') {
-      // Refresh request
-        hasCookies: !!cookies,
-        cookieNames: cookies ? cookies.split(';').map(c => c.trim().split('=')[0]) : [],
-      });
+      // Refresh request tracking
     }
 
     // Make the request to the backend (with timeout)
@@ -104,21 +95,13 @@ async function proxyRequest(request: NextRequest, method: string) {
     // Get response body
     const responseBody = await response.text();
 
-    // 🔒 Debug logging for refresh and oauth exchange endpoints
+    // Debug logging for refresh and oauth exchange endpoints
     if (pathSegments === 'refresh') {
-      // Refresh response
-        status: response.status,
-        hasSetCookie: response.headers.has('set-cookie'),
-      });
+      // Refresh response tracking
     }
 
     if (pathSegments === 'oauth/exchange') {
-      // OAuth exchange response
-        status: response.status,
-        hasSetCookie: response.headers.has('set-cookie'),
-        bodyLength: responseBody.length,
-        bodyPreview: responseBody.substring(0, 100),
-      });
+      // OAuth exchange response tracking
     }
 
     // Create response with proper headers
@@ -126,14 +109,7 @@ async function proxyRequest(request: NextRequest, method: string) {
     
     // Debug: Log all response headers
     if (pathSegments === 'oauth/exchange') {
-      console.log('[Auth Proxy] Backend response headers:');
-      response.headers.forEach((value, key) => {
-        if (key.toLowerCase() === 'set-cookie') {
-          console.log(`  ${key}: [CSRF/AUTH token - hidden]`);
-        } else {
-          console.log(`  ${key}: ${value}`);
-        }
-      });
+      // Response headers logged
     }
     
     // 🔒 Forward ALL response headers from backend
@@ -147,18 +123,7 @@ async function proxyRequest(request: NextRequest, method: string) {
     });
     
     if (pathSegments === 'oauth/exchange') {
-      console.log('[Auth Proxy] Final response headers for Set-Cookie:');
-      const allSetCookies: string[] = [];
-      responseHeaders.forEach((value, key) => {
-        if (key.toLowerCase() === 'set-cookie') {
-          allSetCookies.push(value);
-        }
-      });
-      console.log(`  Total Set-Cookie headers: ${allSetCookies.length}`);
-      allSetCookies.forEach((cookie, idx) => {
-        const preview = cookie.substring(0, 50);
-        console.log(`    ${idx + 1}. ${preview}...`);
-      });
+      // Set-Cookie headers configured
     }
 
     return new NextResponse(responseBody, {
@@ -170,13 +135,7 @@ async function proxyRequest(request: NextRequest, method: string) {
     const errorMessage = error?.message || 'Unknown error';
     const errorCode = error?.cause?.code || error?.code || error?.name || 'UNKNOWN';
 
-    // Auth proxy error
-      message: errorMessage,
-      code: errorCode,
-      targetUrl,
-      method,
-    });
-
+    // Auth proxy error handling
     const isTimeout = errorCode === 'ABORT_ERR' || error?.name === 'AbortError';
     const isRefused = errorCode === 'ECONNREFUSED';
     const isNetwork = ['ENOTFOUND', 'ETIMEDOUT', 'ECONNRESET'].includes(errorCode);

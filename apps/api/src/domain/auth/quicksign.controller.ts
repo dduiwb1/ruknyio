@@ -701,7 +701,7 @@ export class QuickSignController {
     const [usernameExists] = await this.prisma.$queryRaw<{ exists: boolean }[]>`
       SELECT EXISTS(
         SELECT 1 FROM "profiles" 
-        WHERE username = $1 
+        WHERE username = ${dto.username} 
         LIMIT 1
       ) as exists
     `;
