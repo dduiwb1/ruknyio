@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.next/
+apps/web/.next/
+apps/web/dist/
+apps/api/dist/
+*.log
+.env.local
+.DS_Store
+.git/
+.vscode/
+uploads/
+temp/
+coverage/

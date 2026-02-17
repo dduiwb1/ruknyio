@@ -2,10 +2,10 @@
 nixPkgs = ['nodejs_22']
 
 [phases.install]
-cmds = ['cd apps/api && npm install']
+cmds = ['npm install']
 
 [phases.build]
-cmds = ['cd apps/api && npx prisma generate && npm run build']
+cmds = ['npm run build:api']
 
 [start]
 cmd = 'cd apps/api && npm run deploy'
