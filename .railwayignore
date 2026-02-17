@@ -1,14 +1,35 @@
+# Dependencies
 node_modules/
+package-lock.json
+npm-debug.log
+yarn-error.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Build outputs
 dist/
 .next/
-apps/web/.next/
-apps/web/dist/
-apps/api/dist/
-*.log
-.env.local
-.DS_Store
-.git/
+out/
+build/
+
+# Testing
+coverage/
+
+# IDE
 .vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads (runtime files)
 uploads/
 temp/
-coverage/
+
+# Logs
+*.log
+logs/
