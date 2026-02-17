@@ -45,7 +45,7 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Proxy API requests to backend
+  // Proxy API requests,0 to backend
   async rewrites() {
     const apiUrl = process.env.API_BACKEND_URL || "http://localhost:3001";
 
