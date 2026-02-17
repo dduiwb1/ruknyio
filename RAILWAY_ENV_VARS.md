@@ -6,13 +6,13 @@
 
 ```bash
 # Database
-DATABASE_URL=postgresql://neondb_owner:npg_FnMuxN85jcdC@ep-icy-hat-aifcaofu.c-4.us-east-1.aws.neon.tech/neondb?sslmode=verify-full
-DIRECT_URL=postgresql://neondb_owner:npg_FnMuxN85jcdC@ep-icy-hat-aifcaofu.c-4.us-east-1.aws.neon.tech/neondb?sslmode=verify-full
+DATABASE_URL=postgresql://<user>:<password>@<host>/<db>?sslmode=require
+DIRECT_URL=postgresql://<user>:<password>@<host>/<db>?sslmode=require
 
 # Security (MUST GENERATE NEW KEYS FOR PRODUCTION!)
-JWT_SECRET=47ef4834efc6e98bc69769e4e3340a7cc1fb45b936d305341ef21387566f3b0a
-TWO_FACTOR_ENCRYPTION_KEY=1036f96689ee891c546438151e0e8faaaab2175b9f7b6b96c671f167d9e3b06b
-INTERNAL_API_SECRET=d72129ca73d607f83a1e51529c4eb387240c4cc146ab73354f3bfb55fafeba9b
+JWT_SECRET=<generate-with-openssl-rand-hex-32>
+TWO_FACTOR_ENCRYPTION_KEY=<generate-with-openssl-rand-hex-32>
+INTERNAL_API_SECRET=<generate-with-openssl-rand-hex-32>
 
 # Application
 NODE_ENV=production
@@ -31,13 +31,13 @@ REDIS_PASSWORD=
 REDIS_DB=0
 
 # AWS S3
-AWS_ACCESS_KEY_ID=AKIARJ7RMAPCIJWRIVF5
-AWS_SECRET_ACCESS_KEY=9qpzzkSdkYfsrM+Z/4b36bzHH2264JiLytA2vlui
+AWS_ACCESS_KEY_ID=<your-aws-access-key-id>
+AWS_SECRET_ACCESS_KEY=<your-aws-secret-access-key>
 AWS_REGION=eu-north-1
 S3_BUCKET=rukny-storage
 
 # Email
-RESEND_API_KEY=re_GVhK6G8G_Mf5yNdKQRquqxmP2YjRLiA6c
+RESEND_API_KEY=<your-resend-api-key>
 RESEND_FROM_EMAIL=notifications@rukny.work
 
 # Account Lockout
@@ -52,19 +52,19 @@ LOCKOUT_PROGRESSIVE_MULTIPLIER=2
 
 ```bash
 # Google OAuth
-GOOGLE_CLIENT_ID=1051680542097-rivqtfniekp7epucuc7v5dpm13ph3u3f.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=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
+GOOGLE_CLIENT_ID=<your-google-client-id>
+GOOGLE_CLIENT_SECRET=<your-google-client-secret>
 GOOGLE_CALLBACK_URL=https://<YOUR-API-DOMAIN>/api/v1/auth/google/callback
 
 # LinkedIn OAuth
-LINKEDIN_CLIENT_ID=77b3o2w9dmp95f
-LINKEDIN_CLIENT_SECRET=WPL_AP1.LMmQsEpKl4pxm7uv.bKohYA==
+LINKEDIN_CLIENT_ID=<your-linkedin-client-id>
+LINKEDIN_CLIENT_SECRET=<your-linkedin-client-secret>
 LINKEDIN_CALLBACK_URL=https://<YOUR-API-DOMAIN>/api/v1/auth/linkedin/callback
 LINKEDIN_SCOPES=openid,profile,email
 
 # Google Calendar
-GOOGLE_CALENDAR_CLIENT_ID=1051680542097-rivqtfniekp7epucuc7v5dpm13ph3u3f.apps.googleusercontent.com
-GOOGLE_CALENDAR_CLIENT_SECRET=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
+GOOGLE_CALENDAR_CLIENT_ID=<your-google-calendar-client-id>
+GOOGLE_CALENDAR_CLIENT_SECRET=<your-google-calendar-client-secret>
 GOOGLE_CALENDAR_REDIRECT_URI=https://<YOUR-API-DOMAIN>/api/v1/google/calendar/callback
 
 # Google Sheets
@@ -74,9 +74,9 @@ GOOGLE_SHEETS_REDIRECT_URI=https://<YOUR-API-DOMAIN>/api/v1/integrations/google-
 ### 📱 Optional - WhatsApp
 
 ```bash
-WHATSAPP_API_URL=https://message.dashboard.technoplus.tech
-WHATSAPP_SESSION_ID=ecca59d5-076d-415b-a49a-0269d68c47c7
-WHATSAPP_ACCESS_TOKEN=167|niQOUgx0uEZoRTTWu1wtqvipkB86uvd3Hteymlbz769c3565
+WHATSAPP_API_URL=<your-whatsapp-api-url>
+WHATSAPP_SESSION_ID=<your-session-id>
+WHATSAPP_ACCESS_TOKEN=<your-access-token>
 ```
 
 ---
