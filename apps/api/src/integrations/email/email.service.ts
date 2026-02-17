@@ -266,8 +266,12 @@ export class EmailService {
         html: this.getNewDeviceTemplate(userName, deviceData),
       };
 
-      await this.transporter.sendMail(mailOptions);
-      console.log(`New device alert sent to ${to}`);
+      if (this.transporter) {
+        await this.transporter.sendMail(mailOptions);
+        console.log(`New device alert sent to ${to}`);
+      } else {
+        console.log(`📧 [SIMULATED] New device alert would be sent to ${to}`);
+      }
     } catch (error) {
       console.error('Failed to send new device alert:', error);
     }
