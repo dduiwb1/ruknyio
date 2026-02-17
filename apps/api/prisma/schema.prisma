@@ -881,6 +881,7 @@ model notifications {
   @@index([isRead])
   @@index([userId])
   @@index([eventId])
+  @@index([userId, isRead, createdAt])
 }
 
 model order_items {
