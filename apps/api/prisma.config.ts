@@ -3,12 +3,13 @@ import { defineConfig, env } from 'prisma/config';
 import path from 'path';
 
 const baseDir = __dirname;
-dotenv.config({ path: path.join(baseDir, '..', '.env') });
+
+dotenv.config({ path: path.join(baseDir, '.env') });
 
 export default defineConfig({
-  schema: path.join(baseDir, 'schema.prisma'),
+  schema: path.join(baseDir, 'prisma', 'schema.prisma'),
   migrations: {
-    path: path.join(baseDir, 'migrations'),
+    path: path.join(baseDir, 'prisma', 'migrations'),
   },
   datasource: {
     url: env('DATABASE_URL'),
