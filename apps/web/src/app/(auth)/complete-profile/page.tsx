@@ -7,8 +7,7 @@ import { useUsernameCheck } from '@/lib/hooks/auth/use-username-check';
 import { quickSignClient } from '@/lib/auth/quicksign-client';
 import { setCsrfToken } from '@/lib/api/client';
 import { sanitizeToken, handleError, logError, formLimiter } from '@/lib/security';
-import { getProfileToken, saveProfileToken, clearProfileToken, isProfileTokenValid, getProfileTokenTimeRemaining } from '@/lib/auth/token-storage';
-import { Loader2, CheckCircle2, XCircle, User, AlertTriangle, Store, Sparkles, FileText, MapPin, Phone, ShoppingBag, Utensils, Laptop, Palette, Home, Dumbbell, BookOpen, MoreHorizontal, Briefcase, Heart, Camera, Music, Car, Plane, Shirt, Gift, Gem, PawPrint, Baby, Hammer, Leaf, Coffee, ArrowRight } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, User, AlertTriangle, Store, Sparkles, FileText, MapPin, Phone, ShoppingBag, Utensils, Laptop, Palette, Home, Dumbbell, BookOpen, MoreHorizontal, Briefcase, Heart, Camera, Music, Car, Plane, Shirt, Gift, Gem, PawPrint, Baby, Hammer, Leaf, Coffee } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProgressIndicator from '@/components/ui/progress-indicator';
 import { triggerCelebration } from '@/components/ui/confetti';
@@ -50,6 +49,28 @@ const sanitizeDescription = (text: string): string => {
     .slice(0, 500); // Max 500 characters
 };
 
+// 🔐 Helper لجلب Token بأمان من URL أو sessionStorage
+const getProfileToken = (urlToken: string | null): string | null => {
+  if (urlToken) {
+    return sanitizeToken(urlToken);
+  }
+  
+  if (typeof window !== 'undefined') {
+    const sessionToken = sessionStorage.getItem('profile_completion_token');
+    if (sessionToken) {
+      return sanitizeToken(sessionToken);
+    }
+  }
+  
+  return null;
+};
+
+const clearProfileToken = (): void => {
+  if (typeof window !== 'undefined') {
+    sessionStorage.removeItem('profile_completion_token');
+  }
+};
+
 // Store categories with icons
 const storeCategories = [
   { id: 'fashion', label: 'أزياء وملابس', icon: Shirt },
@@ -88,7 +109,7 @@ function CompleteProfileContent() {
   const searchParams = useSearchParams();
   const urlToken = searchParams.get('token');
   const [quickSignToken, setQuickSignToken] = useState<string | null>(null);
-  const { setUser, user: currentUser, isAuthenticated, needsProfileCompletion, completeOAuthProfile } = useAuthContext();
+  const { setUser, user: currentUser, isAuthenticated } = useAuthContext();
 
   // Multi-step state
   const [currentStep, setCurrentStep] = useState(1);
@@ -117,7 +138,6 @@ function CompleteProfileContent() {
   const [error, setError] = useState<string | null>(null);
   const [rateLimitError, setRateLimitError] = useState<string | null>(null);
   const [isOAuthUser, setIsOAuthUser] = useState(false);
-  const [tokenChecked, setTokenChecked] = useState(false); // للتأكد من أن التوكن تم فحصه
   
   const [progressStep, setProgressStep] = useState<'idle' | 'creating-account' | 'creating-store' | 'done'>('idle');
   const [storeCreationError, setStoreCreationError] = useState<string | null>(null);
@@ -129,21 +149,10 @@ function CompleteProfileContent() {
 
   // 🔐 جلب Token عند التحميل
   useEffect(() => {
-    // getProfileToken يدعم الآن URL token كـ parameter
     const token = getProfileToken(urlToken);
-    
     if (token) {
-      console.log('[CompleteProfile] 🔑 Token found, saving it');
-      saveProfileToken(token);
       setQuickSignToken(token);
-    } else {
-      // لا يوجد توكن في URL أو sessionStorage
-      console.warn('[CompleteProfile] ❌ No valid token found');
-      setError('انتهت صلاحية الرابط. يرجى طلب رابط جديد.');
     }
-    
-    // وضع علامة أن التوكن تم فحصه
-    setTokenChecked(true);
   }, [urlToken]);
 
   // Detect if OAuth user or QuickSign user
@@ -151,25 +160,20 @@ function CompleteProfileContent() {
     if (isSubmitting) return;
     
     if (isAuthenticated) {
-      if (needsProfileCompletion) {
-        setIsOAuthUser(true);
-        return;
-      }
       router.push('/');
       return;
     }
 
     if (quickSignToken) {
       setIsOAuthUser(false);
-      return;
+    } else {
+      console.warn('⚠️ No token and not authenticated, redirecting to login');
+      const timer = setTimeout(() => {
+        router.push('/login');
+      }, 3000);
+      return () => clearTimeout(timer);
     }
-
-    console.warn('⚠️ No token and not authenticated, redirecting to login');
-    const timer = setTimeout(() => {
-      router.push('/login');
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [isAuthenticated, needsProfileCompletion, quickSignToken, router, currentUser, isSubmitting]);
+  }, [isAuthenticated, quickSignToken, router, currentUser, isSubmitting]);
 
   // Composition flag to support IME (Arabic/other) input without aggressive sanitization
   const isComposing = useRef(false);
@@ -261,18 +265,12 @@ function CompleteProfileContent() {
   }, [formData.name, formData.username, formData.phone, available, checking]);
 
   const validateStep2 = useCallback((): boolean => {
-    // For OAuth users, step 2 is optional (no store required)
-    if (isOAuthUser) {
-      return true;
-    }
-    
-    // For QuickSign users, store category is required
     if (!storeData.category) {
       setError('الرجاء اختيار تصنيف المتجر');
       return false;
     }
     return true;
-  }, [storeData.category, isOAuthUser]);
+  }, [storeData.category]);
 
   const handleContinue = useCallback(() => {
     if (currentStep === 1) {
@@ -330,20 +328,9 @@ function CompleteProfileContent() {
       setProgressStep('creating-account');
       
       if (isOAuthUser) {
-        // OAuth user: Update profile via completeOAuthProfile
-        const response = await completeOAuthProfile({
-          name: formData.name.trim(),
-          username: formData.username.trim(),
-          phone: formData.phone.trim() || undefined,
-        });
-
-        // 🔒 Reset rate limiter on success
-        formLimiter.reset('complete-profile');
-        
-        // Set user data
-        if (response.user) {
-          setUser(response.user);
-        }
+        // OAuth user: Update profile via /auth/me endpoint
+        // TODO: Create update profile API call
+        throw new Error('تحديث OAuth profile قيد التطوير');
       } else {
         // QuickSign user: Complete profile with token
         // Backend will automatically create Store with same name as username
@@ -387,10 +374,6 @@ function CompleteProfileContent() {
         setProgressStep('creating-store');
         // انتظر قليلاً لعرض رسالة إنشاء المتجر
         await new Promise(resolve => setTimeout(resolve, 500));
-      } else if (isOAuthUser) {
-        // OAuth users might not have a store - that's ok
-        setProgressStep('creating-store');
-        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
       // اكتمال العملية!
@@ -407,8 +390,7 @@ function CompleteProfileContent() {
         if (storeSlug) {
           params.set('store', storeSlug);
           params.set('storeCreated', 'true');
-        } else if (!isOAuthUser && storeCreationError) {
-          // Only show store error if it failed (not applicable for OAuth)
+        } else if (storeCreationError) {
           params.set('storeError', 'true');
         }
         
@@ -426,42 +408,27 @@ function CompleteProfileContent() {
 
   const displayError = rateLimitError || error;
 
-  // عرض loading أثناء فحص التوكن
-  if (!tokenChecked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground text-sm">جاري التحقق من الرابط...</p>
-        </div>
-      </div>
-    );
-  }
-
   if (!quickSignToken && !isOAuthUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-6" dir="rtl">
         <motion.div
-          initial={{ opacity: 0, y: 30, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="flex flex-col items-center text-center max-w-md w-full"
+          className="flex flex-col items-center text-center max-w-sm"
         >
-          <div className="w-20 h-20 mb-6 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
-            <XCircle className="w-10 h-10 text-red-600 dark:text-red-400" />
+          <div className="flex items-center justify-center size-16 rounded-full bg-red-100 dark:bg-red-900/20 mb-6">
+            <XCircle className="h-8 w-8 text-red-500" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground mb-3">رابط غير صالح</h1>
-          <p className="text-sm text-muted-foreground mb-8 leading-relaxed">
-            {error || 'هذه الصفحة تتطلب رابط تسجيل صالح.'}
-            <br />
-            سيتم توجيهك لصفحة تسجيل الدخول...
+          <h1 className="text-2xl font-light text-foreground mb-2">رابط غير صالح</h1>
+          <p className="text-sm text-muted-foreground mb-8">
+            هذه الصفحة تتطلب رابط تسجيل صالح. سيتم توجيهك لصفحة تسجيل الدخول...
           </p>
           <button 
             onClick={() => router.push('/login')} 
-            className="flex items-center justify-center gap-2 w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-all duration-300 shadow-sm hover:shadow-md"
+            className="flex items-center justify-center w-full h-12 bg-foreground hover:bg-foreground/90 text-background font-medium rounded-full transition-all duration-300"
           >
             الذهاب لتسجيل الدخول
-            <ArrowRight className="w-4 h-4" />
           </button>
         </motion.div>
       </div>
@@ -474,378 +441,358 @@ function CompleteProfileContent() {
         initial={{ opacity: 0, y: 30, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-md"
+        className="flex flex-col items-center w-full max-w-md"
       >
-        <form onSubmit={handleSubmit} className="flex flex-col items-center">
-          {/* Header Badge */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1 }}
-            className="flex items-center justify-center mb-4"
-          >
-            <span className="text-xs bg-primary/20 text-primary font-semibold px-4 py-1.5 rounded-full">
-              🎯 إكمال الملف الشخصي
-            </span>
-          </motion.div>
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="w-full">
+          <AnimatePresence mode="wait">
+            {/* Step 1: Profile Information */}
+            {currentStep === 1 && (
+              <motion.div
+                key="step1"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-5"
+              >
+                {/* Header */}
+                <div className="text-center mb-6">
+                  <motion.span 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="inline-flex items-center gap-2 text-xs bg-primary/10 text-primary font-semibold px-3 py-1.5 rounded-full mb-4"
+                  >
+                    إكمال الملف الشخصي
+                  </motion.span>
+                  <motion.h1 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="text-2xl sm:text-3xl font-bold text-foreground mb-2"
+                  >
+                    دعنا نكمل إعدادك
+                  </motion.h1>
+                  <motion.p 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-sm text-muted-foreground max-w-sm mx-auto"
+                  >
+                    أكمل بيانات ملفك الشخصي في خطوات بسيطة
+                  </motion.p>
+                </div>
 
-          {/* Main Title */}
-          <motion.h1
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-3xl sm:text-4xl font-bold py-4 text-center text-foreground"
-          >
-            دعنا نكمل إعدادك
-          </motion.h1>
-
-          {/* Subtitle */}
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="max-md:text-sm text-muted-foreground pb-8 text-center max-w-sm"
-          >
-            أكمل بيانات ملفك الشخصي في خطوات بسيطة
-          </motion.p>
-
-          {/* Form Container */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="max-w-96 w-full px-0"
-          >
-            <AnimatePresence mode="wait">
-              {/* Step 1: Profile Information */}
-              {currentStep === 1 && (
-                <motion.div
-                  key="step1"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="space-y-5"
-                >
-                  {/* Full Name Input */}
-                  <div>
-                    <label htmlFor="name" className="font-semibold text-sm mb-3 block text-foreground">
-                      الاسم الكامل
-                    </label>
-                    <div className="flex items-center h-12 pl-4 border-2 border-slate-300 dark:border-slate-600 rounded-full focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary transition-all overflow-hidden">
-                      <User className="h-5 w-5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
-                      <input
-                        type="text"
-                        id="name"
-                        className="h-full px-3 w-full outline-none bg-transparent text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                        placeholder="أدخل اسمك الكامل"
-                        value={formData.name}
-                        onChange={(e) => handleChange('name', e.target.value)}
-                        onCompositionStart={() => (isComposing.current = true)}
-                        onCompositionEnd={(e) => {
-                          isComposing.current = false;
-                          handleChange('name', (e.currentTarget as HTMLInputElement).value);
-                        }}
-                        disabled={loading}
-                        required
-                      />
-                    </div>
+                {/* Name */}
+                <div className="space-y-2">
+                  <label htmlFor="name" className="block text-sm font-medium text-foreground">
+                    الاسم الكامل <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex items-center h-11 pl-3 pr-3 border-2 border-slate-300 dark:border-slate-600 rounded-full bg-background focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary transition-all duration-200">
+                    <User className="h-4.5 w-4.5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
+                    <input
+                      id="name"
+                      type="text"
+                      placeholder="أدخل اسمك الكامل"
+                      value={formData.name}
+                      onChange={(e) => handleChange('name', e.target.value)}
+                      onCompositionStart={() => (isComposing.current = true)}
+                      onCompositionEnd={(e) => {
+                        isComposing.current = false;
+                        // sanitize final composed value
+                        handleChange('name', (e.currentTarget as HTMLInputElement).value);
+                      }}
+                      disabled={loading}
+                      required
+                      className="h-full px-2.5 w-full outline-none bg-transparent text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                    />
                   </div>
+                </div>
 
-                  {/* Username Input */}
-                  <div>
-                    <label htmlFor="username" className="font-semibold text-sm mb-3 block text-foreground">
-                      اسم المستخدم
-                    </label>
-                    <div className="flex items-center h-12 pl-4 border-2 border-slate-300 dark:border-slate-600 rounded-full focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary transition-all overflow-hidden">
-                      <FileText className="h-5 w-5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
-                      <input
-                        type="text"
-                        id="username"
-                        className="h-full px-3 w-full outline-none bg-transparent text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
-                        placeholder="username"
-                        value={formData.username}
-                        onChange={(e) => handleChange('username', e.target.value)}
-                        disabled={loading}
-                        dir="ltr"
-                        required
-                      />
-                    </div>
+                {/* Username */}
+                <div className="space-y-2">
+                  <label htmlFor="username" className="block text-sm font-medium text-foreground">
+                    اسم المستخدم <span className="text-red-500">*</span>
+                  </label>
+                  <div className={`flex items-center h-11 pl-3 pr-3 border-2 rounded-full bg-background focus-within:ring-2 transition-all duration-200 ${
+                    formData.username && !checking
+                      ? available
+                        ? 'border-emerald-500 focus-within:border-emerald-500 focus-within:ring-emerald-500/20'
+                        : 'border-red-500 focus-within:border-red-500 focus-within:ring-red-500/20'
+                      : 'border-slate-300 dark:border-slate-600 focus-within:border-primary focus-within:ring-primary/50'
+                  }`}>
+                    <FileText className="h-4.5 w-4.5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
+                    <input
+                      id="username"
+                      type="text"
+                      placeholder="username"
+                      value={formData.username}
+                      onChange={(e) => handleChange('username', e.target.value)}
+                      disabled={loading}
+                      required
+                      className="h-full px-2.5 w-full outline-none bg-transparent text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      dir="ltr"
+                    />
                     {formData.username && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={`mt-2 flex items-center gap-2 text-xs font-medium ${
-                          checking ? 'text-slate-600 dark:text-slate-400' :
-                          available ? 'text-emerald-600 dark:text-emerald-400' :
-                          'text-red-600 dark:text-red-400'
-                        }`}
-                      >
+                      <div className="flex-shrink-0">
                         {checking ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
                         ) : available ? (
-                          <CheckCircle2 className="h-4 w-4" />
+                          <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                         ) : (
-                          <XCircle className="h-4 w-4" />
+                          <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
                         )}
-                        {checking ? 'جاري التحقق...' :
-                         available ? 'متاح ✓' :
-                         'غير متاح'}
-                      </motion.div>
+                      </div>
                     )}
                   </div>
-
-                  {/* Phone Input (Optional) */}
-                  <div>
-                    <label htmlFor="phone" className="font-semibold text-sm mb-3 block text-foreground">
-                      رقم الهاتف <span className="text-xs font-normal text-slate-500">(اختياري)</span>
-                    </label>
-                    <div className="flex items-center h-12 pl-4 border-2 border-slate-300 dark:border-slate-600 rounded-full focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary transition-all overflow-hidden">
-                      <Phone className="h-5 w-5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
-                      <input
-                        type="tel"
-                        id="phone"
-                        className="h-full px-3 w-full outline-none bg-transparent text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm"
-                        placeholder="+964 770 123 4567"
-                        value={formData.phone}
-                        onChange={(e) => handleChange('phone', e.target.value)}
-                        disabled={loading}
-                        dir="ltr"
-                      />
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Step 2: Store Settings */}
-              {currentStep === 2 && (
-                <motion.div
-                  key="step2"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="space-y-5"
-                >
-                  {!isOAuthUser && (
-                    <>
-                      {/* Category Selection */}
-                      <div>
-                        <label className="font-semibold text-sm mb-3 block text-foreground">
-                          تصنيف المتجر
-                        </label>
-                        <Select
-                          value={storeData.category}
-                          setValue={(value) => handleStoreChange('category', value as string)}
-                          placeholder="📋 اختر تصنيف متجرك..."
-                        >
-                          {storeCategories.map((cat) => {
-                            const Icon = cat.icon;
-                            return (
-                              <SelectOption key={cat.id} value={cat.id}>
-                                <span className="flex items-center gap-2.5">
-                                  <Icon className="h-4.5 w-4.5" />
-                                  <span>{cat.label}</span>
-                                </span>
-                              </SelectOption>
-                            );
-                          })}
-                        </Select>
-                      </div>
-
-                      {/* Employees Count */}
-                      <div>
-                        <label className="font-semibold text-sm mb-3 block text-foreground">
-                          حجم النشاط <span className="text-xs font-normal text-slate-500">(اختياري)</span>
-                        </label>
-                        <div className="flex flex-wrap gap-2">
-                          {employeeOptions.map((option) => {
-                            const isSelected = storeData.employeesCount === option.value;
-                            return (
-                              <motion.button
-                                key={option.value}
-                                type="button"
-                                onClick={() => handleStoreChange('employeesCount', option.value)}
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                className={`px-3 py-2 rounded-full border-2 transition-all text-sm font-medium ${
-                                  isSelected
-                                    ? 'border-primary bg-primary/10 text-primary dark:bg-primary/20'
-                                    : 'border-slate-300 dark:border-slate-600 hover:border-primary/30 text-slate-700 dark:text-slate-300'
-                                }`}
-                              >
-                                <span className="text-base mr-1">{option.emoji}</span>
-                                {option.label}
-                              </motion.button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Store Description */}
-                      <div>
-                        <label htmlFor="storeDescription" className="font-semibold text-sm mb-3 block text-foreground">
-                          وصف المتجر <span className="text-xs font-normal text-slate-500">(اختياري)</span>
-                        </label>
-                        <textarea
-                          id="storeDescription"
-                          placeholder="اكتب نبذة مختصرة عن متجرك..."
-                          value={storeData.storeDescription}
-                          onChange={(e) => handleStoreChange('storeDescription', e.target.value)}
-                          disabled={loading}
-                          rows={4}
-                          maxLength={500}
-                          className="w-full p-4 border-2 border-slate-300 dark:border-slate-600 rounded-2xl bg-background text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none disabled:opacity-50 resize-none text-sm"
-                        />
-                        <div className="mt-1 text-xs text-slate-500">
-                          {storeData.storeDescription.length}/500
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {isOAuthUser && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="p-4 bg-emerald-50 dark:bg-emerald-900/10 border-2 border-emerald-200 dark:border-emerald-800/30 rounded-2xl text-center"
+                  {formData.username && !checking && !available && (
+                    <motion.p 
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 font-medium" 
+                      role="alert"
                     >
-                      <CheckCircle2 className="h-8 w-8 text-emerald-600 dark:text-emerald-400 mx-auto mb-2" />
-                      <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-                        رائع! ملفك الشخصي مكتمل
-                      </p>
-                      <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
-                        يمكنك الآن الدخول لرؤية لوحتك التحكمية
-                      </p>
-                    </motion.div>
+                      <XCircle className="h-3.5 w-3.5" />
+                      {usernameError || 'اسم المستخدم غير متاح، جرب اسماً آخر'}
+                    </motion.p>
                   )}
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  {formData.username && !checking && available && (
+                    <motion.p 
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium" 
+                      role="status"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      اسم المستخدم متاح ✓
+                    </motion.p>
+                  )}
+                </div>
 
-            {/* Error Alert */}
-            {displayError && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-6 p-4 bg-red-50 dark:bg-red-900/10 border-2 border-red-200 dark:border-red-800/30 rounded-2xl flex items-start gap-3"
-                role="alert"
-              >
-                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold text-red-700 dark:text-red-300">خطأ</p>
-                  <p className="text-sm text-red-600 dark:text-red-400">{displayError}</p>
+                {/* Phone (Optional) */}
+                <div className="space-y-2">
+                  <label htmlFor="phone" className="block text-sm font-medium text-foreground">
+                    رقم الهاتف <span className="text-xs font-normal text-slate-500 dark:text-slate-400">(اختياري)</span>
+                  </label>
+                  <div className="flex items-center h-11 pl-3 pr-3 border-2 border-slate-300 dark:border-slate-600 rounded-full bg-background focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary transition-all duration-200">
+                    <Phone className="h-4.5 w-4.5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
+                    <input
+                      id="phone"
+                      type="tel"
+                      placeholder="+964 770 123 4567"
+                      value={formData.phone}
+                      onChange={(e) => handleChange('phone', e.target.value)}
+                      disabled={loading}
+                      className="h-full px-2.5 w-full outline-none bg-transparent text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      dir="ltr"
+                    />
+                  </div>
                 </div>
               </motion.div>
             )}
 
-            {/* Buttons */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="flex items-center justify-between gap-3 mt-8"
-            >
-              {currentStep > 1 && (
-                <motion.button
-                  type="button"
-                  onClick={handleBack}
-                  disabled={loading}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex-1 h-12 px-4 border-2 border-slate-300 dark:border-slate-600 text-foreground hover:border-primary/50 hover:bg-primary/5 font-semibold rounded-full transition-all disabled:opacity-50"
-                >
-                  رجوع
-                </motion.button>
-              )}
-
-              <motion.button
-                type={currentStep === totalSteps ? "submit" : "button"}
-                onClick={currentStep === totalSteps ? undefined : handleContinue}
-                disabled={loading || checking || !!rateLimitError}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex-1 h-12 px-4 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-full transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+            {/* Step 2: Store Creation */}
+            {currentStep === 2 && (
+              <motion.div
+                key="step2"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-5"
               >
-                {loading ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    جاري المعالجة...
-                  </>
-                ) : currentStep === totalSteps ? (
-                  <>
-                    إكمال
-                    <ArrowRight className="h-5 w-5" />
-                  </>
-                ) : (
-                  <>
-                    التالي
-                    <ArrowRight className="h-5 w-5" />
-                  </>
-                )}
-              </motion.button>
-            </motion.div>
+                {/* Header */}
+                <div className="text-center mb-6">
+                  <motion.span 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="inline-flex items-center gap-2 text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-semibold px-3 py-1.5 rounded-full mb-4"
+                  >
+                     إعدادات المتجر
+                  </motion.span>
+                  <motion.h1 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="text-2xl sm:text-3xl font-bold text-foreground mb-2"
+                  >
+                    أخبرنا عن متجرك
+                  </motion.h1>
+                  <motion.p 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-sm text-muted-foreground max-w-sm mx-auto"
+                  >
+                    سيتم إنشاء متجرك باسم <span className="font-semibold text-foreground">@{formData.username || 'username'}</span>
+                  </motion.p>
+                </div>
 
-            {/* Footer */}
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="text-xs text-slate-500 text-center mt-6"
-            >
-              الخطوة {currentStep} من {totalSteps}
-            </motion.p>
-          </motion.div>
+                <div className="space-y-5">
+                  {/* Category Selection - Grid with Icons */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-foreground">
+                      تصنيف المتجر <span className="text-red-500">*</span>
+                    </label>
+                    {/* More categories dropdown */}
+                    <Select
+                      value={storeData.category}
+                      setValue={(value) => handleStoreChange('category', value as string)}
+                      placeholder="📋 اختر تصنيف متجرك..."
+                    >
+                      {storeCategories.map((cat) => {
+                        const Icon = cat.icon;
+                        return (
+                          <SelectOption key={cat.id} value={cat.id}>
+                            <span className="flex items-center gap-2.5">
+                              <Icon className="h-4.5 w-4.5" />
+                              <span>{cat.label}</span>
+                            </span>
+                          </SelectOption>
+                        );
+                      })}
+                    </Select>
+                    {storeData.category && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-full"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        {storeCategories.find(c => c.id === storeData.category)?.label}
+                      </motion.div>
+                    )}
+                  </div>
 
-          {/* Progress During Submission */}
+                  {/* Employees Count - Horizontal pills */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-foreground">
+                      حجم النشاط <span className="text-xs font-normal text-slate-500 dark:text-slate-400">(اختياري)</span>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {employeeOptions.map((option) => {
+                        const isSelected = storeData.employeesCount === option.value;
+                        return (
+                          <motion.button
+                            key={option.value}
+                            type="button"
+                            onClick={() => handleStoreChange('employeesCount', option.value)}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-full border-2 transition-all duration-200 text-xs font-medium ${
+                              isSelected
+                                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 shadow-sm'
+                                : 'border-slate-300 dark:border-slate-600 hover:border-primary/50 text-slate-700 dark:text-slate-300 hover:bg-primary/5'
+                            }`}
+                          >
+                            <span className="text-base">{option.emoji}</span>
+                            <span>{option.label}</span>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Store Description */}
+                  <div className="space-y-2">
+                    <label htmlFor="storeDescription" className="block text-sm font-medium text-foreground">
+                      وصف المتجر <span className="text-xs font-normal text-slate-500 dark:text-slate-400">(اختياري)</span>
+                    </label>
+                    <textarea
+                      id="storeDescription"
+                      placeholder="اكتب نبذة مختصرة عن متجرك..."
+                      value={storeData.storeDescription}
+                      onChange={(e) => handleStoreChange('storeDescription', e.target.value)}
+                      disabled={loading}
+                      rows={3}
+                      maxLength={500}
+                      className="w-full p-3 border-2 border-slate-300 dark:border-slate-600 rounded-2xl bg-background text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 outline-none disabled:opacity-50 resize-none text-sm"
+                    />
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-500 dark:text-slate-400">اكتب وصفاً جذاباً لمتجرك</span>
+                      <span className={`font-medium ${
+                        storeData.storeDescription.length > 450 
+                          ? 'text-amber-600 dark:text-amber-400' 
+                          : 'text-slate-500 dark:text-slate-400'
+                      }`}>
+                        {storeData.storeDescription.length}/500
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Progress Steps During Creation */}
           <AnimatePresence>
             {progressStep !== 'idle' && (
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="mt-8 p-5 bg-primary/5 border-2 border-primary/20 rounded-2xl w-full max-w-96"
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                className="mt-6 p-4 bg-primary/5 border-2 border-primary/20 rounded-xl"
               >
-                <div className="space-y-3">
-                  <motion.div className="flex items-center gap-3">
+                <div className="space-y-2.5">
+                  {/* Creating Account Step */}
+                  <motion.div 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex items-center gap-3"
+                  >
                     {progressStep === 'creating-account' ? (
-                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                      <Loader2 className="h-5 w-5 text-primary animate-spin" />
                     ) : (progressStep === 'creating-store' || progressStep === 'done') ? (
                       <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                     ) : (
                       <div className="h-2.5 w-2.5 rounded-full bg-slate-300" />
                     )}
-                    <span className="text-sm font-semibold text-foreground">
+                    <span className={`text-sm font-semibold ${
+                      progressStep === 'creating-account' ? 'text-primary' : 
+                      (progressStep === 'creating-store' || progressStep === 'done') ? 'text-foreground' : 
+                      'text-slate-500'
+                    }`}>
                       {progressStep === 'creating-account' ? 'جاري إنشاء الحساب...' : '✓ تم إنشاء الحساب'}
                     </span>
                   </motion.div>
 
-                  <motion.div className="flex items-center gap-3">
-                    {progressStep === 'creating-store' ? (
-                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    ) : progressStep === 'done' ? (
-                      storeCreationError ? (
-                        <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                  {/* Creating Store Step */}
+                  <motion.div 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="flex items-center gap-3"
+                  >
+                      {progressStep === 'creating-store' ? (
+                        <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                      ) : progressStep === 'done' ? (
+                        storeCreationError ? (
+                          <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                        ) : (
+                          <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                        )
                       ) : (
-                        <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                      )
-                    ) : (
-                      <div className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-                    )}
-                    <span className={`text-sm font-semibold ${
-                      progressStep === 'done' && storeCreationError ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'
-                    }`}>
-                      {progressStep === 'creating-store' ? 'جاري إنشاء المتجر...' : 
-                       progressStep === 'done' && storeCreationError ? 'تحذير: فشل إنشاء المتجر' :
-                       progressStep === 'done' ? '✓ تم الإنشاء بنجاح!' : 'سيتم إنشاء المتجر'}
-                    </span>
-                  </motion.div>
+                        <div className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+                      )}
+                      <span className={`text-sm font-semibold ${
+                        progressStep === 'creating-store' ? 'text-primary' : 
+                        progressStep === 'done' && !storeCreationError ? 'text-foreground' : 
+                        progressStep === 'done' && storeCreationError ? 'text-amber-600 dark:text-amber-400' :
+                        'text-slate-500'
+                      }`}>
+                        {progressStep === 'creating-store' ? 'جاري إنشاء المتجر...' : 
+                         progressStep === 'done' && !storeCreationError ? '✓ تم إنشاء المتجر' : 
+                         progressStep === 'done' && storeCreationError ? 'تحذير: فشل إنشاء المتجر' :
+                         'سيتم إنشاء المتجر'}
+                      </span>
+                    </motion.div>
 
+                  {/* Done Step */}
                   {progressStep === 'done' && !storeCreationError && (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="flex items-center justify-center gap-2 pt-2 mt-2 border-t border-primary/10"
+                      className="flex items-center justify-center gap-2 pt-3 mt-3 border-t border-primary/10"
                     >
                       <Sparkles className="h-5 w-5 text-emerald-600 animate-pulse" />
                       <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
@@ -857,7 +804,46 @@ function CompleteProfileContent() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Error Alert */}
+          {displayError && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              className="mt-5 p-3 bg-red-50 dark:bg-red-900/10 border-2 border-red-200 dark:border-red-800/30 rounded-xl flex items-start gap-2.5" 
+              role="alert" 
+              aria-live="polite"
+            >
+              <AlertTriangle className="h-4.5 w-4.5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-red-700 dark:text-red-300 mb-0.5">تنبيه</p>
+                <p className="text-xs text-red-600 dark:text-red-400">{displayError}</p>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Progress Indicator */}
+          <div className="mt-8">
+            <ProgressIndicator
+              currentStep={currentStep}
+              totalSteps={totalSteps}
+              onBack={handleBack}
+              onContinue={handleContinue}
+              isLoading={loading}
+              isBackVisible={currentStep > 1}
+              disabled={loading || checking || !!rateLimitError}
+              continueLabel="استمرار"
+              backLabel="رجوع"
+              finishLabel="إنشاء الحساب والمتجر"
+            />
+          </div>
         </form>
+
+        {/* Footer */}
+        <p className="text-[11px] text-muted-foreground/60 text-center mt-6">
+          بإنشاء حسابك، أنت توافق على شروط الاستخدام وسياسة الخصوصية
+        </p>
       </motion.div>
     </div>
   );

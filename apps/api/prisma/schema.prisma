@@ -183,6 +183,7 @@ model Session {
   @@index([refreshTokenHash])
   @@index([previousRefreshTokenHash])
   @@index([isRevoked])
+  @@index([previousRefreshTokenHash, isRevoked])
   @@index([lastActivity])
   @@index([expiresAt])
   @@index([revokedAt])
@@ -542,6 +543,7 @@ model FormField {
   maxValue         Int?
   minLabel         String?
   maxLabel         String?
+  emailVerification Boolean?   @default(false)
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
   stepId           String?

@@ -327,106 +327,38 @@ export class FormsService {
             },
           });
 
-          // Create fields for this step - support both step.fields and step.fieldIds
-          if (step.fields && Array.isArray(step.fields)) {
-            // New approach: fields are directly in step.fields
-            for (const field of step.fields) {
-              await tx.formField.create({
-                data: {
-                  id: SecureIds.field(),
-                  formId: formId,
-                  stepId: stepId,
-                  label: field.label,
-                  description: field.description || null,
-                  type: field.type,
-                  order: field.order,
-                  required: field.required || false,
-                  placeholder: field.placeholder || null,
-                  options: field.options || null,
-                  minValue: field.minValue ?? null,
-                  maxValue: field.maxValue ?? null,
-                  allowedFileTypes: field.allowedFileTypes || [],
-                  maxFileSize: field.maxFileSize ?? null,
-                  maxFiles: field.maxFiles ?? null,
-                },
-              });
-            }
-          } else if (step.fieldIds && fields) {
-            // Legacy approach: fieldIds reference fields array
+          // Create fields for this step - support both step.fields and step.fieldIds (⚡ createMany to avoid N+1)
+          if (step.fields && Array.isArray(step.fields) && step.fields.length > 0) {
+            await tx.formField.createMany({
+              data: step.fields.map((field: any) => this.buildFormFieldRow(field, formId, stepId)),
+            });
+          } else if (step.fieldIds && fields?.length) {
             const stepFields = fields.filter((f) =>
               step.fieldIds?.includes(f.stepId || ''),
             );
-            for (const field of stepFields) {
-              await tx.formField.create({
-                data: {
-                  id: SecureIds.field(),
-                  formId: formId,
-                  stepId: stepId,
-                  label: field.label,
-                  description: field.description || null,
-                  type: field.type,
-                  order: field.order,
-                  required: field.required || false,
-                  placeholder: field.placeholder || null,
-                  options: field.options || null,
-                  minValue: field.minValue ?? null,
-                  maxValue: field.maxValue ?? null,
-                  allowedFileTypes: field.allowedFileTypes || [],
-                  maxFileSize: field.maxFileSize ?? null,
-                  maxFiles: field.maxFiles ?? null,
-                },
+            if (stepFields.length > 0) {
+              await tx.formField.createMany({
+                data: stepFields.map((field: any) => this.buildFormFieldRow(field, formId, stepId)),
               });
             }
           }
         }
 
-        // Create any remaining fields not assigned to steps
-        if (fields) {
+        // Create any remaining fields not assigned to steps (⚡ createMany to avoid N+1)
+        if (fields?.length) {
           const unassignedFields = fields.filter((f) => !f.stepId);
-          for (const field of unassignedFields) {
-            await tx.formField.create({
-              data: {
-                id: SecureIds.field(),
-                formId: formId,
-                label: field.label,
-                description: field.description,
-                type: field.type,
-                order: field.order,
-                required: field.required || false,
-                placeholder: field.placeholder,
-                options: field.options,
-                minValue: field.minValue,
-                maxValue: field.maxValue,
-                allowedFileTypes: field.allowedFileTypes || [],
-                maxFileSize: field.maxFileSize,
-                maxFiles: field.maxFiles,
-              },
+          if (unassignedFields.length > 0) {
+            await tx.formField.createMany({
+              data: unassignedFields.map((field: any) => this.buildFormFieldRow(field, formId)),
             });
           }
         }
       } else {
-        // Non-multi-step form - create all fields directly
-        if (fields && fields.length > 0) {
-          for (const field of fields) {
-            await tx.formField.create({
-              data: {
-                id: SecureIds.field(),
-                formId: formId,
-                label: field.label,
-                description: field.description,
-                type: field.type,
-                order: field.order,
-                required: field.required || false,
-                placeholder: field.placeholder,
-                options: field.options,
-                minValue: field.minValue,
-                maxValue: field.maxValue,
-                allowedFileTypes: field.allowedFileTypes || [],
-                maxFileSize: field.maxFileSize,
-                maxFiles: field.maxFiles,
-              },
-            });
-          }
+        // Non-multi-step form - create all fields directly (⚡ createMany to avoid N+1)
+        if (fields?.length) {
+          await tx.formField.createMany({
+            data: fields.map((field: any) => this.buildFormFieldRow(field, formId)),
+          });
         }
       }
 
@@ -498,6 +430,30 @@ export class FormsService {
         storageProvider: storageProvider || 's3',
       },
     };
+  }
+
+  /**
+   * ⚡ Performance: بناء صف واحد لـ createMany (تجنب N+1)
+   */
+  private buildFormFieldRow(field: any, formId: string, stepId?: string | null) {
+    return {
+      id: SecureIds.field(),
+      formId,
+      ...(stepId != null && { stepId }),
+      label: field.label,
+      description: field.description ?? null,
+      type: field.type,
+      order: field.order,
+      required: field.required ?? false,
+      placeholder: field.placeholder ?? null,
+      options: field.options ?? null,
+      minValue: field.minValue ?? null,
+      maxValue: field.maxValue ?? null,
+      allowedFileTypes: field.allowedFileTypes || [],
+      maxFileSize: field.maxFileSize ?? null,
+      maxFiles: field.maxFiles ?? null,
+      emailVerification: field.emailVerification ?? false,
+    } as any;
   }
 
   async findAll(filters?: {
@@ -1111,65 +1067,21 @@ export class FormsService {
             },
           });
 
-          // Create fields for this step
-          if (step.fields && Array.isArray(step.fields)) {
-            for (const field of step.fields) {
-              await tx.formField.create({
-                data: {
-                  id: SecureIds.field(),
-                  formId: formId,
-                  stepId: stepId,
-                  label: field.label,
-                  description: field.description || null,
-                  type: field.type,
-                  order: field.order,
-                  required: field.required ?? false,
-                  placeholder: field.placeholder || null,
-                  options: field.options || null,
-                  minValue: field.minValue ?? null,
-                  maxValue: field.maxValue ?? null,
-                  allowedFileTypes: field.allowedFileTypes || [],
-                  maxFileSize: field.maxFileSize ?? null,
-                  maxFiles: field.maxFiles ?? null,
-                },
-              });
-            }
+          // Create fields for this step (⚡ createMany to avoid N+1)
+          if (step.fields && Array.isArray(step.fields) && step.fields.length > 0) {
+            await tx.formField.createMany({
+              data: step.fields.map((field: any) => this.buildFormFieldRow(field, formId, stepId)),
+            });
           }
         }
       } else if (fields && Array.isArray(fields)) {
         // Non-multi-step form - handle fields directly
-        // Delete existing steps if switching from multi-step to single
-        await tx.form_steps.deleteMany({
-          where: { formId },
-        });
-
-        // Delete existing fields
-        await tx.formField.deleteMany({
-          where: { formId },
-        });
-
-        // Create new fields
+        await tx.form_steps.deleteMany({ where: { formId } });
+        await tx.formField.deleteMany({ where: { formId } });
         if (fields.length > 0) {
-          for (const field of fields) {
-            await tx.formField.create({
-              data: {
-                id: SecureIds.field(),
-                formId: formId,
-                label: field.label,
-                description: field.description || null,
-                type: field.type,
-                order: field.order,
-                required: field.required ?? false,
-                placeholder: field.placeholder || null,
-                options: field.options || null,
-                minValue: field.minValue ?? null,
-                maxValue: field.maxValue ?? null,
-                allowedFileTypes: field.allowedFileTypes || [],
-                maxFileSize: field.maxFileSize ?? null,
-                maxFiles: field.maxFiles ?? null,
-              },
-            });
-          }
+          await tx.formField.createMany({
+            data: fields.map((field: any) => this.buildFormFieldRow(field, formId)),
+          });
         }
       }
 
@@ -1345,29 +1257,11 @@ export class FormsService {
           },
         });
 
-        // Create fields for this step
-        if (step.fields && Array.isArray(step.fields)) {
-          for (const field of step.fields) {
-            await tx.formField.create({
-              data: {
-                id: SecureIds.field(),
-                formId: formId,
-                stepId: stepId,
-                label: field.label,
-                description: field.description || null,
-                type: field.type,
-                order: field.order,
-                required: field.required ?? false,
-                placeholder: field.placeholder || null,
-                options: field.options || null,
-                minValue: field.minValue ?? null,
-                maxValue: field.maxValue ?? null,
-                allowedFileTypes: field.allowedFileTypes || [],
-                maxFileSize: field.maxFileSize ?? null,
-                maxFiles: field.maxFiles ?? null,
-              },
-            });
-          }
+        // Create fields for this step (⚡ createMany to avoid N+1)
+        if (step.fields && Array.isArray(step.fields) && step.fields.length > 0) {
+          await tx.formField.createMany({
+            data: step.fields.map((field: any) => this.buildFormFieldRow(field, formId, stepId)),
+          });
         }
       }
 

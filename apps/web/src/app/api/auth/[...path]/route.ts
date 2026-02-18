@@ -113,11 +113,14 @@ async function proxyRequest(request: NextRequest, method: string) {
     }
     
     // 🔒 Forward ALL response headers from backend
+    const setCookies = typeof response.headers.getSetCookie === 'function'
+      ? response.headers.getSetCookie()
+      : [response.headers.get('set-cookie')].filter(Boolean) as string[];
+    for (const cookie of setCookies) {
+      responseHeaders.append('set-cookie', cookie);
+    }
     response.headers.forEach((value, key) => {
-      // For set-cookie, we need to append (not set) because there can be multiple
-      if (key.toLowerCase() === 'set-cookie') {
-        responseHeaders.append('set-cookie', value);
-      } else if (!EXCLUDED_RESPONSE_HEADERS.includes(key.toLowerCase())) {
+      if (key.toLowerCase() !== 'set-cookie' && !EXCLUDED_RESPONSE_HEADERS.includes(key.toLowerCase())) {
         responseHeaders.set(key, value);
       }
     });

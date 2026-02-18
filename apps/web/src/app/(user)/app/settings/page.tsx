@@ -29,21 +29,21 @@ import {
 // Loading skeleton component
 const SettingsSkeleton = () => (
   <div className="animate-pulse">
-    <div className="bg-card border border-border rounded-2xl p-6">
-      <div className="flex items-center gap-4 mb-8">
-        <div className="w-11 h-11 bg-muted rounded-xl" />
+    <div className="bg-card border border-border rounded-3xl p-4 sm:p-6">
+      <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+        <div className="w-10 h-10 sm:w-11 sm:h-11 bg-muted rounded-2xl" />
         <div className="flex-1 space-y-2">
-          <div className="h-4 bg-muted rounded-lg w-32" />
-          <div className="h-3 bg-muted/50 rounded-lg w-48" />
+          <div className="h-4 bg-muted rounded-xl w-32" />
+          <div className="h-3 bg-muted/50 rounded-xl w-48" />
         </div>
       </div>
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="flex items-center gap-4 p-4 bg-muted/50 rounded-xl">
-            <div className="w-10 h-10 bg-muted rounded-lg" />
+          <div key={i} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-muted/50 rounded-2xl">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-muted rounded-xl" />
             <div className="flex-1 space-y-2">
-              <div className="h-3 bg-muted rounded w-24" />
-              <div className="h-2 bg-muted rounded w-40" />
+              <div className="h-3 bg-muted rounded-lg w-24" />
+              <div className="h-2 bg-muted rounded-lg w-40" />
             </div>
           </div>
         ))}
@@ -281,18 +281,18 @@ const MobileSettingsList = ({
           key={item.id}
           type="button"
           onClick={() => onSelect(item.id)}
-          className="w-full flex items-center gap-4 rounded-4xl border border-border bg-card p-4 text-right transition-colors hover:bg-muted/30 active:scale-[0.99]"
+          className="w-full flex items-center gap-3 sm:gap-4 rounded-3xl border border-border bg-card p-3.5 sm:p-4 text-right transition-colors hover:bg-muted/30 active:scale-[0.99]"
         >
           <div
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${item.iconBgSolid} text-white`}
+            className={`flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl ${item.iconBgSolid} text-white`}
           >
-            <Icon className="h-5 w-5" />
+            <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-base font-bold text-foreground">{item.label}</p>
-            <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
+            <p className="truncate text-sm sm:text-base font-bold text-foreground">{item.label}</p>
+            <p className="mt-0.5 line-clamp-2 text-xs sm:text-sm text-muted-foreground">{item.description}</p>
           </div>
-          <ChevronLeft className="h-5 w-5 shrink-0 rotate-180 text-muted-foreground" aria-hidden />
+          <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 rotate-180 text-muted-foreground" aria-hidden />
         </button>
       );
     })}
@@ -437,15 +437,15 @@ function SettingsContent() {
 
   const renderStoreContent = useCallback(() => {
     return (
-      <div className="bg-card border border-border rounded-4xl p-8">
-        <div className="text-center py-16">
-          <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-info/20 to-info/5 flex items-center justify-center">
-            <Store className="w-12 h-12 text-info" />
+      <div className="bg-card border border-border rounded-3xl p-5 sm:p-8">
+        <div className="text-center py-10 sm:py-16">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-5 sm:mb-6 rounded-3xl bg-gradient-to-br from-info/20 to-info/5 flex items-center justify-center">
+            <Store className="w-10 h-10 sm:w-12 sm:h-12 text-info" />
           </div>
-          <h3 className="text-2xl font-bold text-foreground mb-3">إعدادات المتجر</h3>
-          <p className="text-muted-foreground mb-8 max-w-sm mx-auto">نعمل على تطوير أدوات متقدمة لإدارة متجرك</p>
-          <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-info/10 text-info rounded-full text-sm font-semibold">
-            <Sparkles className="w-4 h-4" />
+          <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-2 sm:mb-3">إعدادات المتجر</h3>
+          <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 max-w-sm mx-auto">نعمل على تطوير أدوات متقدمة لإدارة متجرك</p>
+          <div className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-info/10 text-info rounded-full text-xs sm:text-sm font-semibold">
+            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             قريباً
           </div>
         </div>
@@ -455,15 +455,15 @@ function SettingsContent() {
 
   const renderFormsContent = useCallback(() => {
     return (
-      <div className="bg-card border border-border rounded-4xl p-8">
-        <div className="text-center py-16">
-          <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-destructive/20 to-destructive/5 flex items-center justify-center">
-            <FileText className="w-12 h-12 text-destructive" />
+      <div className="bg-card border border-border rounded-3xl p-5 sm:p-8">
+        <div className="text-center py-10 sm:py-16">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-5 sm:mb-6 rounded-3xl bg-gradient-to-br from-destructive/20 to-destructive/5 flex items-center justify-center">
+            <FileText className="w-10 h-10 sm:w-12 sm:h-12 text-destructive" />
           </div>
-          <h3 className="text-2xl font-bold text-foreground mb-3">إعدادات النماذج</h3>
-          <p className="text-muted-foreground mb-8 max-w-sm mx-auto">نعمل على تطوير أدوات متقدمة لإدارة نماذجك</p>
-          <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-destructive/10 text-destructive rounded-full text-sm font-semibold">
-            <Sparkles className="w-4 h-4" />
+          <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-2 sm:mb-3">إعدادات النماذج</h3>
+          <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 max-w-sm mx-auto">نعمل على تطوير أدوات متقدمة لإدارة نماذجك</p>
+          <div className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-destructive/10 text-destructive rounded-full text-xs sm:text-sm font-semibold">
+            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             قريباً
           </div>
         </div>
@@ -473,15 +473,15 @@ function SettingsContent() {
 
   const renderEventsContent = useCallback(() => {
     return (
-      <div className="bg-card border border-border rounded-4xl p-8">
-        <div className="text-center py-16">
-          <div className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-warning/30 to-warning/10 flex items-center justify-center">
-            <Calendar className="w-12 h-12 text-warning-filled" />
+      <div className="bg-card border border-border rounded-3xl p-5 sm:p-8">
+        <div className="text-center py-10 sm:py-16">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-5 sm:mb-6 rounded-3xl bg-gradient-to-br from-warning/30 to-warning/10 flex items-center justify-center">
+            <Calendar className="w-10 h-10 sm:w-12 sm:h-12 text-warning-filled" />
           </div>
-          <h3 className="text-2xl font-bold text-foreground mb-3">إعدادات الأحداث</h3>
-          <p className="text-muted-foreground mb-8 max-w-sm mx-auto">نعمل على تطوير أدوات متقدمة لإدارة فعالياتك</p>
-          <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-warning/20 text-warning-filled rounded-full text-sm font-semibold">
-            <Sparkles className="w-4 h-4" />
+          <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-2 sm:mb-3">إعدادات الأحداث</h3>
+          <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 max-w-sm mx-auto">نعمل على تطوير أدوات متقدمة لإدارة فعالياتك</p>
+          <div className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-warning/20 text-warning-filled rounded-full text-xs sm:text-sm font-semibold">
+            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             قريباً
           </div>
         </div>
@@ -552,7 +552,7 @@ export default function SettingsPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="relative">
-            <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
+            <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
               <Settings2 className="w-10 h-10 text-primary" />
             </div>
             <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 translate-y-2">

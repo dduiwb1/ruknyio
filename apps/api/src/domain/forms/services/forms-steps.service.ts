@@ -68,27 +68,9 @@ export class FormsStepsService {
         });
 
         if (step.fields?.length) {
-          for (const field of step.fields) {
-            await tx.formField.create({
-              data: {
-                id: SecureIds.field(),
-                formId,
-                stepId,
-                label: field.label,
-                description: field.description || null,
-                type: field.type,
-                order: field.order,
-                required: field.required ?? false,
-                placeholder: field.placeholder || null,
-                options: field.options || null,
-                minValue: field.minValue ?? null,
-                maxValue: field.maxValue ?? null,
-                allowedFileTypes: field.allowedFileTypes || [],
-                maxFileSize: field.maxFileSize ?? null,
-                maxFiles: field.maxFiles ?? null,
-              },
-            });
-          }
+          await tx.formField.createMany({
+            data: step.fields.map((field: any) => this.formFieldRow(field, formId, stepId)),
+          });
         }
       }
 
@@ -98,5 +80,27 @@ export class FormsStepsService {
         include: { form_fields: { orderBy: { order: 'asc' } } },
       });
     });
+  }
+
+  /** ⚡ Performance: صف واحد لـ createMany (تجنب N+1) */
+  private formFieldRow(field: any, formId: string, stepId: string) {
+    return {
+      id: SecureIds.field(),
+      formId,
+      stepId,
+      label: field.label,
+      description: field.description ?? null,
+      type: field.type,
+      order: field.order,
+      required: field.required ?? false,
+      placeholder: field.placeholder ?? null,
+      options: field.options ?? null,
+      minValue: field.minValue ?? null,
+      maxValue: field.maxValue ?? null,
+      allowedFileTypes: field.allowedFileTypes || [],
+      maxFileSize: field.maxFileSize ?? null,
+      maxFiles: field.maxFiles ?? null,
+      emailVerification: field.emailVerification ?? false,
+    } as any;
   }
 }

@@ -34,7 +34,7 @@ import {
   type CompleteProfileInput,
   type QuickSignResponse,
 } from '@/lib/api';
-import { clearCsrfToken, setCsrfToken, getCsrfToken, updateLastRefreshTime, setLoggingOut } from '@/lib/api/client';
+import { clearCsrfToken, setCsrfToken, getCsrfToken, updateLastRefreshTime, setLoggingOut, resetRefreshState } from '@/lib/api/client';
 
 // ============ Types ============
 
@@ -332,10 +332,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Ignore logout API errors - still clear local state
       console.warn('Logout API error:', error);
     } finally {
-      // 🔒 Clear CSRF token and stop silent refresh
       clearCsrfToken();
-      
-      // Clear local state immediately
+      resetRefreshState();
+
       setState({
         user: null,
         isLoading: false,
@@ -343,10 +342,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         needsProfileCompletion: false,
         error: null,
       });
-      
-      // Force redirect with page reload to ensure clean state
+
       if (typeof window !== 'undefined') {
-        // Use replace to prevent back button issues
         window.location.replace('/login');
       }
     }

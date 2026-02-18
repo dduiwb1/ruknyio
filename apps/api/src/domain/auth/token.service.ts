@@ -185,9 +185,9 @@ export class TokenService {
     const refreshTokenHash = this.hashToken(refreshToken);
 
     // 1. البحث عن الجلسة بواسطة refreshTokenHash الحالي
+    // ⚡ Performance: حد أدنى من الحقول + فهرس refreshTokenHash
     const session = await this.prisma.session.findUnique({
       where: { refreshTokenHash },
-      // ⚡ Performance: احصل على الحقول الضرورية فقط لتقليل حجم الاستعلام
       select: {
         id: true,
         userId: true,
@@ -196,19 +196,11 @@ export class TokenService {
         isRevoked: true,
         revokedReason: true,
         refreshExpiresAt: true,
-        expiresAt: true,
-        createdAt: true,
-        lastActivity: true,
         rotationCount: true,
         ipAddress: true,
         userAgent: true,
         lastRotatedAt: true,
-        user: {
-          select: {
-            id: true,
-            email: true,
-          },
-        },
+        user: { select: { email: true } },
       },
     });
 

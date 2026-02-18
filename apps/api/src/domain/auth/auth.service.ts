@@ -446,40 +446,27 @@ export class AuthService {
 
   /**
    * 🔒 تسجيل الخروج - إبطال الجلسة بدلاً من حذفها
-   *
-   * يستخرج sessionId من JWT ويُبطل الجلسة
+   * يقبل توكن منتهي الصلاحية لاستخراج sessionId وإبطال الجلسة
    */
   async logout(token: string, userId?: string) {
     try {
-      // استخراج sessionId من JWT
       let sessionId: string | undefined;
       try {
-        const decoded = this.jwtService.verify(token);
-        sessionId = decoded.sid;
-        console.log('[Auth] 🔍 Extracted session ID from token:', sessionId);
+        const decoded = this.jwtService.decode(token) as { sid?: string } | null;
+        sessionId = decoded?.sid;
       } catch {
-        // JWT منتهي أو غير صالح - لا مشكلة
-        console.log('[Auth] ⚠️ Could not decode token (may be expired)');
+        // ignore
       }
 
       if (!sessionId) {
-        console.log('[Auth] ✅ No session ID found - logout complete');
         return { message: 'Logged out successfully' };
       }
 
-      // Get session info before revoking
       const session = await this.prisma.session.findUnique({
         where: { id: sessionId },
       });
 
-      if (session) {
-        console.log('[Auth] 🔒 Revoking session:', {
-          sessionId: session.id,
-          userId: session.userId,
-          isRevoked: session.isRevoked,
-        });
-        
-        // 🔒 إبطال الجلسة بدلاً من حذفها (للتتبع الأمني)
+      if (session && !session.isRevoked) {
         await this.prisma.session.update({
           where: { id: sessionId },
           data: {
@@ -489,27 +476,20 @@ export class AuthService {
           },
         });
 
-        console.log('[Auth] ✅ Session revoked successfully');
-
-        // Log logout
         await this.securityLogService.createLog({
           userId: session.userId,
           action: 'LOGOUT',
           status: 'SUCCESS',
-          description: `تسجيل خروج`,
+          description: 'تسجيل خروج',
           ipAddress: session.ipAddress,
           deviceType: session.deviceType,
           browser: session.browser,
           os: session.os,
         });
-      } else {
-        console.log('[Auth] ⚠️ Session not found in database');
       }
 
       return { message: 'Logged out successfully' };
-    } catch (error) {
-      // Session might not exist, that's ok
-      console.log('[Auth] ⚠️ Logout error (ignored):', error instanceof Error ? error.message : 'Unknown error');
+    } catch {
       return { message: 'Logged out successfully' };
     }
   }

@@ -175,18 +175,19 @@ function buildSetCookieHeader(
     parts.push(`Domain=${domain}`);
   }
   const header = parts.filter(Boolean).join('; ');
-  
-  // Debug logging
-  console.log(`[Cookie] Building Set-Cookie for ${name}:`, {
-    domain: opts.domain,
-    finalDomain: opts.domain ? (opts.domain.startsWith('.') ? opts.domain : `.${opts.domain}`) : 'none',
-    httpOnly: opts.httpOnly,
-    secure: opts.secure,
-    sameSite: opts.sameSite,
-    maxAge: `${Math.floor(opts.maxAge / 1000)}s`,
-    headerLength: header.length,
-  });
-  
+
+  if (process.env.DEBUG_COOKIES === '1') {
+    console.log(`[Cookie] Building Set-Cookie for ${name}:`, {
+      domain: opts.domain,
+      finalDomain: opts.domain ? (opts.domain.startsWith('.') ? opts.domain : `.${opts.domain}`) : 'none',
+      httpOnly: opts.httpOnly,
+      secure: opts.secure,
+      sameSite: opts.sameSite,
+      maxAge: `${Math.floor(opts.maxAge / 1000)}s`,
+      headerLength: header.length,
+    });
+  }
+
   return header;
 }
 
@@ -282,13 +283,15 @@ function clearCookieManually(res: Response, name: string, opts: Pick<CookieOptio
     parts.push(`Domain=${domain}`);
   }
   const header = parts.filter(Boolean).join('; ');
-  
-  console.log(`[Cookie] Clearing ${name}:`, {
-    domain: opts.domain,
-    path: opts.path,
-    secure: opts.secure,
-  });
-  
+
+  if (process.env.DEBUG_COOKIES === '1') {
+    console.log(`[Cookie] Clearing ${name}:`, {
+      domain: opts.domain,
+      path: opts.path,
+      secure: opts.secure,
+    });
+  }
+
   res.append('Set-Cookie', header);
 }
 
@@ -320,6 +323,15 @@ export function clearAuthCookies(res: Response): void {
   // مسح CSRF Token
   clearCookieManually(res, COOKIE_NAMES.CSRF_TOKEN, {
     httpOnly: false,
+    secure: cookieSecure,
+    sameSite: 'lax',
+    path: '/',
+    domain: domainOpt,
+  });
+
+  // مسح Trusted Device (2FA) حتى يُطلب التحقق في الدخول التالي إن وُجد
+  clearCookieManually(res, COOKIE_NAMES.TRUSTED_DEVICE, {
+    httpOnly: true,
     secure: cookieSecure,
     sameSite: 'lax',
     path: '/',

@@ -343,25 +343,24 @@ export class AuthController {
     };
   }
 
+  /**
+   * 🔒 تسجيل الخروج - يعمل حتى مع توكن منتهي أو جلسة مُبطلة
+   * لا نستخدم JwtAuthGuard حتى يصل الطلب دائماً ونُمسح الكوكيز ونُبطل الجلسة إن وُجدت
+   */
   @Post('logout')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT-auth')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Logout user' })
+  @ApiOperation({ summary: 'Logout user (works with expired token)' })
   @ApiResponse({ status: 200, description: 'User successfully logged out' })
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    // Extract Access Token from Cookie or Authorization header
     const token = extractAccessToken(req);
-    
-    console.log('[Auth] 🚪 Logout request received');
-    
-    // 🔒 مسح جميع Auth Cookies
+
+    // 1. إبطال الجلسة في DB أولاً (حتى مع توكن منتهي)
+    const result = await this.authService.logout(token);
+
+    // 2. مسح جميع Auth Cookies دائماً (حتى لو لم توجد جلسة)
     clearAuthCookies(res);
-    
-    console.log('[Auth] ✅ Cookies cleared, invalidating session');
-    
-    // Invalidate session in database
-    return this.authService.logout(token);
+
+    return result;
   }
 
   @Get('google')

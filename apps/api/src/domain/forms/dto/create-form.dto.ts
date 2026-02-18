@@ -228,6 +228,14 @@ export class CreateFormFieldDto {
   @IsString()
   @IsOptional()
   maxLabel?: string;
+
+  @ApiPropertyOptional({
+    example: false,
+    description: 'Enable email verification for EMAIL field type',
+  })
+  @IsBoolean()
+  @IsOptional()
+  emailVerification?: boolean;
 }
 
 export class CreateFormDto {

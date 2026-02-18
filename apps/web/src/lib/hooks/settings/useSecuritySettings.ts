@@ -54,6 +54,8 @@ export interface BlockedIP {
 export interface TwoFASetupResponse {
   qrCode: string;
   secret: string;
+  backupCodes: string[];
+  manualEntryKey: string;
 }
 
 export function useSecuritySettings() {
@@ -71,7 +73,7 @@ export function useSecuritySettings() {
       setIsLoading(true);
       setError(null);
       
-      const response = await secureFetch(`${API_URL}/user/2fa/setup`, {
+      const response = await secureFetch(`${API_URL}/auth/2fa/setup`, {
         method: 'POST',
       });
 
@@ -82,8 +84,10 @@ export function useSecuritySettings() {
 
       const data = await response.json();
       return {
-        qrCode: data.qrCode,
+        qrCode: data.qrCodeUrl,
         secret: data.secret,
+        backupCodes: data.backupCodes || [],
+        manualEntryKey: data.manualEntryKey || data.secret,
       };
     } catch (err: any) {
       setError(err.message);
@@ -96,15 +100,15 @@ export function useSecuritySettings() {
   /**
    * التحقق وتفعيل المصادقة الثنائية - الخطوة 2
    */
-  const verify2FA = useCallback(async (code: string): Promise<boolean> => {
+  const verify2FA = useCallback(async (code: string): Promise<{ success: boolean; backupCodes?: string[] }> => {
     try {
       setIsLoading(true);
       setError(null);
       
-      const response = await secureFetch(`${API_URL}/user/2fa/verify`, {
+      const response = await secureFetch(`${API_URL}/auth/2fa/enable`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ token: code }),
       });
 
       if (!response.ok) {
@@ -112,10 +116,11 @@ export function useSecuritySettings() {
         throw new Error(data.message || 'رمز التحقق غير صحيح');
       }
 
-      return true;
+      const data = await response.json();
+      return { success: true, backupCodes: data.backupCodes };
     } catch (err: any) {
       setError(err.message);
-      return false;
+      return { success: false };
     } finally {
       setIsLoading(false);
     }
@@ -129,10 +134,10 @@ export function useSecuritySettings() {
       setIsLoading(true);
       setError(null);
       
-      const response = await secureFetch(`${API_URL}/user/2fa/disable`, {
-        method: 'POST',
+      const response = await secureFetch(`${API_URL}/auth/2fa/disable`, {
+        method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ token: code }),
       });
 
       if (!response.ok) {
@@ -144,6 +149,35 @@ export function useSecuritySettings() {
     } catch (err: any) {
       setError(err.message);
       return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  /**
+   * إعادة توليد الرموز الاحتياطية
+   */
+  const regenerateBackupCodes = useCallback(async (code: string): Promise<{ success: boolean; backupCodes?: string[] }> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await secureFetch(`${API_URL}/auth/2fa/backup-codes/regenerate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: code }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'فشل في إعادة توليد الرموز الاحتياطية');
+      }
+
+      const data = await response.json();
+      return { success: true, backupCodes: data.backupCodes };
+    } catch (err: any) {
+      setError(err.message);
+      return { success: false };
     } finally {
       setIsLoading(false);
     }
@@ -600,6 +634,7 @@ export function useSecuritySettings() {
     verify2FA,
     disable2FA,
     get2FAStatus,
+    regenerateBackupCodes,
     // Sessions
     getSessions,
     deleteSession,
