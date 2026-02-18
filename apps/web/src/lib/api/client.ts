@@ -194,6 +194,7 @@ export function clearAccessToken(): void {
 // ===== Refresh Token Protection (Shared State) =====
 let isRefreshing = false;
 let refreshFailed = false;
+let isLoggingOut = false; // Prevent refresh attempts during logout
 let refreshPromise: Promise<string | null> | null = null;
 let lastRefreshTime: number = Date.now();
 
@@ -202,6 +203,20 @@ let lastRefreshTime: number = Date.now();
  */
 export function updateLastRefreshTime(): void {
   lastRefreshTime = Date.now();
+}
+
+/**
+ * Set logout state to prevent refresh attempts during logout
+ */
+export function setLoggingOut(value: boolean): void {
+  isLoggingOut = value;
+  if (value) {
+    // When logging out, clear refresh state
+    isRefreshing = false;
+    refreshFailed = true;
+    refreshPromise = null;
+    clearSilentRefresh();
+  }
 }
 
 // ===== Silent Refresh (تقليل انقطاع الجلسة) =====
@@ -258,8 +273,8 @@ export function getLastRefreshTime(): number {
 /**
  * Get current refresh state (for use by api-client.ts)
  */
-export function getRefreshState(): { isRefreshing: boolean; refreshFailed: boolean } {
-  return { isRefreshing, refreshFailed };
+export function getRefreshState(): { isRefreshing: boolean; refreshFailed: boolean; isLoggingOut: boolean } {
+  return { isRefreshing, refreshFailed, isLoggingOut };
 }
 
 /**
@@ -313,6 +328,7 @@ function handleAuthFailure(reason: 'expired' | 'invalid' = 'expired'): void {
 export function resetRefreshState(): void {
   isRefreshing = false;
   refreshFailed = false;
+  isLoggingOut = false;
   refreshPromise = null;
   clearSilentRefresh();
 }
@@ -325,6 +341,11 @@ export function resetRefreshState(): void {
  * This function just triggers the refresh and updates the CSRF token
  */
 async function refreshAccessToken(): Promise<boolean> {
+  // 🚪 Don't attempt refresh during logout
+  if (isLoggingOut) {
+    return false;
+  }
+
   // If refresh already failed, don't try again
   if (refreshFailed) {
     return false;

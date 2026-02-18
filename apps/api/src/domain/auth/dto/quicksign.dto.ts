@@ -253,3 +253,43 @@ export class CheckUsernameDto {
   })
   username: string;
 }
+
+/**
+ * 🔐 Update OAuth User Profile DTO
+ * Used by OAuth users to complete their profile (name + username)
+ * After they sign up via Google/LinkedIn
+ */
+export class UpdateOAuthProfileDto {
+  @ApiProperty({
+    example: 'أحمد محمد',
+    description: 'الاسم الكامل',
+  })
+  @IsString({ message: 'الاسم يجب أن يكون نصاً' })
+  @IsNotEmpty({ message: 'الاسم مطلوب' })
+  @MinLength(2, { message: 'الاسم يجب أن يكون حرفين على الأقل' })
+  @MaxLength(50, { message: 'الاسم طويل جداً' })
+  name: string;
+
+  @ApiProperty({
+    example: 'ahmad_store',
+    description: 'اسم المستخدم الفريد',
+  })
+  @IsString({ message: 'اسم المستخدم يجب أن يكون نصاً' })
+  @IsNotEmpty({ message: 'اسم المستخدم مطلوب' })
+  @MinLength(3, { message: 'اسم المستخدم يجب أن يكون على الأقل 3 أحرف' })
+  @MaxLength(30, { message: 'اسم المستخدم يجب أن لا يتجاوز 30 حرف' })
+  @Matches(/^[a-zA-Z0-9_]+$/, {
+    message: 'اسم المستخدم يجب أن يحتوي على أحرف وأرقام وشرطة سفلية فقط',
+  })
+  username: string;
+
+  @ApiProperty({
+    example: '+964 770 123 4567',
+    description: 'رقم الهاتف (اختياري)',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  phone?: string;
+}

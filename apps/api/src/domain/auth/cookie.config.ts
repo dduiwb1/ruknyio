@@ -254,41 +254,76 @@ export function getTrustedDeviceId(req: Request): string | null {
  */
 export function clearTrustedDeviceCookie(res: Response): void {
   const domainOpt = getCookieDomainForClear();
-  res.clearCookie(COOKIE_NAMES.TRUSTED_DEVICE, {
+  clearCookieManually(res, COOKIE_NAMES.TRUSTED_DEVICE, {
     httpOnly: true,
     secure: cookieSecure,
     sameSite: 'lax',
     path: '/',
-    maxAge: 0,
-    ...(domainOpt && { domain: domainOpt }),
+    domain: domainOpt,
   });
 }
 
 /**
+ * 🔒 مسح كوكي واحد باستخدام Set-Cookie مع Max-Age=0
+ * هذا أكثر فعالية من clearCookie() الذي قد يفشل بسبب domain/path mismatch
+ */
+function clearCookieManually(res: Response, name: string, opts: Pick<CookieOptions, 'httpOnly' | 'secure' | 'sameSite' | 'path' | 'domain'>): void {
+  const parts = [
+    `${encodeURIComponent(name)}=`,
+    `Path=${opts.path}`,
+    'Max-Age=0', // مسح فوري
+    'Expires=Thu, 01 Jan 1970 00:00:00 GMT', // للتوافق مع المتصفحات القديمة
+    opts.httpOnly ? 'HttpOnly' : '',
+    opts.secure ? 'Secure' : '',
+    `SameSite=${opts.sameSite}`,
+  ];
+  if (opts.domain) {
+    const domain = opts.domain.startsWith('.') ? opts.domain : `.${opts.domain}`;
+    parts.push(`Domain=${domain}`);
+  }
+  const header = parts.filter(Boolean).join('; ');
+  
+  console.log(`[Cookie] Clearing ${name}:`, {
+    domain: opts.domain,
+    path: opts.path,
+    secure: opts.secure,
+  });
+  
+  res.append('Set-Cookie', header);
+}
+
+/**
  * 🔒 مسح جميع Auth Cookies
+ * يستخدم Set-Cookie manual بدلاً من clearCookie لضمان المسح الفعلي
  */
 export function clearAuthCookies(res: Response): void {
   const domainOpt = getCookieDomainForClear();
-  res.clearCookie(COOKIE_NAMES.ACCESS_TOKEN, {
+  
+  // مسح Access Token
+  clearCookieManually(res, COOKIE_NAMES.ACCESS_TOKEN, {
     httpOnly: true,
     secure: cookieSecure,
     sameSite: 'lax',
     path: '/',
-    ...(domainOpt && { domain: domainOpt }),
+    domain: domainOpt,
   });
-  res.clearCookie(COOKIE_NAMES.REFRESH_TOKEN, {
+  
+  // مسح Refresh Token
+  clearCookieManually(res, COOKIE_NAMES.REFRESH_TOKEN, {
     httpOnly: true,
     secure: cookieSecure,
     sameSite: getSameSite(),
     path: '/',
-    ...(domainOpt && { domain: domainOpt }),
+    domain: domainOpt,
   });
-  res.clearCookie(COOKIE_NAMES.CSRF_TOKEN, {
+  
+  // مسح CSRF Token
+  clearCookieManually(res, COOKIE_NAMES.CSRF_TOKEN, {
     httpOnly: false,
     secure: cookieSecure,
     sameSite: 'lax',
     path: '/',
-    ...(domainOpt && { domain: domainOpt }),
+    domain: domainOpt,
   });
 }
 
@@ -297,12 +332,12 @@ export function clearAuthCookies(res: Response): void {
  */
 export function clearRefreshTokenCookie(res: Response): void {
   const domainOpt = getCookieDomainForClear();
-  res.clearCookie(COOKIE_NAMES.REFRESH_TOKEN, {
+  clearCookieManually(res, COOKIE_NAMES.REFRESH_TOKEN, {
     httpOnly: true,
     secure: cookieSecure,
     sameSite: getSameSite(),
     path: '/',
-    ...(domainOpt && { domain: domainOpt }),
+    domain: domainOpt,
   });
 }
 

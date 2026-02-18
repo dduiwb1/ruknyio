@@ -6,7 +6,7 @@
  * Handles OAuth callback flow entirely on the client.
  */
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/providers';
 import { Loader2, XCircle, ArrowRight } from 'lucide-react';
@@ -18,6 +18,9 @@ function CallbackContent() {
   const { handleOAuthCallback } = useAuth();
 
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
+  const exchangeAttemptedRef = useRef(false);
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -42,10 +45,17 @@ function CallbackContent() {
       return;
     }
 
+    // Prevent double execution in React Strict Mode
+    if (exchangeAttemptedRef.current) {
+      console.log('[ClientCallback] Exchange already attempted, skipping...');
+      return;
+    }
+
     // Exchange OAuth code for tokens
     const exchangeCode = async () => {
       try {
-        console.log('[ClientCallback] Calling handleOAuthCallback with code:', code.substring(0, 20) + '...');
+        exchangeAttemptedRef.current = true;
+        console.log(`[ClientCallback] Calling handleOAuthCallback with code (attempt ${retryCount + 1}/${MAX_RETRIES}):`, code.substring(0, 20) + '...');
         const response = await handleOAuthCallback(code);
         console.log('[ClientCallback] handleOAuthCallback completed:', {
           needsProfileCompletion: response.needsProfileCompletion,
@@ -64,13 +74,24 @@ function CallbackContent() {
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'فشل التوثيق';
-        console.error('[ClientCallback] ❌ Exchange failed:', message);
-        setError(message);
+        console.error(`[ClientCallback] ❌ Exchange failed (attempt ${retryCount + 1}):`, message);
+        
+        // Retry logic for transient errors
+        if (retryCount < MAX_RETRIES) {
+          const delay = Math.min(1000 * Math.pow(2, retryCount), 5000); // Exponential backoff
+          console.log(`[ClientCallback] 🔄 Retrying in ${delay}ms...`);
+          setTimeout(() => {
+            exchangeAttemptedRef.current = false;
+            setRetryCount(prev => prev + 1);
+          }, delay);
+        } else {
+          setError(message);
+        }
       }
     };
 
     exchangeCode();
-  }, [searchParams, handleOAuthCallback, router]);
+  }, [searchParams, handleOAuthCallback, router, retryCount]);
 
   if (error) {
     return (

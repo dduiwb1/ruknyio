@@ -6,6 +6,7 @@ export {
   ResendIPCodeDto,
   CompleteProfileDto,
   CheckUsernameDto,
+  UpdateOAuthProfileDto,
 } from './quicksign.dto';
 
 // Two-Factor Authentication DTOs

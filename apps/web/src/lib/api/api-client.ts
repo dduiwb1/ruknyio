@@ -121,7 +121,7 @@ export async function secureFetch(
   options: SecureFetchOptions = {}
 ): Promise<Response> {
   const { skipAuth = false, skipRefresh = false, headers: customHeaders, ...restOptions } = options;
-  const { refreshFailed } = getRefreshState();
+  const { refreshFailed, isLoggingOut } = getRefreshState();
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -141,7 +141,8 @@ export async function secureFetch(
   });
 
   // Handle 401 - try to refresh (tokens are in httpOnly cookies)
-  if (response.status === 401 && !skipRefresh && !refreshFailed) {
+  // Don't attempt refresh if logging out or refresh already failed
+  if (response.status === 401 && !skipRefresh && !refreshFailed && !isLoggingOut) {
     const refreshed = await refreshAccessToken();
     if (refreshed) {
       // Retry: new access token is in cookie, no Authorization header needed

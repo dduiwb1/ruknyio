@@ -1,8 +1,8 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, Get, UseGuards, Req, Res, Delete, Param, Query, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, Get, UseGuards, Req, Res, Delete, Param, Query, ForbiddenException, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { TokenService } from './token.service';
-import { ExchangeCodeDto } from './dto';
+import { ExchangeCodeDto, UpdateOAuthProfileDto } from './dto';
 import { JwtAuthGuard } from '../../core/common/guards/auth/jwt-auth.guard';
 import { GoogleAuthGuard } from '../../core/common/guards/auth/google-auth.guard';
 import { LinkedInAuthGuard } from '../../core/common/guards/auth/linkedin-auth.guard';
@@ -13,6 +13,7 @@ import { RedisOAuthCodeService } from './redis-oauth-code.service';
 import { WebSocketTokenService } from './websocket-token.service';
 import { SecurityLogService } from '../../infrastructure/security/log.service';
 import { Throttle } from '@nestjs/throttler';
+import { randomUUID } from 'crypto';
 import { 
   setAccessTokenCookie,
   setRefreshTokenCookie,
@@ -24,6 +25,7 @@ import {
   validateCsrfOrigin,
   generateCsrfToken,
 } from './cookie.config';
+import { PrismaService } from '../../core/database/prisma/prisma.service';
 
 // Throttle policies:
 // - Production: strict
@@ -42,6 +44,7 @@ export class AuthController {
     private oauthCodeService: RedisOAuthCodeService, // Use Redis implementation
     private webSocketTokenService: WebSocketTokenService,
     private securityLogService: SecurityLogService,
+    private prisma: PrismaService,
   ) {}
 
   @Get('me')
@@ -54,6 +57,88 @@ export class AuthController {
   @ApiResponse({ status: 429, description: 'Too many requests' })
   async getMe(@CurrentUser() user: any) {
     return user;
+  }
+
+  /**
+   * 🔐 Update OAuth User Profile
+   * POST /auth/update-profile
+   * 
+   * Used by OAuth users (Google/LinkedIn) to complete their profile
+   * with name and username after signup
+   */
+  @Post('update-profile')
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update OAuth user profile (name and username)' })
+  @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid data' })
+  @ApiResponse({ status: 409, description: 'Username already taken' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async updateOAuthProfile(
+    @Body() dto: UpdateOAuthProfileDto,
+    @CurrentUser() user: any,
+    @Req() req: Request,
+  ) {
+    // Check if username is available
+    const existingProfile = await this.prisma.profile.findUnique({
+      where: { username: dto.username },
+    });
+
+    if (existingProfile && existingProfile.userId !== user.id) {
+      throw new ConflictException('اسم المستخدم محجوز بالفعل');
+    }
+
+    // Update user and profile
+    const updated = await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        profileCompleted: true,
+        phoneNumber: dto.phone || null,
+        lastLoginAt: new Date(),
+        profile: {
+          upsert: {
+            create: {
+              id: randomUUID(),
+              username: dto.username,
+              name: dto.name,
+            },
+            update: {
+              username: dto.username,
+              name: dto.name,
+            },
+          },
+        },
+      },
+      include: {
+        profile: true,
+      },
+    });
+
+    // Log the update
+    await this.securityLogService.createLog({
+      userId: user.id,
+      action: 'PROFILE_UPDATE' as any,
+      status: 'SUCCESS' as any,
+      description: 'تم تحديث الملف الشخصي (OAuth user)',
+      ipAddress: req.ip || req.socket.remoteAddress,
+      userAgent: req.headers['user-agent'],
+    });
+
+    return {
+      success: true,
+      user: {
+        id: updated.id,
+        email: updated.email,
+        role: updated.role,
+        name: updated.profile?.name,
+        username: updated.profile?.username,
+        avatar: updated.profile?.avatar,
+        profileCompleted: updated.profileCompleted,
+      },
+      message: 'تم تحديث الملف الشخصي بنجاح',
+    };
   }
 
   /**
@@ -268,8 +353,12 @@ export class AuthController {
     // Extract Access Token from Cookie or Authorization header
     const token = extractAccessToken(req);
     
+    console.log('[Auth] 🚪 Logout request received');
+    
     // 🔒 مسح جميع Auth Cookies
     clearAuthCookies(res);
+    
+    console.log('[Auth] ✅ Cookies cleared, invalidating session');
     
     // Invalidate session in database
     return this.authService.logout(token);

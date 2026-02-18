@@ -130,6 +130,34 @@ export async function completeProfile(input: CompleteProfileInput): Promise<{ su
 }
 
 /**
+ * Update OAuth user profile (name + username)
+ * Called by Google/LinkedIn users during profile completion
+ */
+export interface UpdateOAuthProfileInput {
+  name: string;
+  username: string;
+  phone?: string;
+}
+
+export async function updateOAuthProfile(input: UpdateOAuthProfileInput): Promise<{
+  success: boolean;
+  user: User;
+  message: string;
+}> {
+  const { data } = await api.post<{ success: boolean; user: User; message: string }>(
+    '/auth/update-profile',
+    input,
+  );
+  // Runtime validation
+  const validated = z.object({
+    success: z.boolean(),
+    user: UserSchema,
+    message: z.string(),
+  }).parse(data);
+  return validated;
+}
+
+/**
  * Check username availability
  */
 export async function checkUsername(username: string): Promise<{ available: boolean; suggestions?: string[] }> {

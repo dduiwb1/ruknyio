@@ -30,10 +30,11 @@ import {
   verifyQuickSign,
   exchangeOAuthCode,
   completeProfile,
+  updateOAuthProfile,
   type CompleteProfileInput,
   type QuickSignResponse,
 } from '@/lib/api';
-import { clearCsrfToken, setCsrfToken, getCsrfToken, updateLastRefreshTime } from '@/lib/api/client';
+import { clearCsrfToken, setCsrfToken, getCsrfToken, updateLastRefreshTime, setLoggingOut } from '@/lib/api/client';
 
 // ============ Types ============
 
@@ -55,6 +56,7 @@ interface AuthContextType extends AuthState {
   
   // Profile completion
   completeUserProfile: (input: CompleteProfileInput) => Promise<void>;
+  completeOAuthProfile: (input: Omit<CompleteProfileInput, 'quickSignToken'> & { phone?: string }) => Promise<any>;
   
   // Session management
   logout: () => Promise<void>;
@@ -289,8 +291,38 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
+  // Complete OAuth user profile (for Google/LinkedIn users)
+  const completeOAuthProfile = useCallback(async (input: Omit<CompleteProfileInput, 'quickSignToken'> & { phone?: string }) => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+    try {
+      const response = await updateOAuthProfile(input);
+      
+      // 🔒 Update refresh time on successful profile completion
+      updateLastRefreshTime();
+      
+      if (response.user) {
+        setState(prev => ({
+          ...prev,
+          user: response.user,
+          isLoading: false,
+          needsProfileCompletion: false,
+        }));
+      }
+      
+      return response;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to complete profile';
+      setState(prev => ({ ...prev, isLoading: false, error: message }));
+      throw err;
+    }
+  }, []);
+
   // Logout handler
   const logout = useCallback(async () => {
+    // 🚪 Set logging out flag to prevent refresh attempts
+    setLoggingOut(true);
+    
     setState(prev => ({ ...prev, isLoading: true }));
 
     try {
@@ -360,12 +392,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       verifyMagicLink,
       handleOAuthCallback,
       completeUserProfile,
+      completeOAuthProfile,
       logout,
       refreshUser,
       setUser,
       clearError,
     }),
-    [state, sendMagicLink, verifyMagicLink, handleOAuthCallback, completeUserProfile, logout, refreshUser, setUser, clearError]
+    [state, sendMagicLink, verifyMagicLink, handleOAuthCallback, completeUserProfile, completeOAuthProfile, logout, refreshUser, setUser, clearError]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

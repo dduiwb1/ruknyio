@@ -456,11 +456,14 @@ export class AuthService {
       try {
         const decoded = this.jwtService.verify(token);
         sessionId = decoded.sid;
+        console.log('[Auth] 🔍 Extracted session ID from token:', sessionId);
       } catch {
         // JWT منتهي أو غير صالح - لا مشكلة
+        console.log('[Auth] ⚠️ Could not decode token (may be expired)');
       }
 
       if (!sessionId) {
+        console.log('[Auth] ✅ No session ID found - logout complete');
         return { message: 'Logged out successfully' };
       }
 
@@ -470,6 +473,12 @@ export class AuthService {
       });
 
       if (session) {
+        console.log('[Auth] 🔒 Revoking session:', {
+          sessionId: session.id,
+          userId: session.userId,
+          isRevoked: session.isRevoked,
+        });
+        
         // 🔒 إبطال الجلسة بدلاً من حذفها (للتتبع الأمني)
         await this.prisma.session.update({
           where: { id: sessionId },
@@ -479,6 +488,8 @@ export class AuthService {
             revokedReason: 'User logout',
           },
         });
+
+        console.log('[Auth] ✅ Session revoked successfully');
 
         // Log logout
         await this.securityLogService.createLog({
@@ -491,11 +502,14 @@ export class AuthService {
           browser: session.browser,
           os: session.os,
         });
+      } else {
+        console.log('[Auth] ⚠️ Session not found in database');
       }
 
       return { message: 'Logged out successfully' };
     } catch (error) {
       // Session might not exist, that's ok
+      console.log('[Auth] ⚠️ Logout error (ignored):', error instanceof Error ? error.message : 'Unknown error');
       return { message: 'Logged out successfully' };
     }
   }
