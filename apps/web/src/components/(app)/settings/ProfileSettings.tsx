@@ -77,7 +77,7 @@ export function ProfileSettings() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-border bg-card p-8">
+      <div className="flex flex-col items-center justify-center gap-4 rounded-3xl border border-border bg-card p-8">
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         <p className="text-sm text-muted-foreground">جاري تحميل الملف الشخصي...</p>
       </div>
@@ -86,7 +86,7 @@ export function ProfileSettings() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-border bg-card p-4 sm:p-6">
+      <div className="rounded-3xl border border-border bg-card p-4 sm:p-6">
         <div className="mb-6 flex items-center gap-2">
           <User className="h-4 w-4 text-primary" />
           <h3 className="text-sm font-semibold text-foreground">الملف الشخصي</h3>

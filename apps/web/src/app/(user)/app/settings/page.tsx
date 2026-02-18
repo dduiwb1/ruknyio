@@ -265,40 +265,6 @@ const allSettings: SettingItem[] = [
   }
 ];
 
-/** Mobile list view: cards like reference (Security & sign-in, etc.) */
-const MobileSettingsList = ({
-  settings,
-  onSelect,
-}: {
-  settings: SettingItem[];
-  onSelect: (id: SettingTab) => void;
-}) => (
-  <div className="space-y-3 pb-6">
-    {settings.map((item) => {
-      const Icon = item.icon;
-      return (
-        <button
-          key={item.id}
-          type="button"
-          onClick={() => onSelect(item.id)}
-          className="w-full flex items-center gap-3 sm:gap-4 rounded-3xl border border-border bg-card p-3.5 sm:p-4 text-right transition-colors hover:bg-muted/30 active:scale-[0.99]"
-        >
-          <div
-            className={`flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl ${item.iconBgSolid} text-white`}
-          >
-            <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm sm:text-base font-bold text-foreground">{item.label}</p>
-            <p className="mt-0.5 line-clamp-2 text-xs sm:text-sm text-muted-foreground">{item.description}</p>
-          </div>
-          <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5 shrink-0 rotate-180 text-muted-foreground" aria-hidden />
-        </button>
-      );
-    })}
-  </div>
-);
-
 // Category info for headers - using brand colors
 const categoryInfo = {
   security: {
@@ -346,6 +312,84 @@ const categoryInfo = {
     lightBg: 'bg-success/10',
     textColor: 'text-success'
   }
+};
+
+/** Group settings by category for organized display */
+const categories: SettingItem['category'][] = ['security', 'integrations', 'store', 'forms', 'events'];
+
+/** Mobile list view: grouped by category inside shared containers */
+const MobileSettingsList = ({
+  settings,
+  onSelect,
+}: {
+  settings: SettingItem[];
+  onSelect: (id: SettingTab) => void;
+}) => {
+  const grouped = useMemo(() => {
+    return categories.map((cat) => ({
+      category: cat,
+      info: categoryInfo[cat],
+      items: settings.filter((s) => s.category === cat),
+    })).filter((g) => g.items.length > 0);
+  }, [settings]);
+
+  return (
+    <div className="space-y-5 pb-6">
+      {grouped.map(({ category, info, items }) => {
+        const CatIcon = info.icon;
+        return (
+          <section key={category}>
+            {/* Category header */}
+            <div className="flex items-center gap-2.5 mb-2.5 px-1">
+              <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${info.lightBg}`}>
+                <CatIcon className={`h-3.5 w-3.5 ${info.textColor}`} />
+              </div>
+              <h2 className={`text-sm font-bold ${info.textColor}`}>{info.title}</h2>
+            </div>
+
+            {/* Items container */}
+            <div className="rounded-3xl border border-border bg-card overflow-hidden">
+              {items.map((item, idx) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => onSelect(item.id)}
+                    className={`w-full flex items-center gap-3 sm:gap-4 px-3.5 sm:px-4 py-3 sm:py-3.5 text-right transition-colors hover:bg-muted/30 active:bg-muted/50 ${
+                      idx < items.length - 1 ? 'border-b border-border/60' : ''
+                    }`}
+                  >
+                    <div
+                      className={`flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl ${item.iconBgSolid} text-white`}
+                    >
+                      <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-sm sm:text-[15px] font-semibold text-foreground">{item.label}</p>
+                        {item.badge && (
+                          <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            item.badge === 'موصى به' 
+                              ? 'bg-primary/15 text-primary' 
+                              : 'bg-info/15 text-info'
+                          }`}>
+                            {item.badge}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{item.description}</p>
+                    </div>
+                    <ChevronLeft className="h-4 w-4 shrink-0 rotate-180 text-muted-foreground/60" aria-hidden />
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
 };
 
 // Hook: mobile breakpoint (lg = 1024px)

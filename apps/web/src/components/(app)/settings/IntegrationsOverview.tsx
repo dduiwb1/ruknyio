@@ -57,7 +57,7 @@ export function IntegrationsOverview() {
     <div className="space-y-4">
       {/* Stats Cards */}
       <div className="grid sm:grid-cols-3 gap-3">
-        <div className="bg-primary rounded-2xl p-4 text-white">
+        <div className="bg-primary rounded-3xl p-4 text-white">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 bg-white/15 rounded-lg">
               <Link2 className="w-5 h-5" />

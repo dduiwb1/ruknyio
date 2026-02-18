@@ -87,9 +87,9 @@ export function SessionsManager() {
 
   return (
     <>
-      <div className="bg-card rounded-4xl border border-border overflow-hidden">
+      <div className="bg-card rounded-3xl border border-border overflow-hidden">
         {/* Header */}
-        <div className="p-4 border-b border-border flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-sky-500/10 flex items-center justify-center">
               <Globe className="w-4 h-4 text-sky-600" />

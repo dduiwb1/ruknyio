@@ -66,7 +66,7 @@ export default function SettingsLayout({
       dir="rtl"
     >
       <SettingsSidebar />
-      <div className="flex-1 min-w-0 bg-card rounded-2xl border border-border/50 overflow-hidden">
+      <div className="flex-1 min-w-0 bg-card rounded-2xl border border-border/50 overflow-hidden flex flex-col">
         {/* Mobile Header */}
         <header className="sticky top-0 z-40 lg:hidden bg-card border-b border-border/50">
           {/* Top Row - Title & Actions */}
@@ -128,7 +128,7 @@ export default function SettingsLayout({
         </header>
 
         {/* Scrollable Content Area */}
-        <div className="h-full overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="flex-1 min-h-0 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {children}
         </div>
       </div>

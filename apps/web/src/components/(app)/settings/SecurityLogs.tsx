@@ -146,17 +146,17 @@ export function SecurityLogs() {
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl"
+        className="bg-card border border-border rounded-3xl"
       >
         {/* Title Section */}
-        <div className="p-4 flex items-center justify-between">
+        <div className="p-4 sm:p-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
               <FileText className="w-5 h-5 text-violet-600 dark:text-violet-400" />
             </div>
             <div>
-              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">سجل النشاط</h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">{total} سجل</p>
+              <h3 className="font-semibold text-foreground">سجل النشاط</h3>
+              <p className="text-xs text-muted-foreground">{total} سجل</p>
             </div>
           </div>
           
@@ -167,8 +167,8 @@ export function SecurityLogs() {
               disabled={exporting || logs.length === 0}
               className={cn(
                 "p-2.5 rounded-xl transition-colors",
-                "bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700",
-                "text-zinc-600 dark:text-zinc-400",
+                "bg-muted hover:bg-muted/80",
+                "text-muted-foreground",
                 "disabled:opacity-50"
               )}
             >
@@ -260,23 +260,23 @@ export function SecurityLogs() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden"
+        className="bg-card border border-border rounded-3xl overflow-hidden"
       >
         {loadingLogs ? (
           <div className="p-12 flex flex-col items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-3">جاري التحميل...</p>
+            <p className="text-sm text-muted-foreground mt-3">جاري التحميل...</p>
           </div>
         ) : logs.length === 0 ? (
           <div className="p-12 text-center">
-            <div className="w-14 h-14 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <FileText className="w-7 h-7 text-zinc-400" />
+            <div className="w-14 h-14 bg-muted rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <FileText className="w-7 h-7 text-muted-foreground" />
             </div>
-            <p className="font-medium text-zinc-700 dark:text-zinc-300">لا توجد سجلات</p>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">ستظهر هنا الأنشطة الأمنية</p>
+            <p className="font-medium text-foreground">لا توجد سجلات</p>
+            <p className="text-sm text-muted-foreground mt-1">ستظهر هنا الأنشطة الأمنية</p>
           </div>
         ) : (
-          <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+          <div className="divide-y divide-border">
             {logs.map((log, index) => {
               const statusConfig = STATUS_CONFIG[log.status] || STATUS_CONFIG['WARNING'];
               const StatusIcon = statusConfig.icon;
@@ -287,7 +287,7 @@ export function SecurityLogs() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: index * 0.02 }}
-                  className="p-4 active:bg-zinc-50 dark:active:bg-zinc-800/50"
+                  className="p-4 active:bg-muted/50"
                 >
                   <div className="flex items-start gap-3">
                     {/* Checkbox */}
@@ -314,11 +314,11 @@ export function SecurityLogs() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="font-medium text-sm text-zinc-900 dark:text-zinc-100">
+                          <p className="font-medium text-sm text-foreground">
                             {ACTION_LABELS[log.action] || log.action}
                           </p>
                           {log.description && (
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 line-clamp-1">
+                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
                               {log.description}
                             </p>
                           )}
@@ -328,7 +328,7 @@ export function SecurityLogs() {
                         <button
                           onClick={() => handleDeleteLog(log.id)}
                           disabled={deletingId === log.id}
-                          className="p-1.5 rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shrink-0"
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
                         >
                           {deletingId === log.id ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -340,12 +340,12 @@ export function SecurityLogs() {
                       
                       {/* Meta */}
                       <div className="flex items-center gap-3 mt-2">
-                        <span className="flex items-center gap-1 text-xs text-zinc-400">
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Clock className="w-3 h-3" />
                           {formatTimeAgo(log.createdAt)}
                         </span>
                         {log.ipAddress && (
-                          <span className="flex items-center gap-1 text-xs text-zinc-400">
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Globe className="w-3 h-3" />
                             {log.ipAddress}
                           </span>
@@ -361,22 +361,22 @@ export function SecurityLogs() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
-            <span className="text-sm text-zinc-500 dark:text-zinc-400">
+          <div className="p-4 border-t border-border flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">
               {page} / {totalPages}
             </span>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="p-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 disabled:opacity-40 transition-colors"
+                className="p-2.5 rounded-xl bg-muted text-muted-foreground disabled:opacity-40 transition-colors"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="p-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 disabled:opacity-40 transition-colors"
+                className="p-2.5 rounded-xl bg-muted text-muted-foreground disabled:opacity-40 transition-colors"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>

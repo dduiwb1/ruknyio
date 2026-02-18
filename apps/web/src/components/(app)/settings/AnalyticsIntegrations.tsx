@@ -33,7 +33,7 @@ export function AnalyticsIntegrations() {
   return (
     <div className="space-y-4">
       {/* Info Card */}
-      <div className="bg-primary/5 rounded-xl p-4 border border-primary/10">
+      <div className="bg-primary/5 rounded-2xl p-4 border border-primary/10">
         <div className="flex items-start gap-3">
           <div className="p-2 bg-primary/10 rounded-lg">
             <TrendingUp className="w-5 h-5 text-primary" />
@@ -54,13 +54,13 @@ export function AnalyticsIntegrations() {
           return (
             <div
               key={tool.id}
-              className="bg-card rounded-xl p-4 border border-border hover:border-primary/20 transition-colors"
+              className="bg-card rounded-2xl p-4 border border-border hover:border-primary/20 transition-colors"
             >
               <div className="flex items-start justify-between mb-2">
                 <div className="p-2 bg-muted rounded-lg">
                   <Icon className="w-4 h-4 text-muted-foreground" />
                 </div>
-                <span className="px-2 py-0.5 text-xs font-medium bg-warning/10 text-warning-filled rounded-md">
+                <span className="px-2 py-0.5 text-xs font-medium bg-warning/10 text-warning-filled rounded-full">
                   قريباً
                 </span>
               </div>

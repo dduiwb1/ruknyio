@@ -333,7 +333,7 @@ export function StorageIntegrations() {
   return (
     <div className="space-y-6">
       {/* Storage Card */}
-      <div className="bg-card rounded-4xl border border-border/50 p-4 sm:p-6">
+      <div className="bg-card rounded-3xl border border-border p-4 sm:p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -415,7 +415,7 @@ export function StorageIntegrations() {
       </div>
 
       {/* Files Section */}
-      <div className="bg-card rounded-4xl border border-border/50 overflow-hidden">
+      <div className="bg-card rounded-3xl border border-border overflow-hidden">
         <button
           onClick={() => setShowFiles(!showFiles)}
           className="w-full px-4 sm:px-6 py-4 flex items-center justify-between hover:bg-muted/30 transition-colors"

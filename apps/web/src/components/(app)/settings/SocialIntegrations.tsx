@@ -37,7 +37,7 @@ export function SocialIntegrations() {
       description: 'نشر تحديثات منتجاتك على X',
       icon: 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z',
       bgColor: 'bg-zinc-500/10',
-      iconColor: 'text-zinc-700 dark:text-zinc-300',
+      iconColor: 'text-foreground',
       status: 'قريباً'
     }
   ];
@@ -45,7 +45,7 @@ export function SocialIntegrations() {
   return (
     <div className="space-y-3">
       {/* Info Card */}
-      <div className="bg-rose-500/5 rounded-xl p-3 border border-rose-500/10">
+      <div className="bg-rose-500/5 rounded-2xl p-4 border border-rose-500/10">
         <div className="flex items-start gap-3">
           <div className="p-2 bg-rose-500/10 rounded-lg shrink-0">
             <Share2 className="w-4 h-4 text-rose-500" />
@@ -64,7 +64,7 @@ export function SocialIntegrations() {
         {platforms.map((platform) => (
           <div
             key={platform.id}
-            className="bg-card rounded-xl p-3 border border-border hover:border-primary/30 transition-colors"
+            className="bg-card rounded-2xl p-4 border border-border hover:border-primary/30 transition-colors"
           >
             <div className="flex items-start justify-between mb-2">
               <div className={`p-2 rounded-lg ${platform.bgColor}`}>
@@ -72,7 +72,7 @@ export function SocialIntegrations() {
                   <path d={platform.icon} />
                 </svg>
               </div>
-              <span className="px-2 py-0.5 text-[10px] font-medium bg-amber-500/10 text-amber-600 rounded">
+              <span className="px-2 py-0.5 text-[10px] font-medium bg-amber-500/10 text-amber-600 rounded-full">
                 {platform.status}
               </span>
             </div>

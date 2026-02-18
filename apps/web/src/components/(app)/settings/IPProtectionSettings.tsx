@@ -175,7 +175,7 @@ export function IPProtectionSettings({ onSettingsChange }: IPProtectionSettingsP
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-card border border-border rounded-4xl overflow-hidden"
+        className="bg-card border border-border rounded-3xl overflow-hidden"
       >
         {/* Toggle Section */}
         <div className="p-4">
@@ -287,7 +287,7 @@ export function IPProtectionSettings({ onSettingsChange }: IPProtectionSettingsP
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="bg-card border border-border rounded-4xl p-4"
+        className="bg-card border border-border rounded-3xl p-4 sm:p-5"
       >
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-xl bg-success/15 flex items-center justify-center">
@@ -399,7 +399,7 @@ export function IPProtectionSettingsSkeleton() {
   return (
     <div className="space-y-4">
       {/* Main Card Skeleton */}
-      <div className="bg-card border border-border rounded-4xl p-4">
+      <div className="bg-card border border-border rounded-3xl p-4 sm:p-5">
         <div className="flex items-center gap-4">
           <div className="w-11 h-11 rounded-xl bg-muted animate-pulse" />
           <div className="flex-1 space-y-2">
@@ -411,7 +411,7 @@ export function IPProtectionSettingsSkeleton() {
       </div>
 
       {/* Trusted Locations Skeleton */}
-      <div className="bg-card border border-border rounded-4xl p-4">
+      <div className="bg-card border border-border rounded-3xl p-4 sm:p-5">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-xl bg-muted animate-pulse" />
           <div className="flex-1 space-y-2">

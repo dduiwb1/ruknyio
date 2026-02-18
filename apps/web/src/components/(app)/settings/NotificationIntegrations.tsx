@@ -45,7 +45,7 @@ export function NotificationIntegrations() {
   return (
     <div className="space-y-3">
       {/* Info Card */}
-      <div className="bg-sky-500/5 rounded-xl p-3 border border-sky-500/10">
+      <div className="bg-sky-500/5 rounded-2xl p-4 border border-sky-500/10">
         <div className="flex items-start gap-3">
           <div className="p-2 bg-sky-500/10 rounded-lg shrink-0">
             <Bell className="w-4 h-4 text-sky-500" />
@@ -64,7 +64,7 @@ export function NotificationIntegrations() {
         {integrations.map((integration) => (
           <div
             key={integration.id}
-            className="bg-card rounded-xl p-3 border border-border hover:border-primary/30 transition-colors"
+            className="bg-card rounded-2xl p-4 border border-border hover:border-primary/30 transition-colors"
           >
             <div className="flex items-start justify-between mb-2">
               <div className={`p-2 rounded-lg ${integration.bgColor}`}>
@@ -72,7 +72,7 @@ export function NotificationIntegrations() {
                   <path d={integration.icon} />
                 </svg>
               </div>
-              <span className="px-2 py-0.5 text-[10px] font-medium bg-amber-500/10 text-amber-600 rounded">
+              <span className="px-2 py-0.5 text-[10px] font-medium bg-amber-500/10 text-amber-600 rounded-full">
                 {integration.status}
               </span>
             </div>
