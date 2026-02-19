@@ -396,6 +396,106 @@ export const KNOWN_PLATFORMS: PlatformInfo[] = [
     usernamePattern: /linktr\.ee\/([a-zA-Z0-9_]+)/i,
     baseUrl: 'https://linktr.ee/',
   },
+  // Figma
+  {
+    key: 'figma',
+    name: 'Figma',
+    nameAr: 'فيجما',
+    category: 'business',
+    color: '#F24E1E',
+    urlPatterns: [/figma\.com/i],
+    baseUrl: 'https://figma.com/',
+  },
+  // Canva
+  {
+    key: 'canva',
+    name: 'Canva',
+    nameAr: 'كانفا',
+    category: 'business',
+    color: '#00C4CC',
+    urlPatterns: [/canva\.com/i],
+    baseUrl: 'https://canva.com/',
+  },
+  // Trello
+  {
+    key: 'trello',
+    name: 'Trello',
+    nameAr: 'تريلو',
+    category: 'business',
+    color: '#0052CC',
+    urlPatterns: [/trello\.com/i],
+    baseUrl: 'https://trello.com/',
+  },
+  // Slack
+  {
+    key: 'slack',
+    name: 'Slack',
+    nameAr: 'سلاك',
+    category: 'messaging',
+    color: '#4A154B',
+    urlPatterns: [/slack\.com/i],
+    baseUrl: 'https://slack.com/',
+  },
+  // Zoom
+  {
+    key: 'zoom',
+    name: 'Zoom',
+    nameAr: 'زووم',
+    category: 'messaging',
+    color: '#0B5CFF',
+    urlPatterns: [/zoom\.us/i],
+    baseUrl: 'https://zoom.us/',
+  },
+  // Clubhouse
+  {
+    key: 'clubhouse',
+    name: 'Clubhouse',
+    nameAr: 'كلوب هاوس',
+    category: 'social',
+    color: '#F2E8C4',
+    urlPatterns: [/joinclubhouse\.com/i, /clubhouse\.com/i],
+    baseUrl: 'https://joinclubhouse.com/',
+  },
+  // Signal
+  {
+    key: 'signal',
+    name: 'Signal',
+    nameAr: 'سيجنال',
+    category: 'messaging',
+    color: '#3A76F0',
+    urlPatterns: [/signal\.org/i, /signal\.me/i],
+    baseUrl: 'https://signal.org/',
+  },
+  // Salla (سلة)
+  {
+    key: 'salla',
+    name: 'Salla',
+    nameAr: 'سلة',
+    category: 'business',
+    color: '#004956',
+    urlPatterns: [/salla\.sa/i, /salla\.com/i],
+    baseUrl: 'https://salla.sa/',
+  },
+  // Zid (زد)
+  {
+    key: 'zid',
+    name: 'Zid',
+    nameAr: 'زد',
+    category: 'business',
+    color: '#5236FF',
+    urlPatterns: [/zid\.sa/i, /zid\.store/i],
+    baseUrl: 'https://zid.sa/',
+  },
+  // Maroof (معروف)
+  {
+    key: 'maroof',
+    name: 'Maroof',
+    nameAr: 'معروف',
+    category: 'business',
+    color: '#00A651',
+    urlPatterns: [/maroof\.sa/i],
+    baseUrl: 'https://maroof.sa/',
+  },
   // Google Maps
   {
     key: 'googlemaps',
@@ -586,6 +686,9 @@ export function getSimpleIconKey(platformKey: string): string {
     'producthunt': 'producthunt',
     'stackoverflow': 'stackoverflow',
     'kofi': 'kofi',
+    'salla': 'salla',
+    'zid': 'zid',
+    'clubhouse': 'clubhouse',
   };
   
   return iconMapping[platformKey] || platformKey;

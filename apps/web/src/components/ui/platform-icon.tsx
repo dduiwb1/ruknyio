@@ -21,23 +21,23 @@ interface PlatformIconProps {
 }
 
 const sizeMap = {
-  xs: 'w-3 h-3',
-  sm: 'w-4 h-4',
-  md: 'w-5 h-5',
-  lg: 'w-6 h-6',
+  xs: 'w-4 h-4',
+  sm: 'w-6 h-6',
+  md: 'w-7 h-7',
+  lg: 'w-8 h-8',
 };
 
 const faviconSizeMap = {
-  xs: 16,
-  sm: 32,
-  md: 48,
-  lg: 64,
+  xs: 32,
+  sm: 64,
+  md: 64,
+  lg: 128,
 };
 
 /**
  * مكون ذكي لعرض أيقونة المنصة
- * - يحاول تحميل أيقونة SimpleIcons أولاً
- * - إذا فشل، يحاول تحميل Favicon من الموقع
+ * - يجلب الشعار الحقيقي للموقع من Google Favicon أولاً
+ * - إذا لم يتوفر رابط، يستخدم SimpleIcons
  * - إذا فشل الكل، يعرض أيقونة Globe
  */
 export function PlatformIcon({ 
@@ -49,49 +49,56 @@ export function PlatformIcon({
   color,
   showFallback = true,
 }: PlatformIconProps) {
-  const [iconState, setIconState] = useState<'loading' | 'simple' | 'favicon' | 'fallback'>('loading');
-  const [currentSrc, setCurrentSrc] = useState<string>('');
+  const [srcIndex, setSrcIndex] = useState(0);
+  const [failed, setFailed] = useState(false);
   
   const platformKey = platform || platformData?.key || 'website';
   const platformColor = color || platformData?.color;
   const iconKey = getSimpleIconKey(platformKey);
-  
+  const domain = url ? extractDomain(url) : '';
+  const colorHex = platformColor ? platformColor.replace('#', '') : undefined;
+
+  // Build ordered source list: Google favicon first (real logo), then fallbacks
+  const sources = (() => {
+    const list: string[] = [];
+    
+    // 1. Google Favicon - الشعار الحقيقي للموقع (أولوية قصوى)
+    if (domain) {
+      list.push(`https://www.google.com/s2/favicons?domain=${domain}&sz=${faviconSizeMap[size]}`);
+    }
+    
+    // 2. DuckDuckGo Icons - مصدر بديل للشعار الحقيقي
+    if (domain) {
+      list.push(`https://icons.duckduckgo.com/ip3/${domain}.ico`);
+    }
+    
+    // 3. SimpleIcons - أيقونة المنصة المعروفة كـ fallback
+    if (platformKey !== 'website') {
+      const simpleUrl = colorHex 
+        ? `https://cdn.simpleicons.org/${iconKey}/${colorHex}`
+        : `https://cdn.simpleicons.org/${iconKey}`;
+      list.push(simpleUrl);
+    }
+    
+    return list;
+  })();
+
+  // Reset when platform or url changes
   useEffect(() => {
-    // Reset state when platform or url changes
-    setIconState('loading');
-    
-    // For website type, go directly to favicon
-    if (platformKey === 'website' && url) {
-      const faviconUrl = getFaviconUrl(url, faviconSizeMap[size]);
-      setCurrentSrc(faviconUrl);
-      setIconState('favicon');
-      return;
-    }
-    
-    // Try SimpleIcons first
-    const simpleIconUrl = `https://cdn.simpleicons.org/${iconKey}`;
-    setCurrentSrc(simpleIconUrl);
-    setIconState('simple');
-  }, [platformKey, url, iconKey, size]);
+    setSrcIndex(0);
+    setFailed(false);
+  }, [platformKey, url]);
 
-  const handleImageError = () => {
-    if (iconState === 'simple' && url) {
-      // Try favicon
-      const faviconUrl = getFaviconUrl(url, faviconSizeMap[size]);
-      setCurrentSrc(faviconUrl);
-      setIconState('favicon');
+  const handleError = () => {
+    if (srcIndex < sources.length - 1) {
+      setSrcIndex(prev => prev + 1);
     } else {
-      // Show fallback
-      setIconState('fallback');
+      setFailed(true);
     }
   };
 
-  const handleImageLoad = () => {
-    // Image loaded successfully
-  };
-
-  // Fallback icon - show if state is fallback, or src is empty/invalid
-  if (iconState === 'fallback' || !currentSrc || (!showFallback && iconState === 'loading')) {
+  // Fallback Globe icon
+  if (failed || sources.length === 0 || (!showFallback && srcIndex === 0)) {
     return (
       <Globe 
         className={cn(sizeMap[size], className)} 
@@ -102,12 +109,10 @@ export function PlatformIcon({
 
   return (
     <img
-      src={currentSrc}
+      src={sources[srcIndex]}
       alt={platformData?.name || platform || 'Platform'}
-      className={cn(sizeMap[size], 'object-contain', className)}
-      style={platformColor && iconState === 'simple' ? { filter: 'brightness(0)' } : undefined}
-      onError={handleImageError}
-      onLoad={handleImageLoad}
+      className={cn(sizeMap[size], 'object-contain rounded-sm', className)}
+      onError={handleError}
       loading="lazy"
     />
   );
@@ -125,21 +130,25 @@ export function FaviconIcon({
   size?: 'xs' | 'sm' | 'md' | 'lg';
   className?: string;
 }) {
-  const [hasError, setHasError] = useState(false);
+  const [srcIndex, setSrcIndex] = useState(0);
   const domain = extractDomain(url);
   
-  if (!domain || hasError) {
-    return <Globe className={cn(sizeMap[size], 'text-gray-400', className)} />;
-  }
+  const sources = [
+    `https://www.google.com/s2/favicons?domain=${domain}&sz=${faviconSizeMap[size]}`,
+    `https://icons.duckduckgo.com/ip3/${domain}.ico`,
+    `https://${domain}/favicon.ico`,
+  ];
   
-  const faviconUrl = getFaviconUrl(url, faviconSizeMap[size]);
+  if (!domain || srcIndex >= sources.length) {
+    return <Globe className={cn(sizeMap[size], 'text-muted-foreground', className)} />;
+  }
   
   return (
     <img
-      src={faviconUrl}
+      src={sources[srcIndex]}
       alt={domain}
       className={cn(sizeMap[size], 'object-contain rounded-sm', className)}
-      onError={() => setHasError(true)}
+      onError={() => setSrcIndex(prev => prev + 1)}
       loading="lazy"
     />
   );

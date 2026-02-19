@@ -1,14 +1,18 @@
 'use client';
 
 import { memo, useMemo } from 'react';
-import { motion, type Variants, type TargetAndTransition } from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { 
-  Link2, 
-  FolderOpen, 
+import {
+  Link2,
+  FolderOpen,
   Eye,
+  MousePointerClick,
+  Star,
+  Zap,
   TrendingUp,
-  type LucideIcon 
+  TrendingDown,
+  type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -16,103 +20,103 @@ import { cn } from '@/lib/utils';
 // Types
 // ============================================
 
-interface ProfileStatConfig {
-  id: 'links' | 'groups' | 'views';
-  titleAr: string;
-  subtitleAr: string;
+interface StatConfig {
+  key: string;
+  title: string;
+  subtitle: string;
   href: string;
   icon: LucideIcon;
-  colors: {
-    bg: string;
-    hoverBg: string;
-    text: string;
-    iconBg: string;
-    skeleton: string;
-  };
-  ariaLabel: string;
+  bgColor: string;
+  hoverColor: string;
+  textColor: string;
 }
 
 interface ProfileStatsProps {
   linksCount: number;
   groupsCount: number;
   viewsCount: number;
+  activeLinksCount?: number;
+  totalClicks?: number;
+  pinnedCount?: number;
   isLoading?: boolean;
 }
 
 // ============================================
-// Constants
+// Config - Same card style as FormsStats
 // ============================================
 
-const EMPTY_ANIMATION: TargetAndTransition = {};
-const HOVER_ANIMATION: TargetAndTransition = { scale: 1.02, y: -4 };
-const TAP_ANIMATION: TargetAndTransition = { scale: 0.98 };
-
-const CARD_BASE_CLASSES = [
-  'relative rounded-2xl p-4 sm:p-5',
-  'text-right group w-full',
-  'border border-white/50',
-  'shadow-md hover:shadow-xl',
-  'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-  'focus-visible:ring-primary',
-  'overflow-hidden',
-] as const;
-
-const PROFILE_STATS_CONFIG: ProfileStatConfig[] = [
+const STATS_CONFIG: StatConfig[] = [
   {
-    id: 'links',
-    titleAr: 'الروابط',
-    subtitleAr: 'روابط التواصل',
+    key: 'links',
+    title: 'إجمالي الروابط',
+    subtitle: 'روابط التواصل',
     href: '/app/profile/links',
     icon: Link2,
-    colors: {
-      bg: 'bg-gradient-to-br from-warning/30 to-warning/10',
-      hoverBg: 'hover:from-warning/40 hover:to-warning/20',
-      text: 'text-foreground',
-      iconBg: 'bg-card/70',
-      skeleton: 'bg-warning/30',
-    },
-    ariaLabel: 'عرض الروابط',
+    bgColor: 'bg-amber-100',
+    hoverColor: 'hover:bg-amber-200',
+    textColor: 'text-amber-900',
   },
   {
-    id: 'groups',
-    titleAr: 'المجموعات',
-    subtitleAr: 'تنظيم الروابط',
+    key: 'active',
+    title: 'الروابط النشطة',
+    subtitle: 'رابط فعّال',
+    href: '/app/profile/links',
+    icon: Zap,
+    bgColor: 'bg-emerald-100',
+    hoverColor: 'hover:bg-emerald-200',
+    textColor: 'text-emerald-900',
+  },
+  {
+    key: 'groups',
+    title: 'المجموعات',
+    subtitle: 'تنظيم الروابط',
     href: '/app/profile/links',
     icon: FolderOpen,
-    colors: {
-      bg: 'bg-gradient-to-br from-primary/25 to-primary/10',
-      hoverBg: 'hover:from-primary/35 hover:to-primary/15',
-      text: 'text-foreground',
-      iconBg: 'bg-card/70',
-      skeleton: 'bg-primary/20',
-    },
-    ariaLabel: 'عرض المجموعات',
+    bgColor: 'bg-sky-100',
+    hoverColor: 'hover:bg-sky-200',
+    textColor: 'text-sky-900',
   },
   {
-    id: 'views',
-    titleAr: 'المشاهدات',
-    subtitleAr: 'مشاهدات الملف',
+    key: 'clicks',
+    title: 'إجمالي النقرات',
+    subtitle: 'نقرة',
+    href: '/app/profile',
+    icon: MousePointerClick,
+    bgColor: 'bg-violet-100',
+    hoverColor: 'hover:bg-violet-200',
+    textColor: 'text-violet-900',
+  },
+  {
+    key: 'views',
+    title: 'إجمالي المشاهدات',
+    subtitle: 'مشاهدة',
     href: '/app/profile',
     icon: Eye,
-    colors: {
-      bg: 'bg-gradient-to-br from-muted to-muted/50',
-      hoverBg: 'hover:from-muted/80 hover:to-muted/40',
-      text: 'text-foreground',
-      iconBg: 'bg-card/70',
-      skeleton: 'bg-muted',
-    },
-    ariaLabel: 'عرض الإحصائيات',
+    bgColor: 'bg-rose-100',
+    hoverColor: 'hover:bg-rose-200',
+    textColor: 'text-rose-900',
+  },
+  {
+    key: 'pinned',
+    title: 'الروابط المثبتة',
+    subtitle: 'رابط مثبت',
+    href: '/app/profile/links',
+    icon: Star,
+    bgColor: 'bg-indigo-100',
+    hoverColor: 'hover:bg-indigo-200',
+    textColor: 'text-indigo-900',
   },
 ];
+
+// ============================================
+// Animation Variants
+// ============================================
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.1,
-    },
+    transition: { staggerChildren: 0.1 },
   },
 };
 
@@ -131,31 +135,10 @@ const itemVariants: Variants = {
 };
 
 // ============================================
-// Icons
+// Utils
 // ============================================
 
-const ArrowUpRightIcon = memo(function ArrowUpRightIcon() {
-  return (
-    <svg 
-      className="w-4 h-4" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M7 17L17 7M17 7H9M17 7V15" />
-    </svg>
-  );
-});
-
-// ============================================
-// Format Number
-// ============================================
-
-function formatStatNumber(num: number): string {
+function formatNumber(num: number): string {
   if (!Number.isFinite(num) || num < 0) return '0';
   if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
   if (num >= 10_000) return `${Math.round(num / 1_000)}K`;
@@ -163,147 +146,50 @@ function formatStatNumber(num: number): string {
   return num.toLocaleString('en-US');
 }
 
-// ============================================
-// Skeleton Component
-// ============================================
-
-const StatCardSkeleton = memo(function StatCardSkeleton({ color }: { color: string }) {
-  return (
-    <div
-      className={cn(
-        'rounded-2xl p-5 sm:p-6',
-        'border border-card/40',
-        'shadow-sm animate-pulse',
-        color
-      )}
-      role="status"
-      aria-busy="true"
-    >
-      <div className="h-4 bg-card/60 rounded-md w-24 mb-2.5" />
-      <div className="h-3 bg-card/40 rounded-md w-16 mb-4" />
-      <div className="flex items-end justify-between">
-        <div className="h-9 bg-card/60 rounded-lg w-16" />
-        <div className="h-8 w-8 bg-card/40 rounded-full" />
-      </div>
-    </div>
-  );
-});
-
-// ============================================
-// Stat Card Component
-// ============================================
-
-interface StatItemProps {
-  config: ProfileStatConfig;
-  value: number;
-  onClick: () => void;
+function calculateChange(
+  current: number,
+  total: number
+): { change: string; isPositive: boolean } {
+  if (total === 0 || current === 0) return { change: '0%', isPositive: true };
+  const percentage = Math.round((current / total) * 100);
+  return { change: `${percentage}%`, isPositive: percentage > 0 };
 }
 
-const StatItem = memo(function StatItem({ config, value, onClick }: StatItemProps) {
-  const { colors, titleAr, subtitleAr, ariaLabel, icon: Icon } = config;
-  
-  const formattedValue = useMemo(() => formatStatNumber(value), [value]);
-  
-  const buttonAriaLabel = useMemo(
-    () => `${titleAr}: ${value.toLocaleString('ar-SA')}. اضغط ${ariaLabel}`,
-    [titleAr, value, ariaLabel]
-  );
+// ============================================
+// Skeleton
+// ============================================
 
+const SKELETON_COLORS = [
+  'bg-amber-100',
+  'bg-emerald-100',
+  'bg-sky-100',
+  'bg-violet-100',
+  'bg-rose-100',
+  'bg-indigo-100',
+];
+
+function ProfileStatsSkeleton() {
   return (
-    <motion.button
-      variants={itemVariants}
-      onClick={onClick}
-      whileHover={HOVER_ANIMATION}
-      whileTap={TAP_ANIMATION}
-      layout={false}
-      className={cn(
-        ...CARD_BASE_CLASSES,
-        'transition-all duration-300 ease-out',
-        colors.bg,
-        colors.hoverBg
-      )}
-      aria-label={buttonAriaLabel}
-      type="button"
-      style={{ WebkitTapHighlightColor: 'transparent' }}
-    >
-      {/* Background decoration */}
-      <div 
-        className="absolute -top-10 -left-10 w-24 h-24 rounded-full bg-card/30 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-        aria-hidden="true"
-      />
-
-      {/* Title */}
-      <p 
-        className={cn(
-          'text-xs sm:text-sm font-bold tracking-wide mb-0.5 truncate',
-          colors.text
-        )}
-        aria-hidden="true"
-      >
-        {titleAr}
-      </p>
-
-      {/* Subtitle */}
-      <p 
-        className="text-[10px] sm:text-xs text-muted-foreground mb-3 truncate font-medium" 
-        aria-hidden="true"
-      >
-        {subtitleAr}
-      </p>
-
-      {/* Value & Icon Row */}
-      <div className="flex items-end justify-between gap-2">
-        {/* Value */}
-        <span 
-          className={cn(
-            'text-2xl sm:text-3xl font-bold tabular-nums tracking-tight leading-none',
-            colors.text
-          )}
-          aria-hidden="true"
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-3.5">
+      {SKELETON_COLORS.map((color, i) => (
+        <div
+          key={i}
+          className={cn('rounded-xl p-3.5 sm:p-4 animate-pulse', color)}
         >
-          {formattedValue}
-        </span>
-
-        {/* Icon - Enhanced */}
-        <span 
-          className={cn(
-            'w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center',
-            colors.iconBg,
-            'shadow-sm group-hover:shadow-md transition-shadow'
-          )}
-        >
-          <Icon className={cn('w-4 h-4 sm:w-5 sm:h-5', colors.text)} />
-        </span>
-      </div>
-
-      {/* Hover Arrow - Enhanced */}
-      <span
-        className={cn(
-          'absolute top-3 left-3',
-          'w-6 h-6 rounded-lg bg-card/50 flex items-center justify-center',
-          'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100',
-          'transition-all duration-200 ease-out',
-          'group-hover:-translate-y-0.5 group-hover:translate-x-0.5',
-          colors.text
-        )}
-        aria-hidden="true"
-      >
-        <ArrowUpRightIcon />
-      </span>
-
-      {/* Gradient overlay on hover */}
-      <div 
-        className={cn(
-          'absolute inset-0 rounded-2xl pointer-events-none',
-          'bg-gradient-to-br from-card/0 to-card/30',
-          'opacity-0 group-hover:opacity-100',
-          'transition-opacity duration-300'
-        )}
-        aria-hidden="true"
-      />
-    </motion.button>
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="h-7 w-7 bg-white/50 rounded-lg" />
+          </div>
+          <div className="h-4 bg-white/50 rounded w-20 mb-1.5" />
+          <div className="h-3 bg-white/30 rounded w-14 mb-2.5" />
+          <div className="flex items-end justify-between">
+            <div className="h-7 bg-white/50 rounded w-10" />
+            <div className="h-4.5 bg-white/30 rounded-full w-12" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
-});
+}
 
 // ============================================
 // Main Component
@@ -313,24 +199,27 @@ export const ProfileStats = memo(function ProfileStats({
   linksCount,
   groupsCount,
   viewsCount,
+  activeLinksCount = 0,
+  totalClicks = 0,
+  pinnedCount = 0,
   isLoading = false,
 }: ProfileStatsProps) {
   const router = useRouter();
-  
-  const statsValues = useMemo(() => ({
-    links: linksCount,
-    groups: groupsCount,
-    views: viewsCount,
-  }), [linksCount, groupsCount, viewsCount]);
+
+  const statsValues = useMemo(
+    () => ({
+      links: linksCount,
+      active: activeLinksCount,
+      groups: groupsCount,
+      clicks: totalClicks,
+      views: viewsCount,
+      pinned: pinnedCount,
+    }),
+    [linksCount, activeLinksCount, groupsCount, totalClicks, viewsCount, pinnedCount]
+  );
 
   if (isLoading) {
-    return (
-      <div className="grid grid-cols-3 gap-3 sm:gap-4">
-        {PROFILE_STATS_CONFIG.map((config) => (
-          <StatCardSkeleton key={config.id} color={config.colors.skeleton} />
-        ))}
-      </div>
-    );
+    return <ProfileStatsSkeleton />;
   }
 
   return (
@@ -338,16 +227,85 @@ export const ProfileStats = memo(function ProfileStats({
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="grid grid-cols-3 gap-3 sm:gap-4"
+      className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-3.5"
     >
-      {PROFILE_STATS_CONFIG.map((config) => (
-        <StatItem
-          key={config.id}
-          config={config}
-          value={statsValues[config.id]}
-          onClick={() => router.push(config.href)}
-        />
-      ))}
+      {STATS_CONFIG.map((stat) => {
+        const value = statsValues[stat.key as keyof typeof statsValues] || 0;
+        const change = calculateChange(
+          stat.key === 'active' ? activeLinksCount : value,
+          stat.key === 'active' ? linksCount : linksCount || 1
+        );
+        const Icon = stat.icon;
+
+        return (
+          <motion.button
+            key={stat.key}
+            variants={itemVariants}
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => router.push(stat.href)}
+            type="button"
+            className={cn(
+              'relative rounded-xl p-3.5 sm:p-4',
+              'transition-all duration-300',
+              'text-right group w-full',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary',
+              stat.bgColor,
+              stat.hoverColor
+            )}
+          >
+            {/* Icon */}
+            <div className="flex items-center justify-between mb-2.5">
+              <div
+                className={cn(
+                  'w-7 h-7 rounded-lg flex items-center justify-center',
+                  'bg-white/50'
+                )}
+              >
+                <Icon className={cn('w-3.5 h-3.5', stat.textColor)} />
+              </div>
+            </div>
+
+            {/* Title */}
+            <p className={cn('text-[13px] font-semibold mb-0.5 truncate', stat.textColor)}>
+              {stat.title}
+            </p>
+
+            {/* Subtitle */}
+            <p className="text-[11px] text-gray-500 mb-2 truncate">{stat.subtitle}</p>
+
+            {/* Value & Change Row */}
+            <div className="flex items-end justify-between">
+              {/* Value */}
+              <span
+                className={cn(
+                  'text-xl sm:text-2xl font-bold tabular-nums tracking-tight leading-none',
+                  stat.textColor
+                )}
+              >
+                {formatNumber(value)}
+              </span>
+
+              {/* Change Indicator */}
+              <div
+                className={cn(
+                  'flex items-center gap-0.5 text-[11px] font-medium px-1.5 py-0.5 rounded-full',
+                  change.isPositive
+                    ? 'bg-white/50 text-gray-700'
+                    : 'bg-red-100 text-red-600'
+                )}
+              >
+                <span>~{change.change}</span>
+                {change.isPositive ? (
+                  <TrendingUp className="w-3 h-3" />
+                ) : (
+                  <TrendingDown className="w-3 h-3" />
+                )}
+              </div>
+            </div>
+          </motion.button>
+        );
+      })}
     </motion.div>
   );
 });

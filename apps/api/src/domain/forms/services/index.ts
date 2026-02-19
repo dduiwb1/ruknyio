@@ -9,4 +9,3 @@ export { FormsStepsService } from './forms-steps.service';
 export { AnalyticsService } from './analytics.service';
 export { ConditionalLogicService } from './conditional-logic.service';
 export { WebhookService } from './webhook.service';
-export { FormEmailVerificationService } from './form-email-verification.service';

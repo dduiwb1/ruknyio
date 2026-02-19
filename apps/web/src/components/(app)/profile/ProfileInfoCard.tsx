@@ -37,22 +37,22 @@ export function ProfileInfoCard({ user, profile, isLoading }: ProfileInfoCardPro
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
-      className="bg-white rounded-2xl border border-gray-100 overflow-hidden"
+      className="bg-card rounded-xl border border-border/50 overflow-hidden"
     >
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-900">معلومات الحساب</h2>
+      <div className="px-4 py-2.5 border-b border-border/50 flex items-center justify-between">
+        <h2 className="font-semibold text-foreground text-sm">معلومات الحساب</h2>
         <Link 
           href="/profile/edit"
-          className="text-sm text-[#4FADC0] hover:text-[#193948] flex items-center gap-0.5"
+          className="text-xs text-primary hover:text-primary/80 flex items-center gap-0.5 transition-colors"
         >
           تعديل
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-3.5 h-3.5" />
         </Link>
       </div>
 
       {/* Info Items */}
-      <div className="divide-y divide-gray-50">
+      <div className="divide-y divide-border/30">
         <InfoRow 
           icon={Mail} 
           label="البريد الإلكتروني" 
@@ -78,9 +78,9 @@ export function ProfileInfoCard({ user, profile, isLoading }: ProfileInfoCardPro
       </div>
 
       {/* Security Status */}
-      <div className="px-4 py-3 bg-gray-50/50">
-        <p className="text-xs text-gray-500 mb-2">حالة الأمان</p>
-        <div className="flex flex-wrap gap-2">
+      <div className="px-4 py-2.5 bg-muted/30">
+        <p className="text-xs text-muted-foreground mb-1.5">حالة الأمان</p>
+        <div className="flex flex-wrap gap-1.5">
           <SecurityBadge label="2FA" enabled={user?.twoFactorEnabled} />
           <SecurityBadge label="البريد" enabled={user?.emailVerified} />
         </div>
@@ -103,18 +103,18 @@ function InfoRow({
   badge?: boolean;
 }) {
   return (
-    <div className="px-4 py-3 flex items-center justify-between">
-      <div className="flex items-center gap-2.5 text-gray-500">
-        <Icon className="w-4 h-4" />
-        <span className="text-sm">{label}</span>
+    <div className="px-4 py-2.5 flex items-center justify-between">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Icon className="w-3.5 h-3.5" />
+        <span className="text-xs">{label}</span>
       </div>
       <div className="flex items-center gap-1.5">
         {badge ? (
-          <span className="text-xs p-2 px-2 py-1.5 rounded-full bg-[#FCDC73]/30 text-[#193948] font-medium">
+          <span className="text-[11px] px-2 py-1 rounded-full bg-primary/10 text-primary font-medium">
             {value}
           </span>
         ) : (
-          <span className="text-sm p-2 text-gray-900">{value}</span>
+          <span className="text-xs text-foreground">{value}</span>
         )}
         {verified !== undefined && (
           verified ? (
@@ -130,10 +130,10 @@ function InfoRow({
 
 function SecurityBadge({ label, enabled }: { label: string; enabled?: boolean }) {
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium ${
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium ${
       enabled 
-        ? 'bg-green-100 text-green-700' 
-        : 'bg-gray-100 text-gray-500'
+        ? 'bg-green-500/10 text-green-600 dark:text-green-400' 
+        : 'bg-muted text-muted-foreground'
     }`}>
       {enabled ? (
         <CheckCircle2 className="w-3 h-3" />
@@ -157,15 +157,15 @@ function getRoleLabel(role: string): string {
 
 function ProfileInfoSkeleton() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-100">
-        <Skeleton className="h-5 w-28" />
+    <div className="bg-card rounded-xl border border-border/50 overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-border/50">
+        <Skeleton className="h-4 w-24" />
       </div>
-      <div className="divide-y divide-gray-50">
+      <div className="divide-y divide-border/30">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="px-6 py-4 flex items-center justify-between">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-4 w-32" />
+          <div key={i} className="px-4 py-2.5 flex items-center justify-between">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-3 w-28" />
           </div>
         ))}
       </div>

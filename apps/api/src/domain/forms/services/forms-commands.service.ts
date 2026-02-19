@@ -324,7 +324,6 @@ export class FormsCommandsService {
       allowedFileTypes: field.allowedFileTypes || [],
       maxFileSize: field.maxFileSize ?? null,
       maxFiles: field.maxFiles ?? null,
-      emailVerification: field.emailVerification ?? false,
     };
   }
 

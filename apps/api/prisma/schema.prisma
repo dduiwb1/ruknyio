@@ -479,7 +479,6 @@ model Form {
   form_analytics           form_analytics[]
   fields                   FormField[]
   integrations             FormIntegration[]
-  emailVerifications       FormEmailVerification[]
   steps                    form_steps[]
   submissions              form_submissions[] @relation("submissions")
   events                   Event?             @relation(fields: [linkedEventId], references: [id])
@@ -543,13 +542,11 @@ model FormField {
   maxValue         Int?
   minLabel         String?
   maxLabel         String?
-  emailVerification Boolean?   @default(false)
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
   stepId           String?
   form             Form        @relation(fields: [formId], references: [id], onDelete: Cascade)
   form_steps       form_steps? @relation(fields: [stepId], references: [id])
-  emailVerifications FormEmailVerification[]
 
   @@index([formId])
   @@index([order])
@@ -557,28 +554,7 @@ model FormField {
   @@map("form_fields")
 }
 
-model FormEmailVerification {
-  id         String    @id @default(uuid())
-  formId     String
-  fieldId    String
-  email      String
-  code       String
-  expiresAt DateTime
-  ipAddress  String?
-  userAgent  String?
-  verified   Boolean   @default(false)
-  verifiedAt DateTime?
-  attempts   Int       @default(0)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  form       Form      @relation(fields: [formId], references: [id], onDelete: Cascade)
-  field      FormField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
 
-  @@index([formId])
-  @@index([formId, email, verified])
-  @@index([expiresAt])
-  @@map("form_email_verifications")
-}
 
 model addresses {
   id          String   @id @default(uuid())

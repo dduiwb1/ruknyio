@@ -34,8 +34,6 @@ export interface FormFieldInput {
   // Toggle (تبديل نعم/لا): نصوص العرض
   toggleLabelOn?: string;
   toggleLabelOff?: string;
-  // Email: إرسال رمز التحقق لتأكيد البريد
-  emailVerification?: boolean;
 }
 
 interface FieldEditorProps {

@@ -39,13 +39,13 @@ export function SocialLinksCard({ socialLinks, linkGroups, isLoading }: SocialLi
   const pinnedCount = socialLinks.filter(l => l.isPinned).length;
 
   return (
-    <div className="bg-card rounded-lg sm:rounded-xl border border-border overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-card rounded-xl border border-border/50 overflow-hidden">
       {/* Header */}
-      <div className="px-3 sm:px-4 py-3 sm:py-3.5 border-b border-border bg-muted/50">
+      <div className="px-3 sm:px-4 py-2.5 sm:py-3 border-b border-border/50">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary flex items-center justify-center shadow-sm flex-shrink-0">
-              <Link2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary-foreground" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <Link2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
             </div>
             <div className="min-w-0">
               <h2 className="font-bold text-foreground text-xs sm:text-sm truncate">روابطي</h2>
@@ -71,7 +71,7 @@ export function SocialLinksCard({ socialLinks, linkGroups, isLoading }: SocialLi
 
       {/* Stats Bar - Only if links exist */}
       {socialLinks.length > 0 && (
-        <div className="px-3 sm:px-4 py-2 sm:py-2.5 bg-muted/30 border-b border-border">
+        <div className="px-3 sm:px-4 py-2 sm:py-2.5 bg-muted/20 border-b border-border/50">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3 sm:gap-4 overflow-x-auto">
               {/* Total Clicks */}
@@ -262,10 +262,10 @@ function EmptyState() {
 
       <Link href="/app/profile/links">
         <Button 
-          size="lg" 
-          className="gap-2 rounded-xl shadow-lg hover:shadow-xl transition-all"
+          size="default" 
+          className="gap-2 rounded-xl transition-all"
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="w-4 h-4" />
           إضافة أول رابط
         </Button>
       </Link>
@@ -275,42 +275,29 @@ function EmptyState() {
 
 function SocialLinksSkeleton() {
   return (
-    <div className="bg-card rounded-2xl border border-border overflow-hidden">
+    <div className="bg-card rounded-xl border border-border/50 overflow-hidden">
       {/* Header Skeleton */}
-      <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Skeleton className="w-9 h-9 rounded-xl" />
+      <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <Skeleton className="w-8 h-8 rounded-lg" />
           <div>
-            <Skeleton className="h-5 w-20 mb-1.5" />
-            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-4 w-16 mb-1" />
+            <Skeleton className="h-3 w-20" />
           </div>
         </div>
-        <Skeleton className="h-7 w-24 rounded-full" />
-      </div>
-      
-      {/* Stats Skeleton */}
-      <div className="px-5 py-3 bg-muted/30 border-b border-border flex items-center gap-5">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="flex items-center gap-2">
-            <Skeleton className="w-8 h-8 rounded-lg" />
-            <div>
-              <Skeleton className="h-5 w-8 mb-1" />
-              <Skeleton className="h-2.5 w-10" />
-            </div>
-          </div>
-        ))}
+        <Skeleton className="h-7 w-16 rounded-lg" />
       </div>
 
       {/* Links Skeleton */}
-      <div className="p-4 space-y-2">
-        {[1, 2, 3, 4].map(i => (
-          <div key={i} className="flex items-center gap-3 p-3">
-            <Skeleton className="w-11 h-11 rounded-xl" />
+      <div className="p-3 space-y-1.5">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="flex items-center gap-2.5 p-2.5">
+            <Skeleton className="w-9 h-9 rounded-lg" />
             <div className="flex-1">
-              <Skeleton className="h-4 w-28 mb-2" />
-              <Skeleton className="h-3 w-40" />
+              <Skeleton className="h-3.5 w-24 mb-1.5" />
+              <Skeleton className="h-2.5 w-36" />
             </div>
-            <Skeleton className="w-8 h-8 rounded-lg" />
+            <Skeleton className="w-6 h-6 rounded-lg" />
           </div>
         ))}
       </div>

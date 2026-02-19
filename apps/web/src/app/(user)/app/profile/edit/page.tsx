@@ -240,7 +240,7 @@ export default function EditProfilePage() {
         <div className="h-full overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 pb-28 md:pb-6">
           
-            {/* Header */}
+            {/* Header - Same style as Forms */}
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <button
@@ -250,8 +250,11 @@ export default function EditProfilePage() {
                 >
                   <ArrowRight className="w-5 h-5 text-muted-foreground" />
                 </button>
+                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary">
+                  <User className="w-5 h-5 text-primary-foreground" />
+                </div>
                 <div>
-                  <h1 className="text-lg font-bold text-foreground">تعديل الملف الشخصي</h1>
+                  <h1 className="text-xl font-bold text-foreground">تعديل الملف الشخصي</h1>
                   <p className="text-sm text-muted-foreground">قم بتخصيص ملفك الشخصي ومعلوماتك</p>
                 </div>
               </div>

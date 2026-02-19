@@ -7,13 +7,9 @@ import {
   Loader2,
   Check,
   Globe,
-  Sparkles,
   Eye,
   EyeOff,
   X,
-  LinkIcon,
-  Type,
-  ToggleLeft,
 } from 'lucide-react';
 
 // UI Components
@@ -50,7 +46,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useMediaQuery } from '@/lib/hooks/useMediaQuery';
 import { api } from '@/lib/api';
-import { iconStyles, buttonStyles } from '@/lib/design-system';
+
 
 // ============================================
 // Types
@@ -95,7 +91,6 @@ function PlatformGrid({
   ];
   
   const filteredPlatforms = useMemo(() => {
-    // Filter out 'website' as it's shown separately
     const platforms = KNOWN_PLATFORMS.filter(p => p.key !== 'website');
     if (activeCategory === 'all') {
       return platforms;
@@ -104,46 +99,43 @@ function PlatformGrid({
   }, [activeCategory]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       {/* Auto-detected badge */}
       <AnimatePresence>
         {detectedPlatform && detectedPlatform.key !== 'website' && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="flex items-center gap-3 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-100"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-500/10 rounded-lg"
           >
             <div 
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ backgroundColor: `${detectedPlatform.color}15` }}
+              className="w-7 h-7 rounded-md flex items-center justify-center"
+              style={{ backgroundColor: `${detectedPlatform.color}12` }}
             >
               <PlatformIcon 
                 platformData={detectedPlatform}
-                size="md"
+                size="sm"
               />
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-green-800">تم التعرف تلقائياً</p>
-              <p className="text-xs text-green-600">{detectedPlatform.nameAr}</p>
-            </div>
-            <Sparkles className="w-5 h-5 text-green-500" />
+            <p className="text-xs text-green-700 dark:text-green-400 flex-1">تم التعرف: <span className="font-medium">{detectedPlatform.nameAr}</span></p>
+            <Check className="w-3.5 h-3.5 text-green-500" />
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Category tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="flex gap-1 overflow-x-auto pb-0.5 scrollbar-hide">
         {categories.map((cat) => (
           <button
             key={cat.key}
             type="button"
             onClick={() => setActiveCategory(cat.key)}
             className={cn(
-              "px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all",
+              "px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap transition-colors",
               activeCategory === cat.key
-                ? "bg-[#193948] text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                ? "bg-foreground text-background"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             {cat.label}
@@ -152,31 +144,26 @@ function PlatformGrid({
       </div>
 
       {/* Platform grid */}
-      <div className="grid grid-cols-5 sm:grid-cols-6 gap-1.5 max-h-[180px] overflow-y-auto">
+      <div className="grid grid-cols-5 sm:grid-cols-6 gap-1 max-h-[160px] overflow-y-auto">
         {filteredPlatforms.map((platform) => {
           const isSelected = selectedPlatform === platform.key;
           const isDetected = detectedPlatform?.key === platform.key;
           
           return (
-            <motion.button
+            <button
               key={platform.key}
               type="button"
-              whileTap={{ scale: 0.95 }}
               onClick={() => onSelect(platform)}
               className={cn(
-                "relative flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-200",
-                "border",
+                "relative flex flex-col items-center gap-0.5 p-1.5 rounded-lg transition-all",
                 isSelected 
-                  ? "border-[#4FADC0] bg-[#4FADC0]/10" 
-                  : "border-transparent bg-gray-50/80 hover:bg-gray-100",
-                isDetected && !isSelected && "ring-1 ring-green-200"
+                  ? "bg-primary/10 ring-1 ring-primary/30" 
+                  : "hover:bg-muted",
+                isDetected && !isSelected && "ring-1 ring-green-300/50"
               )}
             >
               <div 
-                className={cn(
-                  "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
-                  isSelected && "scale-105"
-                )}
+                className="w-7 h-7 rounded-md flex items-center justify-center"
                 style={{ backgroundColor: `${platform.color}12` }}
               >
                 <PlatformIcon 
@@ -186,54 +173,51 @@ function PlatformGrid({
               </div>
               <span className={cn(
                 "text-[9px] font-medium text-center leading-tight line-clamp-1",
-                isSelected ? "text-[#193948]" : "text-gray-500"
+                isSelected ? "text-primary" : "text-muted-foreground"
               )}>
                 {platform.nameAr}
               </span>
               
-              {/* Selection indicator */}
               {isSelected && (
                 <motion.div
                   layoutId="platform-check"
-                  className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#4FADC0] rounded-full flex items-center justify-center"
+                  className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-primary rounded-full flex items-center justify-center"
                 >
-                  <Check className="w-2.5 h-2.5 text-white" />
+                  <Check className="w-2 h-2 text-primary-foreground" />
                 </motion.div>
               )}
-            </motion.button>
+            </button>
           );
         })}
         
         {/* Other/Website option */}
-        <motion.button
+        <button
           type="button"
-          whileTap={{ scale: 0.95 }}
           onClick={() => {
             const websitePlatform = KNOWN_PLATFORMS.find(p => p.key === 'website');
             if (websitePlatform) onSelect(websitePlatform);
           }}
           className={cn(
-            "relative flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-200",
-            "border",
+            "relative flex flex-col items-center gap-0.5 p-1.5 rounded-lg transition-all",
             selectedPlatform === 'website' 
-              ? "border-[#4FADC0] bg-[#4FADC0]/10" 
-              : "border-transparent bg-gray-50/80 hover:bg-gray-100"
+              ? "bg-primary/10 ring-1 ring-primary/30" 
+              : "hover:bg-muted"
           )}
         >
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gray-200">
-            <Globe className="w-4 h-4 text-gray-500" />
+          <div className="w-7 h-7 rounded-md flex items-center justify-center bg-muted">
+            <Globe className="w-3.5 h-3.5 text-muted-foreground" />
           </div>
-          <span className="text-[9px] font-medium text-gray-500">أخرى</span>
+          <span className="text-[9px] font-medium text-muted-foreground">أخرى</span>
           
           {selectedPlatform === 'website' && (
             <motion.div
               layoutId="platform-check"
-              className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-[#4FADC0] rounded-full flex items-center justify-center"
+              className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-primary rounded-full flex items-center justify-center"
             >
-              <Check className="w-2.5 h-2.5 text-white" />
+              <Check className="w-2 h-2 text-primary-foreground" />
             </motion.div>
           )}
-        </motion.button>
+        </button>
       </div>
     </div>
   );
@@ -399,222 +383,120 @@ function LinkForm({
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain">
-        {/* URL Input - Enhanced */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-teal-100 flex items-center justify-center flex-shrink-0">
-              <LinkIcon className="w-3.5 h-3.5 text-teal-600" />
-            </div>
-            <Label className="text-sm font-semibold text-gray-700">الصق رابطك هنا</Label>
-          </div>
+      <div className="flex-1 p-2 space-y-5 overflow-y-auto overscroll-contain">
+        {/* URL Input */}
+        <div>
+          <Label className="text-[13px] font-medium text-foreground mb-2 block">الصق رابطك هنا</Label>
           <div className="relative">
             <Input
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://instagram.com/username"
               className={cn(
-                "h-12 rounded-xl pl-4 pr-12 text-sm bg-gray-50/80 border-2 transition-all duration-200",
-                "focus:bg-white focus:border-[#4FADC0] focus:ring-2 focus:ring-[#4FADC0]/20",
-                "placeholder:text-gray-400 text-left font-medium",
+                "h-12 rounded-2xl pl-4 pr-11 text-sm bg-muted/30 border transition-colors",
+                "focus:bg-card focus:border-foreground/30 focus:ring-0",
+                "placeholder:text-muted-foreground/40 text-left",
                 urlError 
-                  ? "border-red-300 bg-red-50/50 focus:border-red-400 focus:ring-red-200" 
-                  : "border-gray-200"
+                  ? "border-destructive/40 bg-destructive/5" 
+                  : "border-border/60"
               )}
               dir="ltr"
               autoComplete="off"
               autoCapitalize="off"
               enterKeyHint="next"
             />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <AnimatePresence mode="wait">
-                {isLoading ? (
-                  <motion.div
-                    key="loading"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    className="w-8 h-8 rounded-lg bg-teal-100 flex items-center justify-center"
-                  >
-                    <Loader2 className="w-4 h-4 text-teal-600 animate-spin" />
-                  </motion.div>
-                ) : detectedPlatform && !urlError ? (
-                  <motion.div
-                    key="success"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center"
-                  >
-                    <Check className="w-4 h-4 text-green-600" />
-                  </motion.div>
-                ) : urlError ? (
-                  <motion.div
-                    key="error"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center"
-                  >
-                    <X className="w-4 h-4 text-red-500" />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="default"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center"
-                  >
-                    <Link2 className="w-4 h-4 text-gray-400" />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+              ) : detectedPlatform && !urlError ? (
+                <div className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-500/15 flex items-center justify-center">
+                  <Check className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                </div>
+              ) : urlError ? (
+                <div className="w-6 h-6 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <X className="w-3.5 h-3.5 text-destructive" />
+                </div>
+              ) : (
+                <Link2 className="w-4 h-4 text-muted-foreground/30" />
+              )}
             </div>
           </div>
-          <AnimatePresence>
-            {urlError && (
-              <motion.p 
-                initial={{ opacity: 0, y: -5, height: 0 }}
-                animate={{ opacity: 1, y: 0, height: 'auto' }}
-                exit={{ opacity: 0, y: -5, height: 0 }}
-                className="text-xs text-red-500 flex items-center gap-1 font-medium"
-              >
-                <X className="w-3 h-3" />
-                {urlError}
-              </motion.p>
-            )}
-          </AnimatePresence>
+          {urlError && (
+            <p className="text-[11px] text-destructive mt-1.5 pr-1">{urlError}</p>
+          )}
         </div>
 
-        {/* Platform Detection Badge - Enhanced */}
+        {/* Platform Detection */}
         <AnimatePresence>
           {detectedPlatform && detectedPlatform.key !== 'website' && !urlError && (
             <motion.div
-              initial={{ opacity: 0, y: -10, height: 0 }}
-              animate={{ opacity: 1, y: 0, height: 'auto' }}
-              exit={{ opacity: 0, y: -10, height: 0 }}
-              className="flex items-center gap-3 p-3 bg-gradient-to-l from-green-50 to-emerald-50/80 rounded-xl border border-green-200/50"
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              className="flex items-center gap-2.5 p-2.5 bg-green-50 dark:bg-green-500/10 rounded-xl"
             >
               <div 
-                className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0"
-                style={{ backgroundColor: `${detectedPlatform.color}15` }}
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: `${detectedPlatform.color}12` }}
               >
                 <PlatformIcon 
                   platformData={detectedPlatform}
-                  size="md"
+                  size="sm"
                 />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-green-800">تم التعرف على المنصة ✨</p>
-                <p className="text-xs text-green-600 truncate">{detectedPlatform.nameAr}</p>
-              </div>
-              <Sparkles className="w-5 h-5 text-green-500 flex-shrink-0" />
+              <p className="text-[13px] text-green-700 dark:text-green-400 flex-1">تم التعرف: <span className="font-semibold">{detectedPlatform.nameAr}</span></p>
+              <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Title Input - Enhanced */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-              <Type className="w-3.5 h-3.5 text-amber-600" />
-            </div>
-            <Label className="text-sm font-semibold text-gray-700">
-              العنوان <span className="text-gray-400 font-normal text-xs">(اختياري)</span>
-            </Label>
-          </div>
+        {/* Title Input */}
+        <div>
+          <Label className="text-[13px] font-medium text-foreground mb-2 block">
+            العنوان <span className="text-muted-foreground/50 font-normal">(اختياري)</span>
+          </Label>
           <Input
             value={title}
             onChange={(e) => setTitle(e.target.value.slice(0, 50))}
             placeholder={detectedPlatform?.nameAr || "عنوان مخصص للرابط"}
             maxLength={50}
-            className="h-12 rounded-xl bg-gray-50/80 border-2 border-gray-200 text-sm font-medium focus:bg-white focus:border-[#4FADC0] focus:ring-2 focus:ring-[#4FADC0]/20 transition-all duration-200"
+            className="h-12 rounded-2xl bg-muted/30 border border-border/60 text-sm focus:bg-card focus:border-foreground/30 focus:ring-0 transition-colors"
             enterKeyHint="done"
           />
         </div>
-
-        {/* Status Toggle - Enhanced */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
-              <ToggleLeft className="w-3.5 h-3.5 text-purple-600" />
-            </div>
-            <Label className="text-sm font-semibold text-gray-700">حالة الرابط</Label>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setStatus('active')}
-              className={cn(
-                "flex items-center justify-center gap-2 h-11 rounded-xl text-sm font-semibold transition-all duration-200 border-2",
-                status === 'active' 
-                  ? "bg-green-500 text-white border-green-500 shadow-md shadow-green-500/20" 
-                  : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 hover:border-gray-300"
-              )}
-            >
-              <Eye className="w-4 h-4" />
-              <span>ظاهر</span>
-            </motion.button>
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setStatus('hidden')}
-              className={cn(
-                "flex items-center justify-center gap-2 h-11 rounded-xl text-sm font-semibold transition-all duration-200 border-2",
-                status === 'hidden' 
-                  ? "bg-gray-700 text-white border-gray-700 shadow-md shadow-gray-700/20" 
-                  : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 hover:border-gray-300"
-              )}
-            >
-              <EyeOff className="w-4 h-4" />
-              <span>مخفي</span>
-            </motion.button>
-          </div>
-        </div>
       </div>
 
-      {/* Actions - Fixed Footer that stays visible with keyboard */}
+      {/* Actions Footer */}
       <div 
-        className="flex gap-3 pt-3 mt-3 border-t border-gray-100 bg-white flex-shrink-0"
+        className="flex gap-3 pt-5 mt-2 flex-shrink-0"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}
       >
         <Button
           variant="outline"
           onClick={onCancel}
-          className="flex-1 h-11 rounded-xl text-sm font-semibold border-2 border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all"
+          className="flex-1 h-12 rounded-2xl text-sm font-medium border-border/60 hover:bg-muted/50"
         >
           إلغاء
         </Button>
-        <motion.div className="flex-1" whileTap={{ scale: 0.98 }}>
-          <Button
-            onClick={handleSave}
-            disabled={isSaving || !isFormValid}
-            className={cn(
-              "w-full h-11 rounded-xl text-sm font-semibold transition-all duration-200",
-              "bg-gradient-to-l from-[#193948] to-[#1e4a5c] hover:from-[#193948]/90 hover:to-[#1e4a5c]/90",
-              "shadow-lg shadow-[#193948]/20",
-              "disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
-            )}
-          >
-            {isSaving ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                جاري الحفظ...
-              </span>
-            ) : editingLink ? (
-              <span className="flex items-center gap-2">
-                <Check className="w-4 h-4" />
-                حفظ التغييرات
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <Link2 className="w-4 h-4" />
-                إضافة الرابط
-              </span>
-            )}
-          </Button>
-        </motion.div>
+        <Button
+          onClick={handleSave}
+          disabled={isSaving || !isFormValid}
+          className="flex-1 h-12 rounded-2xl text-sm font-medium bg-foreground text-background hover:bg-foreground/90 disabled:opacity-40"
+        >
+          {isSaving ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              جاري الحفظ...
+            </span>
+          ) : editingLink ? (
+            'حفظ التغييرات'
+          ) : (
+            <span className="flex items-center gap-2">
+              <Link2 className="w-4 h-4" />
+              إضافة الرابط
+            </span>
+          )}
+        </Button>
       </div>
     </div>
   );
@@ -643,50 +525,44 @@ export function AddLinkModal({
     />
   );
 
-  // Mobile: Drawer from bottom - Enhanced with keyboard handling
+  // Mobile: Drawer from bottom
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent 
-          className="rounded-t-[24px] border-0 bg-white flex flex-col"
+          className="rounded-t-[20px] border-0 bg-card flex flex-col"
           style={{ 
-            maxHeight: '85dvh',
+            maxHeight: '88dvh',
             height: 'auto',
           }}
         >
           {/* Handle bar */}
-          <div className="mx-auto w-10 h-1 flex-shrink-0 rounded-full bg-gray-300 mt-3" />
+          <div className="mx-auto w-9 h-1 flex-shrink-0 rounded-full bg-muted-foreground/20 mt-2.5" />
           
-          {/* Header - Compact for mobile */}
-          <DrawerHeader className="text-right px-5 py-3 border-b border-gray-100 flex-shrink-0">
-            <DrawerTitle asChild>
-              <div className="flex items-center gap-3">
-                <motion.div 
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className={cn(iconStyles.circle('emerald'), "w-10 h-10 shadow-md")}
-                >
-                  <Link2 className="w-4 h-4 text-white" />
-                </motion.div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-base font-bold text-gray-900">{title}</p>
-                  <p className="text-[11px] text-gray-500 truncate">{subtitle}</p>
+          {/* Header */}
+          <div className="flex items-start justify-between px-5 pt-4 pb-1 flex-shrink-0">
+            <DrawerClose asChild>
+              <button className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted transition-colors flex-shrink-0">
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </DrawerClose>
+            <DrawerHeader className="flex-1 text-center p-0">
+              <DrawerTitle asChild>
+                <div>
+                  <p className="text-lg font-bold text-foreground">{title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
                 </div>
-                {/* Close button for mobile */}
-                <DrawerClose asChild>
-                  <button className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
-                    <X className="w-4 h-4 text-gray-500" />
-                  </button>
-                </DrawerClose>
-              </div>
-            </DrawerTitle>
-          </DrawerHeader>
+              </DrawerTitle>
+            </DrawerHeader>
+            {/* Invisible spacer for centering */}
+            <div className="w-8 flex-shrink-0" />
+          </div>
           
-          {/* Form Content - Scrollable with keyboard-aware padding */}
+          {/* Form Content */}
           <div 
-            className="flex-1 overflow-y-auto overscroll-contain px-5 py-4"
+            className="flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-5"
             style={{ 
-              paddingBottom: 'env(safe-area-inset-bottom, 16px)',
+              paddingBottom: 'env(safe-area-inset-bottom, 20px)',
             }}
           >
             {formContent}
@@ -696,28 +572,33 @@ export function AddLinkModal({
     );
   }
 
-  // Desktop: Dialog - Enhanced
+  // Desktop: Dialog
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md rounded-2xl p-0 overflow-hidden border-0 shadow-2xl">
-        <DialogHeader className="text-right p-5 pb-4 bg-gradient-to-b from-gray-50/80 to-white border-b border-gray-100">
-          <DialogTitle asChild>
-            <div className="flex items-center gap-3">
-              <motion.div 
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className={cn(iconStyles.circle('emerald'), "w-12 h-12 shadow-md")}
-              >
-                <Link2 className="w-5 h-5 text-white" />
-              </motion.div>
+      <DialogContent 
+        className="sm:max-w-[420px] rounded-2xl p-0 border border-border/40 shadow-xl gap-0"
+        showCloseButton={false}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 pt-6 pb-0">
+          <button 
+            onClick={() => onOpenChange(false)}
+            className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted transition-colors flex-shrink-0 order-first"
+          >
+            <X className="w-4 h-4 text-muted-foreground" />
+          </button>
+          <DialogHeader className="flex-1 text-center sm:text-center">
+            <DialogTitle asChild>
               <div>
-                <p className="text-lg font-bold text-gray-900">{title}</p>
-                <p className="text-sm text-gray-500">{subtitle}</p>
+                <p className="text-lg font-bold text-foreground">{title}</p>
+                <p className="text-[13px] text-muted-foreground mt-1">{subtitle}</p>
               </div>
-            </div>
-          </DialogTitle>
-        </DialogHeader>
-        <div className="p-5 pt-4 max-h-[65vh] overflow-y-auto">
+            </DialogTitle>
+          </DialogHeader>
+          {/* Invisible spacer for centering */}
+          <div className="w-8 flex-shrink-0" />
+        </div>
+        <div className="px-6 pb-6 pt-5 max-h-[65vh] overflow-y-auto">
           {formContent}
         </div>
       </DialogContent>

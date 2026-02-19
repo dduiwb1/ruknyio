@@ -165,23 +165,23 @@ export function FormTemplateSelector({
     <div className="space-y-4 sm:space-y-5 px-1">
       {/* Header - Centered */}
       <div className="text-center space-y-1.5 sm:space-y-2">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">اختر قالباً</h2>
-        <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">
+        <h2 className="text-xl sm:text-2xl font-bold text-foreground">اختر قالباً</h2>
+        <p className="text-muted-foreground text-xs sm:text-sm">
           ابدأ بقالب جاهز أو أنشئ من الصفر
         </p>
         
         {/* Language Switcher */}
         <div className="flex items-center justify-center gap-2 pt-1.5 sm:pt-2">
-          <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400" />
-          <div className="flex rounded-full bg-gray-100 dark:bg-gray-800 p-0.5">
+          <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
+          <div className="flex rounded-full bg-muted p-0.5">
             <button
               type="button"
               onClick={() => handleLanguageChange('ar')}
               className={cn(
                 "px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-medium transition-all duration-200",
                 selectedLanguage === 'ar' 
-                  ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900" 
-                  : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  ? "bg-foreground text-background" 
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               عربي
@@ -192,8 +192,8 @@ export function FormTemplateSelector({
               className={cn(
                 "px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-medium transition-all duration-200",
                 selectedLanguage === 'en' 
-                  ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900" 
-                  : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  ? "bg-foreground text-background" 
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               English
@@ -229,31 +229,31 @@ export function FormTemplateSelector({
             type="button"
             onClick={handleStartFromScratch}
             className={cn(
-              "relative flex-shrink-0 w-[140px] sm:w-[160px] h-[105px] sm:h-[120px] rounded-xl border-2 border-dashed p-2.5 sm:p-3 transition-all duration-300 ease-out flex flex-col justify-center items-center gap-1.5 sm:gap-2",
+              "relative flex-shrink-0 w-[160px] sm:w-[180px] h-[130px] sm:h-[140px] rounded-xl border-2 border-dashed p-3 sm:p-3.5 transition-all duration-300 ease-out flex flex-col justify-center items-center gap-2 sm:gap-2.5",
               selectedTemplateId === null 
-                ? "border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800/50" 
-                : "border-gray-300 dark:border-gray-600 active:border-gray-400 dark:active:border-gray-500"
+                ? "border-foreground bg-muted/50" 
+                : "border-border active:border-border/80"
             )}
           >
             <div className={cn(
               "w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center transition-all duration-300",
               selectedTemplateId === null 
-                ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900" 
-                : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
+                ? "bg-foreground text-background" 
+                : "bg-muted text-muted-foreground"
             )}>
               <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="text-center">
-              <h3 className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm">
+              <h3 className="font-medium text-foreground text-xs sm:text-sm">
                 من الصفر
               </h3>
-              <p className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400">
+              <p className="text-[9px] sm:text-[10px] text-muted-foreground">
                 نموذج فارغ
               </p>
             </div>
             {selectedTemplateId === null && (
               <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2">
-                <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-900 dark:text-white" />
+                <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-foreground" />
               </div>
             )}
           </button>
@@ -269,10 +269,10 @@ export function FormTemplateSelector({
                 type="button"
                 onClick={() => handleSelectTemplate(template)}
                 className={cn(
-                  "relative flex-shrink-0 w-[140px] sm:w-[160px] h-[105px] sm:h-[120px] rounded-xl border p-2.5 sm:p-3 transition-all duration-300 ease-out",
+                  "relative flex-shrink-0 w-[160px] sm:w-[180px] h-[130px] sm:h-[140px] rounded-xl border p-3 sm:p-3.5 transition-all duration-300 ease-out",
                   isSelected 
-                    ? "border-gray-900 dark:border-white bg-gray-50 dark:bg-gray-800/50" 
-                    : "border-gray-200 dark:border-gray-700 active:border-gray-300 dark:active:border-gray-600"
+                    ? "border-foreground bg-muted/50" 
+                    : "border-border active:border-border/80"
                 )}
               >
                 {/* Icon & Check */}
@@ -280,28 +280,28 @@ export function FormTemplateSelector({
                   <div className={cn(
                     "w-7 h-7 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center transition-all duration-300",
                     isSelected 
-                      ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900" 
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                      ? "bg-foreground text-background" 
+                      : "bg-muted text-muted-foreground"
                   )}>
                     <IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </div>
                   
                   <div className="flex items-center gap-0.5 sm:gap-1">
-                    <span className="px-1 sm:px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-medium bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                    <span className="px-1 sm:px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-medium bg-muted text-muted-foreground">
                       {template.fields.length} حقل
                     </span>
                     {isSelected && (
-                      <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-900 dark:text-white" />
+                      <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-foreground" />
                     )}
                   </div>
                 </div>
 
                 {/* Content */}
                 <div className="text-right">
-                  <h3 className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm line-clamp-1 mb-0.5">
+                  <h3 className="font-medium text-foreground text-xs sm:text-sm line-clamp-1 mb-0.5">
                     {template.name[selectedLanguage]}
                   </h3>
-                  <p className="text-[9px] sm:text-[10px] text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                  <p className="text-[9px] sm:text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
                     {template.description[selectedLanguage]}
                   </p>
                 </div>
@@ -311,7 +311,7 @@ export function FormTemplateSelector({
         </div>
 
         {/* Fade Edge - Left with scroll hint */}
-        <div className="absolute inset-y-0 left-0 w-16 sm:w-20 bg-gradient-to-r from-white dark:from-gray-900 via-white/80 dark:via-gray-900/80 to-transparent pointer-events-none flex items-center justify-start pl-1 sm:pl-2">
+        <div className="absolute inset-y-0 left-0 w-16 sm:w-20 bg-gradient-to-r from-card via-card/80 to-transparent pointer-events-none flex items-center justify-start pl-1 sm:pl-2">
           <AnimatePresence>
             {showScrollHint && (
               <motion.div
@@ -319,7 +319,7 @@ export function FormTemplateSelector({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.3 }}
-                className="flex items-center gap-1 sm:gap-1.5 bg-gray-900/90 dark:bg-white/90 text-white dark:text-gray-900 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-medium pointer-events-auto"
+                className="flex items-center gap-1 sm:gap-1.5 bg-foreground/90 text-background px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full text-[9px] sm:text-[10px] font-medium pointer-events-auto"
               >
                 <motion.div
                   animate={{ x: [-2, 2, -2] }}
@@ -343,7 +343,7 @@ export function FormTemplateSelector({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700"
+            className="flex items-center gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-xl bg-muted/50 border border-border"
           >
             {(() => {
               const template = FORM_TEMPLATES.find(t => t.id === selectedTemplateId);
@@ -351,14 +351,14 @@ export function FormTemplateSelector({
               const IconComponent = iconMap[template.icon] || FileText;
               return (
                 <>
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gray-900 dark:bg-white flex items-center justify-center flex-shrink-0">
-                    <IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white dark:text-gray-900" />
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-foreground flex items-center justify-center flex-shrink-0">
+                    <IconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-background" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm">
+                    <p className="font-medium text-foreground text-xs sm:text-sm">
                       {template.name[selectedLanguage]}
                     </p>
-                    <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 truncate">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
                       {template.fields.length} حقول جاهزة للاستخدام
                     </p>
                   </div>

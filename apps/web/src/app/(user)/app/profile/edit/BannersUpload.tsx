@@ -20,6 +20,11 @@ function getAuthHeader(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+function hasValidToken(): boolean {
+  if (typeof window === 'undefined') return false;
+  return !!AuthClient.getToken();
+}
+
 function BannersUpload({ initial = [] as string[] }:{ initial?: string[] }){
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -33,7 +38,7 @@ function BannersUpload({ initial = [] as string[] }:{ initial?: string[] }){
     async function fetchBanners() {
       try {
         // Ensure we have a token
-        if (!AuthClient.hasValidToken()) {
+        if (!hasValidToken()) {
           const refreshed = await AuthClient.refreshTokens();
           if (!refreshed) {
             setIsLoading(false);
@@ -119,7 +124,7 @@ function BannersUpload({ initial = [] as string[] }:{ initial?: string[] }){
     if(files.length === 0){ toast.error('الرجاء اختيار ملفات'); return; }
     try{
       // Ensure access token exists; try refresh if missing
-      if (!AuthClient.hasValidToken()) {
+      if (!hasValidToken()) {
         const refreshed = await AuthClient.refreshTokens();
         if (!refreshed) {
           toast.error('يرجى تسجيل الدخول');
@@ -172,7 +177,7 @@ function BannersUpload({ initial = [] as string[] }:{ initial?: string[] }){
   async function fallbackServerUpload(){
     if(files.length === 0){ toast.error('الرجاء اختيار ملفات'); return; }
     try{
-      if (!AuthClient.hasValidToken()) {
+      if (!hasValidToken()) {
         const refreshed = await AuthClient.refreshTokens();
         if (!refreshed) { toast.error('يرجى تسجيل الدخول'); return; }
       }

@@ -13,15 +13,10 @@ import {
   EyeOff,
   Pencil,
   Trash2,
-  ExternalLink,
   Copy,
   Check,
-  BarChart3,
   Pin,
-  MoreVertical,
   MousePointerClick,
-  Sparkles,
-  Share2,
   X,
   Image as ImageIcon,
   LayoutGrid
@@ -547,11 +542,11 @@ function LinkItem({ link, onEdit, onDelete, onToggleStatus, onTogglePin, onUpdat
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className={cn(
-          "relative rounded-2xl border transition-all duration-200 overflow-hidden",
+          "relative rounded-xl border transition-all duration-200 overflow-hidden",
           isActive 
-            ? "bg-card border-border hover:border-border hover:shadow-md" 
-            : "bg-muted/50 border-border opacity-60",
-          isFeatured && "border-primary/30 bg-gradient-to-br from-card to-primary/5"
+            ? "bg-card border-border/50" 
+            : "bg-muted/30 border-border/30 opacity-60",
+          isFeatured && "border-primary/20"
         )}
       >
         {/* Main Content Area */}
@@ -565,8 +560,7 @@ function LinkItem({ link, onEdit, onDelete, onToggleStatus, onTogglePin, onUpdat
             {/* Platform Icon */}
             <div 
               className={cn(
-                "w-12 h-12 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0 relative",
-                isFeatured && "ring-2 ring-primary/20"
+                "w-10 h-10 sm:w-11 sm:h-11 rounded-lg flex items-center justify-center flex-shrink-0 relative"
               )}
               style={{ 
                 backgroundColor: platform?.color ? `${platform.color}15` : '#f1f5f9',
@@ -583,8 +577,8 @@ function LinkItem({ link, onEdit, onDelete, onToggleStatus, onTogglePin, onUpdat
               )}
               {/* Pinned Badge */}
               {link.isPinned && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 bg-amber-400 rounded-full flex items-center justify-center shadow-sm">
-                  <Pin className="w-3.5 h-3.5 text-white fill-white" />
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center">
+                  <Pin className="w-2.5 h-2.5 text-white fill-white" />
                 </div>
               )}
             </div>
@@ -622,92 +616,67 @@ function LinkItem({ link, onEdit, onDelete, onToggleStatus, onTogglePin, onUpdat
             <button
               onClick={() => onToggleStatus(link.id, isActive ? 'hidden' : 'active')}
               className={cn(
-                "relative w-12 h-6 sm:w-14 sm:h-7 rounded-full transition-all duration-300 flex-shrink-0",
-                isActive 
-                  ? "bg-gradient-to-r from-green-400 to-green-500 shadow-inner" 
-                  : "bg-muted"
+                "relative w-10 h-5 sm:w-11 sm:h-6 rounded-full transition-all duration-200 flex-shrink-0",
+                isActive ? "bg-green-500" : "bg-muted"
               )}
             >
               <span
                 className={cn(
-                  "absolute top-1 w-4 h-4 sm:w-5 sm:h-5 bg-white rounded-full shadow-md transition-all duration-300 flex items-center justify-center",
-                  isActive ? "right-1" : "right-6 sm:right-8"
+                  "absolute top-0.5 w-4 h-4 sm:w-5 sm:h-5 bg-white rounded-full shadow-sm transition-all duration-200",
+                  isActive ? "right-0.5" : "right-5 sm:right-5"
                 )}
-              >
-                {isActive ? (
-                  <Eye className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-green-500" />
-                ) : (
-                  <EyeOff className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-muted-foreground" />
-                )}
-              </span>
+              />
             </button>
           </div>
         </div>
 
         {/* Actions Bar */}
-        <div className="flex items-center justify-between px-3 sm:px-4 py-2 bg-muted/50 border-t border-border">
-          <div className="flex items-center gap-1">
-            {/* Edit */}
+        <div className="flex items-center justify-between px-3 sm:px-4 py-1.5 border-t border-border/30">
+          <div className="flex items-center gap-0.5">
             <button
               onClick={() => onEdit(link)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-muted-foreground hover:text-foreground hover:bg-card rounded-lg transition-all text-xs font-medium"
+              className="p-1.5 text-muted-foreground hover:text-foreground rounded-md transition-colors"
+              title="تعديل"
             >
               <Pencil className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">تعديل</span>
             </button>
-
-            {/* Copy */}
             <button
               onClick={handleCopy}
               className={cn(
-                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all text-xs font-medium",
-                copied 
-                  ? "text-green-600 bg-green-50" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-card"
+                "p-1.5 rounded-md transition-colors",
+                copied ? "text-green-600" : "text-muted-foreground hover:text-foreground"
               )}
+              title="نسخ الرابط"
             >
               {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-              <span className="hidden sm:inline">{copied ? 'تم' : 'نسخ'}</span>
             </button>
-
-            {/* Layout */}
             <button
               onClick={() => setShowLayoutOptions(!showLayoutOptions)}
               className={cn(
-                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all text-xs font-medium",
-                showLayoutOptions
-                  ? "text-primary bg-primary/10"
-                  : isFeatured 
-                    ? "text-primary bg-primary/10" 
-                    : "text-muted-foreground hover:text-foreground hover:bg-card"
+                "p-1.5 rounded-md transition-colors",
+                isFeatured ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
+              title="تخطيط"
             >
               <LayoutGrid className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">تخطيط</span>
             </button>
-
-            {/* Pin */}
             <button
               onClick={() => onTogglePin(link.id, !link.isPinned)}
               className={cn(
-                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all text-xs font-medium",
-                link.isPinned 
-                  ? "text-amber-600 bg-amber-50" 
-                  : "text-muted-foreground hover:text-amber-600 hover:bg-amber-50"
+                "p-1.5 rounded-md transition-colors",
+                link.isPinned ? "text-amber-500" : "text-muted-foreground hover:text-amber-500"
               )}
+              title={link.isPinned ? 'إلغاء التثبيت' : 'تثبيت'}
             >
               <Pin className={cn("w-3.5 h-3.5", link.isPinned && "fill-current")} />
-              <span className="hidden sm:inline">{link.isPinned ? 'مثبت' : 'تثبيت'}</span>
             </button>
           </div>
-
-          {/* Delete */}
           <button
             onClick={() => setDeleteDialogOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all text-xs font-medium"
+            className="p-1.5 text-muted-foreground hover:text-destructive rounded-md transition-colors"
+            title="حذف"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">حذف</span>
           </button>
         </div>
 
@@ -719,7 +688,7 @@ function LinkItem({ link, onEdit, onDelete, onToggleStatus, onTogglePin, onUpdat
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="overflow-hidden border-t border-border"
+              className="overflow-hidden border-t border-border/30"
             >
               <div className="p-3 sm:p-4 bg-muted/30 space-y-3">
                 {/* Featured Toggle */}
@@ -879,32 +848,25 @@ function LinkItem({ link, onEdit, onDelete, onToggleStatus, onTogglePin, onUpdat
 
 function EmptyState({ onAddClick }: { onAddClick: () => void }) {
   return (
-    <div className="bg-card rounded-3xl border border-border p-8 sm:p-12 text-center">
-      {/* Header Icon */}
-      <Link2 className="w-12 h-12 mx-auto mb-3 text-muted-foreground/40" />
+    <div className="bg-card rounded-xl border border-border/50 p-8 sm:p-10 text-center">
+      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
+        <Link2 className="w-6 h-6 text-primary" />
+      </div>
       
-      {/* Text */}
-      <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-3">
+      <h3 className="text-base font-bold text-foreground mb-1.5">
         ابدأ بإضافة روابطك
       </h3>
-      <p className="text-muted-foreground mb-8 max-w-sm mx-auto text-sm sm:text-base leading-relaxed">
+      <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto leading-relaxed">
         اجمع كل حساباتك وروابطك المهمة في مكان واحد وشاركها بسهولة
       </p>
       
-      {/* CTA Button */}
       <Button 
         onClick={onAddClick}
-        size="lg"
-        className="gap-2 h-14 px-8 rounded-2xl text-base shadow-md"
+        className="gap-2 h-10 px-5 rounded-xl text-sm"
       >
-        <Plus className="w-5 h-5" />
+        <Plus className="w-4 h-4" />
         إضافة رابط جديد
       </Button>
-      
-      {/* Hint */}
-      <p className="mt-6 text-xs text-muted-foreground">
-        💡 يمكنك إضافة روابط من أي منصة تريدها
-      </p>
     </div>
   );
 }
@@ -1212,53 +1174,62 @@ export default function LinksPage() {
         <div className="h-full overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 pb-28 md:pb-6">
           
-            {/* Page Header */}
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => router.back()}
-                  className="w-10 h-10 rounded-xl bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors active:scale-95"
-                  title="رجوع"
-                >
-                  <ArrowRight className="w-5 h-5 text-muted-foreground" />
-                </button>
-                <div>
-                  <h1 className="text-lg font-bold text-foreground">روابطي</h1>
-                  <p className="text-xs text-muted-foreground">
-                    {localLinks.length > 0 ? (
-                      <span>{localLinks.filter(l => l.status === 'active').length} نشط من {localLinks.length}</span>
-                    ) : (
-                      <span>لم تضف أي روابط بعد</span>
-                    )}
-                  </p>
+            {/* Page Header - Same style as Forms */}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => router.back()}
+                    className="w-10 h-10 rounded-xl bg-muted hover:bg-muted/80 flex items-center justify-center transition-colors active:scale-95"
+                    title="رجوع"
+                  >
+                    <ArrowRight className="w-5 h-5 text-muted-foreground" />
+                  </button>
+                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary">
+                    <Link2 className="w-5 h-5 text-primary-foreground" />
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold text-foreground">روابطي</h1>
+                    <p className="text-sm text-muted-foreground">
+                      {localLinks.length > 0 ? (
+                        <span>{localLinks.filter(l => l.status === 'active').length} نشط من {localLinks.length}</span>
+                      ) : (
+                        <span>لم تضف أي روابط بعد</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">إضافة رابط</span>
+                    <span className="sm:hidden">إضافة</span>
+                  </Button>
                 </div>
               </div>
-              
-              <Button 
-                onClick={() => setIsAddModalOpen(true)}
-                size="sm"
-                className="gap-1.5 rounded-xl h-9 px-4 text-sm"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">إضافة رابط</span>
-                <span className="sm:hidden">إضافة</span>
-              </Button>
-            </div>
+            </motion.div>
 
             {/* Links List */}
             <div>
               {isLoading ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map(i => (
-                    <div key={i} className="bg-card rounded-2xl border border-border p-4 animate-pulse">
+                  <div key={i} className="bg-card rounded-xl border border-border/50 p-3 animate-pulse">
                       <div className="flex items-center gap-3">
-                        <div className="w-4 h-6 bg-muted rounded" />
-                        <div className="w-12 h-12 bg-muted rounded-xl" />
+                        <div className="w-4 h-5 bg-muted rounded" />
+                        <div className="w-10 h-10 bg-muted rounded-lg" />
                         <div className="flex-1 space-y-2">
-                          <div className="h-4 bg-muted rounded w-32" />
-                          <div className="h-3 bg-muted/50 rounded w-48" />
+                          <div className="h-3.5 bg-muted rounded w-28" />
+                          <div className="h-2.5 bg-muted/50 rounded w-40" />
                         </div>
-                        <div className="w-12 h-6 bg-muted rounded-full" />
+                        <div className="w-10 h-5 bg-muted rounded-full" />
                       </div>
                     </div>
                   ))}
