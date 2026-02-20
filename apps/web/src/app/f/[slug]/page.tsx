@@ -168,8 +168,20 @@ export default function PublicFormPage() {
   const [showInfoSheet, setShowInfoSheet] = useState(false);
   const [showQrInSheet, setShowQrInSheet] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const infoSheetDragControls = useDragControls();
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Fetch form data
   useEffect(() => {
@@ -364,14 +376,14 @@ export default function PublicFormPage() {
     };
 
     const inputClass = cn(
-      "w-full min-h-[48px] h-12 px-4 transition-all text-sm outline-none",
+      "w-full min-h-[48px] h-12 px-4 transition-all duration-200 text-sm outline-none",
       "placeholder:text-muted-foreground/60",
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:scale-[1.01]",
       fieldStyleClasses[formTheme.fieldStyle] || fieldStyleClasses.outlined,
       formTheme.fieldStyle !== 'underlined' && `rounded-2xl`,
       hasError
         ? "border-destructive/50 focus-visible:border-destructive focus-visible:ring-destructive/20"
-        : "border-border hover:border-border/80 focus-visible:ring-primary/20 focus-visible:border-primary/50"
+        : "border-border hover:border-primary/40 focus-visible:ring-primary/20 focus-visible:border-primary/50"
     );
 
     // Apply theme colors via inline styles
@@ -1378,7 +1390,9 @@ export default function PublicFormPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-10 h-10 animate-spin text-primary mx-auto mb-4" />
+          <div className="w-16 h-16 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
           <p className="text-sm font-medium text-muted-foreground">جاري التحميل...</p>
         </div>
       </div>
@@ -1389,17 +1403,22 @@ export default function PublicFormPage() {
   if (error || !form) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="text-center max-w-md"
+        >
           <div className="w-20 h-20 bg-destructive/10 rounded-3xl flex items-center justify-center mx-auto mb-5">
             <AlertCircle className="w-10 h-10 text-destructive" />
           </div>
-          <h1 className="text-xl font-bold text-foreground mb-2">النموذج غير موجود</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-2">النموذج غير موجود</h1>
           <p className="text-sm text-muted-foreground mb-6">{error || 'لم نتمكن من العثور على هذا النموذج'}</p>
-          <a href="/" className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors">
+          <a href="/" className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 transition-all duration-200 hover:scale-105 active:scale-95">
             <ArrowRight className="w-4 h-4" />
             العودة للرئيسية
           </a>
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -1408,17 +1427,22 @@ export default function PublicFormPage() {
   if (form.status !== FormStatus.PUBLISHED) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="text-center max-w-md"
+        >
           <div className="w-20 h-20 bg-warning/10 rounded-3xl flex items-center justify-center mx-auto mb-5">
             <Lock className="w-10 h-10 text-warning" />
           </div>
-          <h1 className="text-xl font-bold text-foreground mb-2">النموذج مغلق</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-2">النموذج مغلق</h1>
           <p className="text-sm text-muted-foreground mb-6">هذا النموذج لا يقبل إجابات جديدة</p>
-          <a href="/" className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors">
+          <a href="/" className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 transition-all duration-200 hover:scale-105 active:scale-95">
             <ArrowRight className="w-4 h-4" />
             العودة للرئيسية
           </a>
-        </div>
+        </motion.div>
       </div>
     );
   }
@@ -1430,19 +1454,30 @@ export default function PublicFormPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="text-center max-w-sm"
+          transition={{ type: 'spring', damping: 20, stiffness: 200 }}
+          className="text-center max-w-md"
         >
-          <div className="w-20 h-20 bg-success/10 rounded-3xl flex items-center justify-center mx-auto mb-5">
+          <motion.div 
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: 'spring', damping: 15, stiffness: 200 }}
+            className="w-20 h-20 bg-success/10 rounded-3xl flex items-center justify-center mx-auto mb-5"
+          >
             <Check className="w-10 h-10 text-success" />
-          </div>
+          </motion.div>
           <h1 className="text-2xl font-bold text-foreground mb-2">تم الإرسال بنجاح!</h1>
           <p className="text-sm text-muted-foreground mb-6">شكراً لمشاركتك في "{form.title}"</p>
           {form.autoResponseMessage && (
-            <div className="bg-card border border-border rounded-2xl p-4 text-right mb-6">
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-card border border-border/60 rounded-2xl p-4 text-right mb-6"
+            >
               <p className="text-sm text-foreground leading-relaxed">{form.autoResponseMessage}</p>
-            </div>
+            </motion.div>
           )}
-          <a href="/" className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors">
+          <a href="/" className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-medium hover:bg-primary/90 transition-all duration-200 hover:scale-105 active:scale-95">
             <ArrowRight className="w-4 h-4" />
             العودة للرئيسية
           </a>
@@ -1470,19 +1505,21 @@ export default function PublicFormPage() {
     >
       {/* Simple Header + بطاقة المعلومات تنبثق من هنا */}
       <header className="sticky top-2 z-40 mx-4 sm:mx-auto max-w-2xl relative">
-        <div className="bg-card/95 backdrop-blur-md rounded-4xl border border-border px-4 py-3 flex items-center justify-between gap-3 shadow-sm">
+        <div className="bg-card/95 backdrop-blur-xl rounded-4xl border border-border/60 px-4 py-3 flex items-center justify-between gap-3 transition-all duration-300">
           {/* Form Title */}
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <h1 className="text-sm font-semibold text-foreground truncate">ركني</h1>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             <button
               onClick={() => setShowInfoSheet(!showInfoSheet)}
               className={cn(
-                "w-9 h-9 flex items-center justify-center rounded-xl transition-colors",
-                showInfoSheet ? "bg-primary/15 text-primary" : "hover:bg-muted text-muted-foreground"
+                "w-9 h-9 flex items-center justify-center rounded-xl transition-all duration-200",
+                showInfoSheet 
+                  ? "bg-primary/15 text-primary scale-95" 
+                  : "hover:bg-muted text-muted-foreground hover:scale-105 active:scale-95"
               )}
               aria-label="معلومات"
               aria-expanded={showInfoSheet}
@@ -1491,14 +1528,14 @@ export default function PublicFormPage() {
             </button>
             <button
               onClick={() => setShowModal('share')}
-              className="w-9 h-9 flex items-center justify-center hover:bg-muted rounded-xl transition-colors text-muted-foreground"
+              className="w-9 h-9 flex items-center justify-center hover:bg-muted rounded-xl transition-all duration-200 text-muted-foreground hover:text-foreground hover:scale-105 active:scale-95"
               aria-label="مشاركة"
             >
               <Share2 className="w-4 h-4" />
             </button>
             <button
               onClick={() => setShowModal('qr')}
-              className="w-9 h-9 flex items-center justify-center hover:bg-muted rounded-xl transition-colors text-muted-foreground"
+              className="w-9 h-9 flex items-center justify-center hover:bg-muted rounded-xl transition-all duration-200 text-muted-foreground hover:text-foreground hover:scale-105 active:scale-95"
               aria-label="QR Code"
             >
               <QrCode className="w-4 h-4" />
@@ -1520,25 +1557,25 @@ export default function PublicFormPage() {
                 aria-hidden
               />
               <motion.div
-                drag="y"
-                dragControls={infoSheetDragControls}
-                dragConstraints={{ top: 0, bottom: 0 }}
-                dragElastic={{ top: 0, bottom: 0.25 }}
+                drag={isMobile ? "y" : false}
+                dragControls={isMobile ? infoSheetDragControls : undefined}
+                dragConstraints={isMobile ? { top: 0, bottom: 0 } : undefined}
+                dragElastic={isMobile ? { top: 0, bottom: 0.25 } : undefined}
                 dragMomentum={false}
-                onDragEnd={(_, { offset, velocity }) => {
+                onDragEnd={isMobile ? (_, { offset, velocity }) => {
                   if (offset.y > 50 || velocity.y > 200) setShowInfoSheet(false);
-                }}
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
+                } : undefined}
+                initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.98 }}
                 transition={{ type: 'spring', damping: 32, stiffness: 320 }}
-                className="absolute top-full left-0 right-0 sm:left-auto sm:right-0 sm:w-[340px] mt-2 z-50 rounded-4xl overflow-hidden bg-card shadow-xl border border-border"
+                className="absolute top-full left-0 right-0 sm:left-auto sm:right-0 sm:w-[340px] mt-2 z-50 rounded-4xl overflow-hidden bg-card border border-border/60 backdrop-blur-xl"
               >
                 {/* شريط علوي: زر رجوع دائري أبيض + حبة خضراء (مثل المرجع) */}
                 <div className="flex items-center gap-3 px-4 pt-4 pb-3">
                   <button
                     onClick={() => setShowInfoSheet(false)}
-                    className="w-9 h-9 rounded-full flex items-center justify-center bg-card border border-border text-muted-foreground hover:bg-muted transition-colors flex-shrink-0 shadow-sm"
+                    className="w-9 h-9 rounded-full flex items-center justify-center bg-card border border-border text-muted-foreground hover:bg-muted transition-all duration-200 flex-shrink-0 hover:scale-105 active:scale-95"
                     aria-label="إغلاق"
                   >
                     <ChevronRight className="w-5 h-5" />
@@ -1549,13 +1586,65 @@ export default function PublicFormPage() {
                 </div>
 
                 {/* صورة النموذج — منفصلة عن المعلومات */}
-                {form.bannerImages?.[0] && (
-                  <div className="mx-4 mb-3 rounded-4xl overflow-hidden aspect-video bg-muted">
-                    <img
-                      src={form.bannerImages[0]}
-                      alt={form.title}
-                      className="w-full h-full object-cover"
-                    />
+                {form.bannerImages && form.bannerImages.length > 0 && (
+                  <div className="mx-4 mb-3 relative">
+                    <div className="rounded-4xl overflow-hidden aspect-video bg-muted relative group">
+                      <AnimatePresence mode="wait">
+                        <motion.img
+                          key={currentBannerIndex}
+                          src={form.bannerImages[currentBannerIndex]}
+                          alt={`${form.title} - ${currentBannerIndex + 1}`}
+                          className="w-full h-full object-cover"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.3 }}
+                        />
+                      </AnimatePresence>
+                      
+                      {/* Navigation Arrows */}
+                      {form.bannerImages.length > 1 && (
+                        <>
+                          <button
+                            onClick={() => setCurrentBannerIndex((prev) => 
+                              prev === 0 ? form.bannerImages!.length - 1 : prev - 1
+                            )}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
+                            aria-label="الصورة السابقة"
+                          >
+                            <ChevronRight className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => setCurrentBannerIndex((prev) => 
+                              prev === form.bannerImages!.length - 1 ? 0 : prev + 1
+                            )}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
+                            aria-label="الصورة التالية"
+                          >
+                            <ChevronLeft className="w-5 h-5" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    
+                    {/* Dots Indicator */}
+                    {form.bannerImages.length > 1 && (
+                      <div className="flex justify-center gap-1.5 mt-2">
+                        {form.bannerImages.map((_, index) => (
+                          <button
+                            key={index}
+                            onClick={() => setCurrentBannerIndex(index)}
+                            className={cn(
+                              "w-1.5 h-1.5 rounded-full transition-all duration-300",
+                              index === currentBannerIndex 
+                                ? "bg-primary w-6" 
+                                : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                            )}
+                            aria-label={`الصورة ${index + 1}`}
+                          />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1593,7 +1682,7 @@ export default function PublicFormPage() {
                       {form.user?.profile?.username && (
                         <Link
                           href={`/${form.user.profile.username}`}
-                          className="w-9 h-9 rounded-full flex items-center justify-center bg-primary-foreground/15 text-primary-foreground border border-primary-foreground/30 hover:bg-primary-foreground/25 transition-colors flex-shrink-0"
+                          className="w-9 h-9 rounded-full flex items-center justify-center bg-primary-foreground/15 text-primary-foreground border border-primary-foreground/30 hover:bg-primary-foreground/25 transition-all duration-200 flex-shrink-0 hover:scale-105 active:scale-95"
                           title="عرض الملف الشخصي"
                           aria-label="عرض الملف الشخصي"
                         >
@@ -1614,14 +1703,16 @@ export default function PublicFormPage() {
                   </div>
                 </div>
 
-                {/* مقبض سحب في الأسفل */}
-                <div
-                  className="py-2 flex justify-center cursor-grab active:cursor-grabbing touch-none border-t border-border"
-                  onPointerDown={(e) => infoSheetDragControls.start(e)}
-                  aria-hidden
-                >
-                  <div className="w-8 h-1 rounded-full bg-muted-foreground/30" />
-                </div>
+                {/* مقبض سحب في الأسفل - فقط على الهاتف */}
+                {isMobile && (
+                  <div
+                    className="py-2 flex justify-center cursor-grab active:cursor-grabbing touch-none border-t border-border"
+                    onPointerDown={(e) => infoSheetDragControls.start(e)}
+                    aria-hidden
+                  >
+                    <div className="w-8 h-1 rounded-full bg-muted-foreground/30" />
+                  </div>
+                )}
               </motion.div>
             </>
           )}
@@ -1630,18 +1721,108 @@ export default function PublicFormPage() {
 
       {/* Main Content */}
       <main className="max-w-2xl mx-auto px-4 py-6">
-        {/* Cover Image */}
-        {form.bannerImages?.[0] && (
+        {/* Cover Image - Carousel للصور المتعددة */}
+        {form.bannerImages && form.bannerImages.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 rounded-4xl border border-border overflow-hidden"
+            transition={{ duration: 0.3 }}
+            className="mb-6 relative"
           >
-            <img 
-              src={form.bannerImages[0]} 
-              alt={form.title}
-              className="w-full h-48 sm:h-56 object-cover"
-            />
+            <div className="rounded-4xl border border-border/60 overflow-hidden relative group">
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={currentBannerIndex}
+                  src={form.bannerImages[currentBannerIndex]}
+                  alt={`${form.title} - ${currentBannerIndex + 1}`}
+                  className="w-full h-48 sm:h-56 object-cover"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.4, ease: 'easeInOut' }}
+                />
+              </AnimatePresence>
+              
+              {/* Navigation Arrows - ظهور عند Hover على الكمبيوتر */}
+              {form.bannerImages.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setCurrentBannerIndex((prev) => 
+                      prev === 0 ? form.bannerImages!.length - 1 : prev - 1
+                    )}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm hover:bg-black/80 text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hover:scale-110"
+                    aria-label="الصورة السابقة"
+                  >
+                    <ChevronRight className="w-6 h-6" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentBannerIndex((prev) => 
+                      prev === form.bannerImages!.length - 1 ? 0 : prev + 1
+                    )}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm hover:bg-black/80 text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hover:scale-110"
+                    aria-label="الصورة التالية"
+                  >
+                    <ChevronLeft className="w-6 h-6" />
+                  </button>
+                  
+                  {/* Counter Badge */}
+                  <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-sm text-white text-xs font-medium">
+                    {currentBannerIndex + 1} / {form.bannerImages.length}
+                  </div>
+                </>
+              )}
+            </div>
+            
+            {/* Dots Indicator */}
+            {form.bannerImages.length > 1 && (
+              <div className="flex justify-center gap-2 mt-3">
+                {form.bannerImages.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentBannerIndex(index)}
+                    className={cn(
+                      "h-2 rounded-full transition-all duration-300",
+                      index === currentBannerIndex 
+                        ? "bg-primary w-8" 
+                        : "bg-muted-foreground/30 hover:bg-muted-foreground/50 w-2"
+                    )}
+                    aria-label={`انتقل إلى الصورة ${index + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+            
+            {/* Thumbnail Grid - للصور المتعددة */}
+            {form.bannerImages.length > 1 && (
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mt-3">
+                {form.bannerImages.slice(0, 6).map((image, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentBannerIndex(index)}
+                    className={cn(
+                      "relative aspect-video rounded-lg overflow-hidden border-2 transition-all duration-200",
+                      index === currentBannerIndex
+                        ? "border-primary ring-2 ring-primary/20 scale-105"
+                        : "border-border/60 hover:border-primary/50 opacity-60 hover:opacity-100"
+                    )}
+                  >
+                    <img
+                      src={image}
+                      alt={`صورة مصغرة ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    {index === currentBannerIndex && (
+                      <div className="absolute inset-0 bg-primary/10" />
+                    )}
+                  </button>
+                ))}
+                {form.bannerImages.length > 6 && (
+                  <div className="relative aspect-video rounded-lg overflow-hidden border-2 border-border/60 bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
+                    +{form.bannerImages.length - 6}
+                  </div>
+                )}
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -1668,7 +1849,7 @@ export default function PublicFormPage() {
             {form.user?.profile?.username && (
               <Link
                 href={`/${form.user.profile.username}`}
-                className="w-9 h-9 rounded-full flex items-center justify-center bg-muted text-muted-foreground hover:bg-muted/80 transition-colors flex-shrink-0"
+                className="w-9 h-9 rounded-full flex items-center justify-center bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all duration-200 flex-shrink-0 hover:scale-105 active:scale-95"
                 title="عرض الملف الشخصي"
                 aria-label="عرض الملف الشخصي"
               >
@@ -1696,20 +1877,21 @@ export default function PublicFormPage() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
             className="mb-6"
           >
-            <div className="flex gap-1 mb-2">
+            <div className="flex gap-1.5 mb-3">
               {form.steps.map((_, index) => (
                 <div
                   key={index}
                   className={cn(
-                    "flex-1 h-1 rounded-full transition-colors",
+                    "flex-1 h-1.5 rounded-full transition-all duration-300",
                     index <= currentStep ? "bg-primary" : "bg-muted"
                   )}
                 />
               ))}
             </div>
-            <div className="bg-card rounded-2xl border border-border p-4">
+            <div className="bg-card rounded-2xl border border-border/60 p-4 transition-all duration-300">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-primary text-primary-foreground rounded-lg flex items-center justify-center text-sm font-semibold">
                   {currentStep + 1}
@@ -1729,8 +1911,8 @@ export default function PublicFormPage() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="rounded-4xl border"
+          transition={{ duration: 0.3, delay: 0.3 }}
+          className="rounded-4xl border transition-all duration-300"
           style={{
             backgroundColor: formTheme.appearance !== 'system' ? formTheme.backgroundColor : undefined,
             borderColor: formTheme.appearance !== 'system' ? formTheme.borderColor : undefined,
@@ -1748,7 +1930,7 @@ export default function PublicFormPage() {
             {form.isMultiStep && currentStep > 0 ? (
               <button
                 onClick={handlePrevious}
-                className="flex items-center gap-2 px-4 py-2.5 border border-border rounded-xl text-sm font-medium text-foreground hover:bg-muted transition-colors"
+                className="flex items-center gap-2 px-4 py-2.5 border border-border rounded-xl text-sm font-medium text-foreground hover:bg-muted transition-all duration-200 hover:scale-105 active:scale-95"
               >
                 <ChevronRight className="w-4 h-4" />
                 السابق
@@ -1760,7 +1942,7 @@ export default function PublicFormPage() {
             {form.isMultiStep && currentStep < totalSteps - 1 ? (
               <button
                 onClick={handleNext}
-                className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-medium transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-medium transition-all duration-200 hover:scale-105 active:scale-95"
                 style={{
                   backgroundColor: formTheme.primaryColor,
                   borderRadius: `var(--form-radius, 12px)`,
@@ -1775,7 +1957,7 @@ export default function PublicFormPage() {
                 onClick={handleSubmit}
                 disabled={isSubmitting}
                 aria-busy={isSubmitting}
-                className="flex items-center gap-2 px-6 py-2.5 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50 shadow-sm min-h-[44px]"
+                className="flex items-center gap-2 px-6 py-2.5 text-white rounded-xl text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 min-h-[44px]"
                 style={{
                   backgroundColor: formTheme.primaryColor,
                   borderRadius: `var(--form-radius, 12px)`,
@@ -1821,23 +2003,25 @@ export default function PublicFormPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
             onClick={() => setShowModal(null)}
           >
             <motion.div
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-card rounded-2xl p-6 max-w-xs w-full border border-border"
+              className="bg-card rounded-3xl p-6 max-w-xs w-full border border-border/60"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-foreground">QR Code</h3>
-                <button onClick={() => setShowModal(null)} className="p-1 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors">
+                <h3 className="font-semibold text-foreground text-lg">QR Code</h3>
+                <button onClick={() => setShowModal(null)} className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-110 active:scale-95">
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="flex justify-center p-4 bg-muted rounded-xl">
+              <div className="flex justify-center p-6 bg-gradient-to-br from-muted/50 to-muted rounded-2xl">
                 <QRCodeSVG value={formUrl} size={180} />
               </div>
               <p className="text-center text-sm text-muted-foreground mt-4">امسح للوصول للنموذج</p>
@@ -1853,25 +2037,27 @@ export default function PublicFormPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
             onClick={() => setShowModal(null)}
           >
             <motion.div
-              initial={{ scale: 0.95 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-card rounded-2xl p-6 max-w-sm w-full border border-border"
+              className="bg-card rounded-3xl p-6 max-w-sm w-full border border-border/60"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-foreground">مشاركة النموذج</h3>
-                <button onClick={() => setShowModal(null)} className="p-1 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors">
+                <h3 className="font-semibold text-foreground text-lg">مشاركة النموذج</h3>
+                <button onClick={() => setShowModal(null)} className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-110 active:scale-95">
                   <X className="w-5 h-5" />
                 </button>
               </div>
               
               {/* Copy Link */}
-              <div className="flex items-center gap-2 p-3 bg-muted rounded-xl mb-4">
+              <div className="flex items-center gap-2 p-3 bg-gradient-to-br from-muted/50 to-muted rounded-xl mb-4">
                 <input
                   type="text"
                   value={formUrl}
@@ -1882,8 +2068,10 @@ export default function PublicFormPage() {
                 <button
                   onClick={handleCopyLink}
                   className={cn(
-                    "p-2 rounded-lg transition-colors",
-                    copied ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400" : "bg-background hover:bg-muted/80 text-muted-foreground"
+                    "p-2 rounded-lg transition-all duration-200 hover:scale-105 active:scale-95",
+                    copied 
+                      ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400" 
+                      : "bg-background hover:bg-muted/80 text-muted-foreground hover:text-foreground"
                   )}
                 >
                   {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -1891,15 +2079,15 @@ export default function PublicFormPage() {
               </div>
 
               {/* Share Buttons */}
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-4 gap-3 mt-6">
                 {/* WhatsApp */}
                 <a
                   href={`https://wa.me/?text=${encodeURIComponent(form.title + ' ' + formUrl)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted transition-colors"
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted transition-all duration-200 hover:scale-105 active:scale-95 group"
                 >
-                  <div className="w-12 h-12 bg-[#25D366] rounded-full flex items-center justify-center">
+                  <div className="w-12 h-12 bg-[#25D366] rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-110">
                     <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                     </svg>
@@ -1912,9 +2100,9 @@ export default function PublicFormPage() {
                   href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(formUrl)}&text=${encodeURIComponent(form.title)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted transition-colors"
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted transition-all duration-200 hover:scale-105 active:scale-95 group"
                 >
-                  <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center">
+                  <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-110">
                     <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                     </svg>
@@ -1927,9 +2115,9 @@ export default function PublicFormPage() {
                   href={`https://t.me/share/url?url=${encodeURIComponent(formUrl)}&text=${encodeURIComponent(form.title)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted transition-colors"
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted transition-all duration-200 hover:scale-105 active:scale-95 group"
                 >
-                  <div className="w-12 h-12 bg-[#0088cc] rounded-full flex items-center justify-center">
+                  <div className="w-12 h-12 bg-[#0088cc] rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-110">
                     <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
                     </svg>
@@ -1942,9 +2130,9 @@ export default function PublicFormPage() {
                   href={`mailto:?subject=${encodeURIComponent(form.title)}&body=${encodeURIComponent(formUrl)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted transition-colors"
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted transition-all duration-200 hover:scale-105 active:scale-95 group"
                 >
-                  <div className="w-12 h-12 bg-muted-foreground rounded-full flex items-center justify-center">
+                  <div className="w-12 h-12 bg-muted-foreground rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-110">
                     <Mail className="w-5 h-5 text-background" />
                   </div>
                   <span className="text-xs text-muted-foreground">بريد</span>

@@ -45,6 +45,7 @@ import { api } from '@/lib/api';
 import { AuthClient } from '@/lib/auth/auth-client';
 import { getCsrfToken } from '@/lib/api/client';
 import { toast } from '@/components/toast-provider';
+import { PublicSocialLinks } from '@/components/(app)/profile/PublicSocialLinks';
 
 // Avatar/Cover URL helpers
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3001';
@@ -154,9 +155,28 @@ const socialColors: Record<string, string> = {
   x: '#000000',
   linkedin: '#0A66C2',
   youtube: '#FF0000',
-  github: '#333333',
+  github: '#181717',
   whatsapp: '#25D366',
   tiktok: '#000000',
+  website: '#6366F1',
+  email: '#0EA5E9',
+  phone: '#10B981',
+  custom: '#8B5CF6',
+};
+
+const socialGradients: Record<string, string> = {
+  instagram: 'from-[#E4405F] to-[#C13584]',
+  twitter: 'from-[#1DA1F2] to-[#0C85D0]',
+  x: 'from-gray-800 to-black',
+  linkedin: 'from-[#0A66C2] to-[#004182]',
+  youtube: 'from-[#FF0000] to-[#CC0000]',
+  github: 'from-[#181717] to-black',
+  whatsapp: 'from-[#25D366] to-[#128C7E]',
+  tiktok: 'from-black to-[#EE1D52]',
+  website: 'from-indigo-500 to-indigo-600',
+  email: 'from-sky-500 to-blue-600',
+  phone: 'from-emerald-500 to-green-600',
+  custom: 'from-purple-500 to-violet-600',
 };
 
 // Helper functions
@@ -350,11 +370,11 @@ export default function PublicProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="w-24 h-24 bg-gray-200 rounded-full" />
-          <div className="h-6 w-32 bg-gray-200 rounded" />
-          <div className="h-4 w-48 bg-gray-200 rounded" />
+          <div className="w-24 h-24 bg-muted rounded-full" />
+          <div className="h-6 w-32 bg-muted rounded-xl" />
+          <div className="h-4 w-48 bg-muted/60 rounded-xl" />
         </div>
       </div>
     );
@@ -362,15 +382,15 @@ export default function PublicProfilePage() {
 
   if (error || !profile) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4">
-        <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-4">
+        <div className="w-20 h-20 bg-muted rounded-2xl flex items-center justify-center">
           <Users className="w-10 h-10 text-primary" />
         </div>
-        <h1 className="text-xl font-bold text-gray-900">جاري العمل على إكمال المنصة</h1>
-        <p className="text-gray-500">هذه الصفحة قيد التطوير وستكون متاحة قريباً</p>
+        <h1 className="text-xl font-bold text-foreground text-center">الملف الشخصي غير موجود</h1>
+        <p className="text-muted-foreground text-center max-w-md">عذراً، لم نتمكن من العثور على هذا الملف الشخصي</p>
         <a
           href="/"
-          className="px-6 py-3 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-colors"
+          className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors"
         >
           العودة للرئيسية
         </a>
@@ -384,7 +404,7 @@ export default function PublicProfilePage() {
   const hasForms = forms.length > 0;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       {/* Floating Action Bar */}
       <FloatingActionBar>
         <FABButton
@@ -417,7 +437,7 @@ export default function PublicProfilePage() {
       </FloatingActionBar>
 
       {/* Profile Content */}
-      <div className="max-w-2xl mt-18 mx-auto px-4 py-6 pb-8">
+      <div className="max-w-2xl pt-16 mx-auto px-4 py-6 pb-8">
         
         {/* Cover Image */}
         {profile.coverImage && (
@@ -425,7 +445,7 @@ export default function PublicProfilePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="mb-6 rounded-2xl overflow-hidden shadow-lg border border-gray-100"
+            className="mb-6 rounded-3xl overflow-hidden shadow-lg border border-border/40"
           >
             <div className="relative h-40 sm:h-52 md:h-64">
               <img 
@@ -436,7 +456,7 @@ export default function PublicProfilePage() {
                   (e.target as HTMLElement).parentElement!.parentElement!.style.display = 'none';
                 }}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
             </div>
           </motion.div>
         )}
@@ -451,7 +471,7 @@ export default function PublicProfilePage() {
           {/* Avatar & Name Row */}
           <div className="flex items-center gap-4">
             {/* Avatar */}
-            <Avatar className="w-20 h-20 ring-4 ring-gray-100 flex-shrink-0">
+            <Avatar className="w-20 h-20 ring-4 ring-border/40 flex-shrink-0 shadow-lg">
               {profile.avatar && (
                 <AvatarImage 
                   src={resolveAvatarUrl(profile.avatar) || undefined} 
@@ -462,8 +482,7 @@ export default function PublicProfilePage() {
                 />
               )}
               <AvatarFallback 
-                className="text-xl font-bold text-white"
-                style={{ backgroundColor: themeColor }}
+                className="text-xl font-bold text-white bg-gradient-to-br from-primary to-primary-hover"
               >
                 {getInitials(displayName)}
               </AvatarFallback>
@@ -472,22 +491,22 @@ export default function PublicProfilePage() {
             {/* Name & Username */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-gray-900 truncate">
+                <h1 className="text-xl font-bold text-foreground truncate">
                   {displayName}
                 </h1>
                 {profile.visibility === 'PUBLIC' && (
-                  <div className="flex items-center gap-1 px-2 py-0.5 bg-blue-50 rounded-full flex-shrink-0">
+                  <div className="flex items-center gap-1 px-2 py-0.5 bg-primary/10 rounded-full flex-shrink-0">
                     <svg className="w-4 h-4" viewBox="0 0 22 22" fill="none">
                       <path 
                         d="M20.396 11c-.018-.646-.215-1.275-.57-1.816-.354-.54-.852-.972-1.438-1.246.223-.607.27-1.264.14-1.897-.131-.634-.437-1.218-.882-1.687-.47-.445-1.053-.75-1.687-.882-.633-.13-1.29-.083-1.897.14-.273-.587-.704-1.086-1.245-1.44S11.647 1.62 11 1.604c-.646.017-1.273.213-1.813.568s-.969.854-1.24 1.44c-.608-.223-1.267-.272-1.902-.14-.635.13-1.22.436-1.69.882-.445.47-.749 1.055-.878 1.688-.13.633-.08 1.29.144 1.896-.587.274-1.087.705-1.443 1.245-.356.54-.555 1.17-.574 1.817.02.647.218 1.276.574 1.817.356.54.856.972 1.443 1.245-.224.606-.274 1.263-.144 1.896.13.634.433 1.218.877 1.688.47.443 1.054.747 1.687.878.633.132 1.29.084 1.897-.136.274.586.705 1.084 1.246 1.439.54.354 1.17.551 1.816.569.647-.016 1.276-.213 1.817-.567s.972-.854 1.245-1.44c.604.239 1.266.296 1.903.164.636-.132 1.22-.447 1.68-.907.46-.46.776-1.044.908-1.681.132-.637.075-1.299-.165-1.903.586-.274 1.084-.705 1.439-1.246.354-.54.551-1.17.569-1.816zM9.662 14.85l-3.429-3.428 1.293-1.302 2.072 2.072 4.4-4.794 1.347 1.246-5.683 6.206z" 
-                        fill="#1D9BF0"
+                        className="fill-primary"
                       />
                     </svg>
-                    <span className="text-xs font-medium text-blue-600">موثق</span>
+                    <span className="text-xs font-medium text-primary">موثق</span>
                   </div>
                 )}
               </div>
-              <p className="text-gray-500 text-sm mt-0.5">@{profile.username}</p>
+              <p className="text-muted-foreground text-sm mt-0.5">@{profile.username}</p>
               
               {/* Follow Button */}
               {!isOwnProfile && (
@@ -495,13 +514,12 @@ export default function PublicProfilePage() {
                   onClick={handleFollow}
                   disabled={followLoading}
                   className={cn(
-                    "mt-3 px-5 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2",
+                    "mt-3 px-5 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 shadow-sm",
                     isFollowing
-                      ? "bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-red-600 border border-gray-200"
-                      : "text-white hover:opacity-90",
+                      ? "bg-muted text-foreground hover:bg-destructive/10 hover:text-destructive border border-border"
+                      : "bg-primary text-primary-foreground hover:bg-primary/90",
                     followLoading && "opacity-50 cursor-not-allowed"
                   )}
-                  style={!isFollowing ? { backgroundColor: themeColor } : undefined}
                 >
                   {followLoading ? (
                     <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -523,13 +541,13 @@ export default function PublicProfilePage() {
 
           {/* Bio */}
           {profile.bio && (
-            <p className="mt-4 text-gray-600 leading-relaxed text-sm">
+            <p className="mt-4 text-muted-foreground leading-relaxed text-sm">
               {profile.bio}
             </p>
           )}
 
           {/* Meta Info */}
-          <div className="flex items-center gap-4 mt-4 text-xs text-gray-400">
+          <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground/60">
             {profile.location && (
               <span className="flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5" />
@@ -548,17 +566,17 @@ export default function PublicProfilePage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.2 }}
-          className="py-4 border-y border-gray-100 mb-6"
+          className="py-4 border-y border-border/40 mb-6"
         >
           <div className="flex items-center justify-center gap-6 sm:gap-10">
             <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">{formatNumber(profile._count?.followers || 0)}</p>
-              <p className="text-xs text-gray-500 mt-1">متابع</p>
+              <p className="text-2xl font-bold text-foreground">{formatNumber(profile._count?.followers || 0)}</p>
+              <p className="text-xs text-muted-foreground mt-1">متابع</p>
             </div>
-            <div className="h-10 w-px bg-gray-200" />
+            <div className="h-10 w-px bg-border/40" />
             <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">{formatNumber(profile._count?.following || 0)}</p>
-              <p className="text-xs text-gray-500 mt-1">يتابع</p>
+              <p className="text-2xl font-bold text-foreground">{formatNumber(profile._count?.following || 0)}</p>
+              <p className="text-xs text-muted-foreground mt-1">يتابع</p>
             </div>
             
           </div>
@@ -572,8 +590,8 @@ export default function PublicProfilePage() {
             transition={{ duration: 0.4, delay: 0.3 }}
             className="mb-6"
           >
-            <h3 className="text-sm font-medium text-gray-500 mb-3">العروض والإعلانات</h3>
-            <div className="rounded-2xl overflow-hidden border border-gray-100 relative">
+            <h3 className="text-sm font-medium text-muted-foreground mb-3">العروض والإعلانات</h3>
+            <div className="rounded-3xl overflow-hidden border border-border/40 relative shadow-md">
               <div 
                 className="relative h-40 sm:h-52 md:h-64 cursor-grab active:cursor-grabbing touch-pan-y"
                 onTouchStart={(e) => {
@@ -674,18 +692,18 @@ export default function PublicProfilePage() {
             <button
               onClick={() => setActiveTab('links')}
               className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all border whitespace-nowrap",
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border whitespace-nowrap shadow-sm",
                 activeTab === 'links'
-                  ? "bg-gray-900 text-white border-gray-900"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-muted-foreground border-border/60 hover:border-primary/40 hover:text-foreground"
               )}
             >
               <Link2 className="w-4 h-4" />
               الكل
               {profile.socialLinks?.length > 0 && (
                 <span className={cn(
-                  "text-xs px-1.5 py-0.5 rounded-full",
-                  activeTab === 'links' ? "bg-white/20" : "bg-gray-100"
+                  "text-xs px-1.5 py-0.5 rounded-full font-medium",
+                  activeTab === 'links' ? "bg-white/20" : "bg-muted"
                 )}>
                   {profile.socialLinks.length}
                 </span>
@@ -695,18 +713,18 @@ export default function PublicProfilePage() {
             <button
               onClick={() => setActiveTab('events')}
               className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all border whitespace-nowrap",
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border whitespace-nowrap shadow-sm",
                 activeTab === 'events'
-                  ? "bg-gray-900 text-white border-gray-900"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-muted-foreground border-border/60 hover:border-primary/40 hover:text-foreground"
               )}
             >
               <CalendarDays className="w-4 h-4" />
               الأحداث
               {events.length > 0 && (
                 <span className={cn(
-                  "text-xs px-1.5 py-0.5 rounded-full",
-                  activeTab === 'events' ? "bg-white/20" : "bg-gray-100"
+                  "text-xs px-1.5 py-0.5 rounded-full font-medium",
+                  activeTab === 'events' ? "bg-white/20" : "bg-muted"
                 )}>
                   {events.length}
                 </span>
@@ -717,17 +735,17 @@ export default function PublicProfilePage() {
               <button
                 onClick={() => setActiveTab('forms')}
                 className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all border whitespace-nowrap",
+                  "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all border whitespace-nowrap shadow-sm",
                   activeTab === 'forms'
-                    ? "bg-gray-900 text-white border-gray-900"
-                    : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card text-muted-foreground border-border/60 hover:border-primary/40 hover:text-foreground"
                 )}
               >
                 <ClipboardList className="w-4 h-4" />
                 النماذج
                 <span className={cn(
-                  "text-xs px-1.5 py-0.5 rounded-full",
-                  activeTab === 'forms' ? "bg-white/20" : "bg-gray-100"
+                  "text-xs px-1.5 py-0.5 rounded-full font-medium",
+                  activeTab === 'forms' ? "bg-white/20" : "bg-muted"
                 )}>
                   {forms.length}
                 </span>
@@ -790,43 +808,10 @@ export default function PublicProfilePage() {
                 exit={{ opacity: 0, y: -10 }}
                 className="space-y-3"
               >
-                {profile.socialLinks?.map((link, index) => {
-                  const platform = link.platform?.toLowerCase() || 'custom';
-                  const Icon = socialIcons[platform] || Link2;
-                  return (
-                    <motion.a
-                      key={link.id}
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div 
-                          className="w-10 h-10 rounded-xl flex items-center justify-center"
-                          style={{ backgroundColor: `${themeColor}15` }}
-                        >
-                          <Icon 
-                            className="w-5 h-5" 
-                            style={{ color: themeColor }}
-                          />
-                        </div>
-                        <span className="font-medium text-gray-900">{link.title || link.platform}</span>
-                      </div>
-                      <ExternalLink className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
-                    </motion.a>
-                  );
-                })}
-                
-                {(!profile.socialLinks || profile.socialLinks.length === 0) && (
-                  <div className="text-center py-12 text-gray-500">
-                    <Link2 className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                    <p>لا توجد روابط</p>
-                  </div>
-                )}
+                <PublicSocialLinks 
+                  socialLinks={(profile.socialLinks || []) as any}
+                  isLoading={loading}
+                />
               </motion.div>
             )}
 
@@ -845,27 +830,26 @@ export default function PublicProfilePage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="flex gap-4 p-4 bg-white rounded-2xl border border-gray-100 hover:shadow-md transition-all group"
+                    className="flex gap-4 p-4 bg-card rounded-2xl border border-border/60 hover:shadow-lg transition-all group"
                   >
-                    <div className="w-20 h-20 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
+                    <div className="w-20 h-20 rounded-2xl bg-muted overflow-hidden flex-shrink-0 shadow-md">
                       {event.coverImage ? (
                         <img 
                           src={event.coverImage} 
                           alt={event.title}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                         />
                       ) : (
                         <div 
-                          className="w-full h-full flex items-center justify-center"
-                          style={{ backgroundColor: `${themeColor}15` }}
+                          className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/30 to-primary/10"
                         >
-                          <CalendarDays className="w-8 h-8" style={{ color: themeColor }} />
+                          <CalendarDays className="w-8 h-8 text-primary" />
                         </div>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 line-clamp-1">{event.title}</h3>
-                      <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
+                      <h3 className="font-semibold text-foreground line-clamp-1">{event.title}</h3>
+                      <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
                         <Calendar className="w-3.5 h-3.5" />
                         {new Date(event.startDate).toLocaleDateString('ar-SA', { 
                           weekday: 'short',
@@ -873,7 +857,7 @@ export default function PublicProfilePage() {
                           day: 'numeric' 
                         })}
                       </p>
-                      <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                      <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground/70">
                         {(event.location || event.venue) && (
                           <span className="flex items-center gap-1">
                             <MapPin className="w-3.5 h-3.5" />
@@ -892,8 +876,8 @@ export default function PublicProfilePage() {
                 ))}
 
                 {events.length === 0 && (
-                  <div className="text-center py-12 text-gray-500">
-                    <CalendarDays className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <div className="text-center py-12 text-muted-foreground">
+                    <CalendarDays className="w-12 h-12 mx-auto mb-3 text-muted/40" />
                     <p>لا توجد أحداث قادمة</p>
                   </div>
                 )}
@@ -999,9 +983,9 @@ export default function PublicProfilePage() {
         </motion.div>
 
         {/* Footer */}
-        <div className="mt-12 text-center">
-          <p className="text-sm text-gray-400">
-            مدعوم من <span className="font-semibold text-gray-500">Rukny</span>
+        <div className="mt-12 text-center pb-4">
+          <p className="text-sm text-muted-foreground/60">
+            مدعوم بواسطة <a href="/" className="font-semibold text-primary hover:text-primary/80 transition-colors">Rukny</a>
           </p>
         </div>
       </div>

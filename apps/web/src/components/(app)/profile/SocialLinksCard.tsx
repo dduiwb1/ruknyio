@@ -21,6 +21,7 @@ import { detectPlatform } from '@/lib/utils/urlDetection';
 import type { SocialLink, LinkGroup } from '@/lib/types/profile';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { GoogleSocialConnect } from './GoogleSocialConnect';
 
 interface SocialLinksCardProps {
   socialLinks: SocialLink[];
@@ -260,15 +261,21 @@ function EmptyState() {
         ))}
       </div>
 
-      <Link href="/app/profile/links">
-        <Button 
-          size="default" 
-          className="gap-2 rounded-xl transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          إضافة أول رابط
-        </Button>
-      </Link>
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-2.5 justify-center items-center">
+        <GoogleSocialConnect />
+        
+        <Link href="/app/profile/links" className="w-full sm:w-auto">
+          <Button 
+            size="default" 
+            variant="outline"
+            className="gap-2 rounded-xl transition-all w-full sm:w-auto"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">إضافة يدويًا</span>
+            <span className="sm:hidden">إضافة</span>
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 }

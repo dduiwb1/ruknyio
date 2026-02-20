@@ -24,17 +24,19 @@ import {
   Settings2,
   Globe,
   Smartphone,
+  LogOut,
 } from 'lucide-react';
+import { useAuth } from '@/providers';
 
 // Loading skeleton component
 const SettingsSkeleton = () => (
   <div className="animate-pulse">
-    <div className="bg-card border border-border rounded-3xl p-4 sm:p-6">
+    <div className="bg-card border border-border/60 rounded-3xl p-4 sm:p-6">
       <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
         <div className="w-10 h-10 sm:w-11 sm:h-11 bg-muted rounded-2xl" />
         <div className="flex-1 space-y-2">
           <div className="h-4 bg-muted rounded-xl w-32" />
-          <div className="h-3 bg-muted/50 rounded-xl w-48" />
+          <div className="h-3 bg-muted/60 rounded-xl w-48" />
         </div>
       </div>
       <div className="space-y-3 sm:space-y-4">
@@ -43,7 +45,7 @@ const SettingsSkeleton = () => (
             <div className="w-9 h-9 sm:w-10 sm:h-10 bg-muted rounded-xl" />
             <div className="flex-1 space-y-2">
               <div className="h-3 bg-muted rounded-lg w-24" />
-              <div className="h-2 bg-muted rounded-lg w-40" />
+              <div className="h-2 bg-muted/60 rounded-lg w-40" />
             </div>
           </div>
         ))}
@@ -92,7 +94,7 @@ const allSettings: SettingItem[] = [
     description: 'أضف طبقة حماية إضافية لحسابك',
     icon: Shield,
     category: 'security',
-    color: 'from-primary to-primary-hover',
+    color: 'text-primary',
     iconBgSolid: 'bg-primary',
     badge: 'موصى به'
   },
@@ -102,7 +104,7 @@ const allSettings: SettingItem[] = [
     description: 'إدارة الأجهزة المتصلة بحسابك',
     icon: MonitorSmartphone,
     category: 'security',
-    color: 'from-primary to-primary-hover',
+    color: 'text-primary',
     iconBgSolid: 'bg-primary'
   },
   {
@@ -111,7 +113,7 @@ const allSettings: SettingItem[] = [
     description: 'الأجهزة التي سجلت الدخول منها',
     icon: Smartphone,
     category: 'security',
-    color: 'from-primary to-primary-hover',
+    color: 'text-primary',
     iconBgSolid: 'bg-primary'
   },
   {
@@ -120,7 +122,7 @@ const allSettings: SettingItem[] = [
     description: 'تتبع النشاطات والتغييرات الأمنية',
     icon: ScrollText,
     category: 'security',
-    color: 'from-primary to-primary-hover',
+    color: 'text-primary',
     iconBgSolid: 'bg-primary'
   },
   {
@@ -129,7 +131,7 @@ const allSettings: SettingItem[] = [
     description: 'استلام تنبيه عند تسجيل الدخول من موقع جديد',
     icon: Globe,
     category: 'security',
-    color: 'from-warning to-warning-filled',
+    color: 'text-success',
     iconBgSolid: 'bg-success',
     badge: 'جديد'
   },
@@ -140,7 +142,7 @@ const allSettings: SettingItem[] = [
     description: 'جميع التكاملات المتاحة',
     icon: Zap,
     category: 'integrations',
-    color: 'from-info to-info-filled',
+    color: 'text-info',
     iconBgSolid: 'bg-info'
   },
   {
@@ -149,7 +151,7 @@ const allSettings: SettingItem[] = [
     description: 'ربط حسابات التواصل الاجتماعي',
     icon: Share2,
     category: 'integrations',
-    color: 'from-destructive to-destructive-filled',
+    color: 'text-destructive',
     iconBgSolid: 'bg-destructive'
   },
   {
@@ -158,7 +160,7 @@ const allSettings: SettingItem[] = [
     description: 'تتبع الأداء والإحصائيات',
     icon: TrendingUp,
     category: 'integrations',
-    color: 'from-primary to-primary-hover',
+    color: 'text-primary',
     iconBgSolid: 'bg-primary'
   },
   {
@@ -167,7 +169,7 @@ const allSettings: SettingItem[] = [
     description: 'إدارة التنبيهات والإشعارات',
     icon: Bell,
     category: 'integrations',
-    color: 'from-info to-info-filled',
+    color: 'text-info',
     iconBgSolid: 'bg-info'
   },
   {
@@ -176,7 +178,7 @@ const allSettings: SettingItem[] = [
     description: 'ربط خدمات التخزين الخارجية',
     icon: Cloud,
     category: 'integrations',
-    color: 'from-warning to-warning-filled',
+    color: 'text-warning',
     iconBgSolid: 'bg-warning'
   },
   // Store Settings
@@ -186,7 +188,7 @@ const allSettings: SettingItem[] = [
     description: 'الإعدادات العامة للمتجر',
     icon: Store,
     category: 'store',
-    color: 'from-info to-info-filled',
+    color: 'text-info',
     iconBgSolid: 'bg-info'
   },
   {
@@ -195,7 +197,7 @@ const allSettings: SettingItem[] = [
     description: 'إدارة المنتجات والفئات',
     icon: Package,
     category: 'store',
-    color: 'from-info to-info-filled',
+    color: 'text-info',
     iconBgSolid: 'bg-info'
   },
   {
@@ -204,7 +206,7 @@ const allSettings: SettingItem[] = [
     description: 'إدارة الطلبات والمبيعات',
     icon: ScrollText,
     category: 'store',
-    color: 'from-info to-info-filled',
+    color: 'text-info',
     iconBgSolid: 'bg-info'
   },
   // Forms Settings
@@ -214,7 +216,7 @@ const allSettings: SettingItem[] = [
     description: 'الإعدادات العامة للنماذج',
     icon: FileText,
     category: 'forms',
-    color: 'from-destructive to-destructive-filled',
+    color: 'text-destructive',
     iconBgSolid: 'bg-destructive'
   },
   {
@@ -223,7 +225,7 @@ const allSettings: SettingItem[] = [
     description: 'إنشاء وإدارة قوالب النماذج',
     icon: FormInput,
     category: 'forms',
-    color: 'from-destructive to-destructive-filled',
+    color: 'text-destructive',
     iconBgSolid: 'bg-destructive'
   },
   {
@@ -232,7 +234,7 @@ const allSettings: SettingItem[] = [
     description: 'عرض وإدارة البيانات المرسلة',
     icon: ScrollText,
     category: 'forms',
-    color: 'from-destructive to-destructive-filled',
+    color: 'text-destructive',
     iconBgSolid: 'bg-destructive'
   },
   // Events Settings
@@ -242,7 +244,7 @@ const allSettings: SettingItem[] = [
     description: 'الإعدادات العامة للأحداث',
     icon: Calendar,
     category: 'events',
-    color: 'from-warning to-warning-filled',
+    color: 'text-warning',
     iconBgSolid: 'bg-warning'
   },
   {
@@ -251,7 +253,7 @@ const allSettings: SettingItem[] = [
     description: 'إدارة التذاكر والحجوزات',
     icon: Ticket,
     category: 'events',
-    color: 'from-warning to-warning-filled',
+    color: 'text-warning',
     iconBgSolid: 'bg-warning'
   },
   {
@@ -260,7 +262,7 @@ const allSettings: SettingItem[] = [
     description: 'جدولة الأحداث والمواعيد',
     icon: Calendar,
     category: 'events',
-    color: 'from-warning to-warning-filled',
+    color: 'text-warning',
     iconBgSolid: 'bg-warning'
   }
 ];
@@ -273,7 +275,7 @@ const categoryInfo = {
     icon: Shield,
     iconBg: 'bg-primary',
     iconColor: 'text-white',
-    lightBg: 'bg-primary/10',
+    lightBg: 'bg-muted',
     textColor: 'text-primary'
   },
   integrations: {
@@ -282,7 +284,7 @@ const categoryInfo = {
     icon: Link2,
     iconBg: 'bg-info',
     iconColor: 'text-white',
-    lightBg: 'bg-info/10',
+    lightBg: 'bg-muted',
     textColor: 'text-info'
   },
   store: {
@@ -291,8 +293,8 @@ const categoryInfo = {
     icon: Store,
     iconBg: 'bg-warning',
     iconColor: 'text-white',
-    lightBg: 'bg-warning/10',
-    textColor: 'text-warning-filled'
+    lightBg: 'bg-muted',
+    textColor: 'text-warning'
   },
   forms: {
     title: 'النماذج',
@@ -300,7 +302,7 @@ const categoryInfo = {
     icon: FileText,
     iconBg: 'bg-destructive',
     iconColor: 'text-white',
-    lightBg: 'bg-destructive/10',
+    lightBg: 'bg-muted',
     textColor: 'text-destructive'
   },
   events: {
@@ -309,7 +311,7 @@ const categoryInfo = {
     icon: Calendar,
     iconBg: 'bg-success',
     iconColor: 'text-white',
-    lightBg: 'bg-success/10',
+    lightBg: 'bg-muted',
     textColor: 'text-success'
   }
 };
@@ -325,6 +327,9 @@ const MobileSettingsList = ({
   settings: SettingItem[];
   onSelect: (id: SettingTab) => void;
 }) => {
+  const { logout } = useAuth();
+  const router = useRouter();
+  
   const grouped = useMemo(() => {
     return categories.map((cat) => ({
       category: cat,
@@ -332,6 +337,15 @@ const MobileSettingsList = ({
       items: settings.filter((s) => s.category === cat),
     })).filter((g) => g.items.length > 0);
   }, [settings]);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   return (
     <div className="space-y-5 pb-6">
@@ -348,7 +362,7 @@ const MobileSettingsList = ({
             </div>
 
             {/* Items container */}
-            <div className="rounded-3xl border border-border bg-card overflow-hidden">
+            <div className="rounded-3xl border border-border/60 bg-card overflow-hidden">
               {items.map((item, idx) => {
                 const Icon = item.icon;
                 return (
@@ -356,18 +370,18 @@ const MobileSettingsList = ({
                     key={item.id}
                     type="button"
                     onClick={() => onSelect(item.id)}
-                    className={`w-full flex items-center gap-3 sm:gap-4 px-3.5 sm:px-4 py-3 sm:py-3.5 text-right transition-colors hover:bg-muted/30 active:bg-muted/50 ${
+                    className={`w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 sm:py-4 text-right transition-colors hover:bg-muted/40 active:bg-muted/60 ${
                       idx < items.length - 1 ? 'border-b border-border/60' : ''
                     }`}
                   >
                     <div
-                      className={`flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl ${item.iconBgSolid} text-white`}
+                      className={`flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl ${item.iconBgSolid} text-white`}
                     >
-                      <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
+                      <Icon className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="truncate text-sm sm:text-[15px] font-semibold text-foreground">{item.label}</p>
+                        <p className="truncate text-sm sm:text-[15px] font-bold text-foreground">{item.label}</p>
                         {item.badge && (
                           <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
                             item.badge === 'موصى به' 
@@ -388,6 +402,26 @@ const MobileSettingsList = ({
           </section>
         );
       })}
+      
+      {/* Logout Button */}
+      <section>
+        <div className="rounded-3xl border border-destructive/30 bg-card overflow-hidden">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 sm:py-4 text-right transition-colors hover:bg-destructive/10 active:bg-destructive/20"
+          >
+            <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-destructive text-white">
+              <LogOut className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm sm:text-[15px] font-bold text-destructive">تسجيل الخروج</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">الخروج من حسابك الحالي</p>
+            </div>
+            <ChevronLeft className="h-4 w-4 shrink-0 rotate-180 text-destructive/60" aria-hidden />
+          </button>
+        </div>
+      </section>
     </div>
   );
 };
@@ -481,15 +515,15 @@ function SettingsContent() {
 
   const renderStoreContent = useCallback(() => {
     return (
-      <div className="bg-card border border-border rounded-3xl p-5 sm:p-8">
-        <div className="text-center py-10 sm:py-16">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-5 sm:mb-6 rounded-3xl bg-gradient-to-br from-info/20 to-info/5 flex items-center justify-center">
+      <div className="bg-card border border-border/60 rounded-3xl p-6 sm:p-8">
+        <div className="text-center py-12 sm:py-16">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-5 sm:mb-6 rounded-3xl bg-muted flex items-center justify-center">
             <Store className="w-10 h-10 sm:w-12 sm:h-12 text-info" />
           </div>
           <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-2 sm:mb-3">إعدادات المتجر</h3>
           <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 max-w-sm mx-auto">نعمل على تطوير أدوات متقدمة لإدارة متجرك</p>
-          <div className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-info/10 text-info rounded-full text-xs sm:text-sm font-semibold">
-            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <div className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-info/10 text-info rounded-xl text-xs sm:text-sm font-bold">
+            <Sparkles className="w-4 h-4" />
             قريباً
           </div>
         </div>
@@ -499,15 +533,15 @@ function SettingsContent() {
 
   const renderFormsContent = useCallback(() => {
     return (
-      <div className="bg-card border border-border rounded-3xl p-5 sm:p-8">
-        <div className="text-center py-10 sm:py-16">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-5 sm:mb-6 rounded-3xl bg-gradient-to-br from-destructive/20 to-destructive/5 flex items-center justify-center">
+      <div className="bg-card border border-border/60 rounded-3xl p-6 sm:p-8">
+        <div className="text-center py-12 sm:py-16">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-5 sm:mb-6 rounded-3xl bg-muted flex items-center justify-center">
             <FileText className="w-10 h-10 sm:w-12 sm:h-12 text-destructive" />
           </div>
           <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-2 sm:mb-3">إعدادات النماذج</h3>
           <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 max-w-sm mx-auto">نعمل على تطوير أدوات متقدمة لإدارة نماذجك</p>
-          <div className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-destructive/10 text-destructive rounded-full text-xs sm:text-sm font-semibold">
-            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <div className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-destructive/10 text-destructive rounded-xl text-xs sm:text-sm font-bold">
+            <Sparkles className="w-4 h-4" />
             قريباً
           </div>
         </div>
@@ -517,15 +551,15 @@ function SettingsContent() {
 
   const renderEventsContent = useCallback(() => {
     return (
-      <div className="bg-card border border-border rounded-3xl p-5 sm:p-8">
-        <div className="text-center py-10 sm:py-16">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-5 sm:mb-6 rounded-3xl bg-gradient-to-br from-warning/30 to-warning/10 flex items-center justify-center">
-            <Calendar className="w-10 h-10 sm:w-12 sm:h-12 text-warning-filled" />
+      <div className="bg-card border border-border/60 rounded-3xl p-6 sm:p-8">
+        <div className="text-center py-12 sm:py-16">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-5 sm:mb-6 rounded-3xl bg-muted flex items-center justify-center">
+            <Calendar className="w-10 h-10 sm:w-12 sm:h-12 text-warning" />
           </div>
           <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-2 sm:mb-3">إعدادات الأحداث</h3>
           <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 max-w-sm mx-auto">نعمل على تطوير أدوات متقدمة لإدارة فعالياتك</p>
-          <div className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-warning/20 text-warning-filled rounded-full text-xs sm:text-sm font-semibold">
-            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+          <div className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-warning/10 text-warning rounded-xl text-xs sm:text-sm font-bold">
+            <Sparkles className="w-4 h-4" />
             قريباً
           </div>
         </div>
@@ -569,9 +603,9 @@ function SettingsContent() {
       {/* Mobile: List view (like reference image) when no tab */}
       {isListMode && (
         <div className="lg:hidden animate-in fade-in duration-200">
-          <div className="mb-6">
-            <h1 className="text-xl font-bold text-foreground">الإعدادات</h1>
-            <p className="mt-1 text-sm text-muted-foreground">إدارة حسابك وتفضيلاتك</p>
+          <div className="mb-5">
+            <h1 className="text-2xl font-bold text-foreground">الإعدادات</h1>
+            <p className="mt-1.5 text-sm text-muted-foreground">إدارة حسابك وتفضيلاتك</p>
           </div>
           <MobileSettingsList settings={allSettings} onSelect={navigateToTab} />
         </div>
@@ -596,11 +630,11 @@ export default function SettingsPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="relative">
-            <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
+            <div className="w-20 h-20 rounded-3xl bg-muted flex items-center justify-center mx-auto mb-5">
               <Settings2 className="w-10 h-10 text-primary" />
             </div>
             <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 translate-y-2">
-              <Loader2 className="w-6 h-6 animate-spin text-info" />
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
             </div>
           </div>
           <p className="text-base font-bold text-foreground mb-1 mt-4">جاري تحميل الإعدادات</p>

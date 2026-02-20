@@ -156,7 +156,7 @@ function StatsCardSkeleton() {
 
 function QuestionCardSkeleton() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-200/80 p-4">
+    <div className="bg-card rounded-2xl border border-border/60 p-4">
       <div className="flex items-center gap-3">
         <Skeleton className="w-10 h-10 rounded-xl" />
         <div className="flex-1">
@@ -189,7 +189,7 @@ function ResponseCardSkeleton() {
 
 function SubmissionsLoadingSkeleton() {
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Stats Skeleton */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {Array.from({ length: 4 }).map((_, i) => (
@@ -198,7 +198,7 @@ function SubmissionsLoadingSkeleton() {
       </div>
       
       {/* Header Skeleton */}
-      <div className="bg-white rounded-2xl border border-gray-200/80 p-4">
+      <div className="bg-card rounded-3xl border border-border/60 p-4">
         <div className="flex items-center gap-3 mb-4">
           <Skeleton className="w-11 h-11 rounded-xl" />
           <div className="flex-1">
@@ -206,7 +206,7 @@ function SubmissionsLoadingSkeleton() {
             <Skeleton className="h-3 w-24" />
           </div>
         </div>
-        <div className="flex gap-1.5 p-1 bg-gray-100 rounded-xl">
+        <div className="flex gap-2 p-1 bg-muted rounded-xl">
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="flex-1 h-10 rounded-lg" />
           ))}
@@ -214,7 +214,7 @@ function SubmissionsLoadingSkeleton() {
       </div>
       
       {/* Content Skeleton */}
-      <div className="space-y-2.5">
+      <div className="space-y-3">
         {Array.from({ length: 4 }).map((_, i) => (
           <QuestionCardSkeleton key={i} />
         ))}
@@ -230,31 +230,18 @@ function EmptyResponsesState({ onCopyLink }: { onCopyLink: () => void }) {
     <motion.div 
       initial={{ opacity: 0, y: 20 }} 
       animate={{ opacity: 1, y: 0 }} 
-      className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden"
+      className="bg-card rounded-3xl border border-border/60 overflow-hidden"
     >
       {/* Decorative Header */}
-      <div className="h-32 bg-gradient-to-br from-gray-100 via-gray-50 to-white relative overflow-hidden">
-        <div className="absolute inset-0 flex items-center justify-center opacity-10">
-          <div className="grid grid-cols-6 gap-4">
-            {Array.from({ length: 24 }).map((_, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.02 }}
-                className="w-8 h-8 rounded-lg bg-gray-400"
-              />
-            ))}
-          </div>
-        </div>
+      <div className="h-32 bg-muted relative overflow-hidden">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.2, type: "spring" }}
           className="absolute inset-0 flex items-center justify-center"
         >
-          <div className="w-20 h-20 rounded-2xl bg-white shadow-lg flex items-center justify-center">
-            <MessageSquare className="w-10 h-10 text-gray-400" />
+          <div className="w-20 h-20 rounded-2xl bg-card shadow-lg flex items-center justify-center">
+            <MessageSquare className="w-10 h-10 text-muted-foreground" />
           </div>
         </motion.div>
       </div>
@@ -266,8 +253,8 @@ function EmptyResponsesState({ onCopyLink }: { onCopyLink: () => void }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
         >
-          <h3 className="text-xl font-bold text-gray-900 mb-2">لا توجد إجابات بعد</h3>
-          <p className="text-gray-500 text-sm mb-6 max-w-sm mx-auto leading-relaxed">
+          <h3 className="text-xl font-bold text-foreground mb-2">لا توجد إجابات بعد</h3>
+          <p className="text-muted-foreground text-sm mb-6 max-w-sm mx-auto leading-relaxed">
             شارك رابط النموذج مع الآخرين لبدء جمع الإجابات. ستظهر جميع الردود هنا فور إرسالها.
           </p>
         </motion.div>
@@ -282,7 +269,7 @@ function EmptyResponsesState({ onCopyLink }: { onCopyLink: () => void }) {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={onCopyLink} 
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:opacity-90 transition-opacity"
           >
             <Copy className="w-4 h-4" />
             نسخ رابط النموذج
@@ -290,7 +277,7 @@ function EmptyResponsesState({ onCopyLink }: { onCopyLink: () => void }) {
           <motion.button 
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-muted text-foreground rounded-xl font-semibold hover:bg-muted/80 transition-colors"
           >
             <ExternalLink className="w-4 h-4" />
             معاينة النموذج
@@ -302,12 +289,12 @@ function EmptyResponsesState({ onCopyLink }: { onCopyLink: () => void }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="mt-8 pt-6 border-t border-gray-100"
+          className="mt-8 pt-6 border-t border-border/40"
         >
-          <p className="text-xs text-gray-400 mb-3">نصائح لزيادة الردود</p>
+          <p className="text-xs text-muted-foreground mb-3">نصائح لزيادة الردود</p>
           <div className="flex flex-wrap justify-center gap-2">
             {['شارك على وسائل التواصل', 'أرسل عبر البريد', 'أضف QR Code'].map((tip, i) => (
-              <span key={i} className="px-3 py-1 bg-gray-50 text-gray-500 rounded-full text-xs">
+              <span key={i} className="px-3 py-1.5 bg-muted text-muted-foreground rounded-full text-xs font-medium">
                 {tip}
               </span>
             ))}
@@ -321,12 +308,12 @@ function EmptyResponsesState({ onCopyLink }: { onCopyLink: () => void }) {
 // ==================== CHART COLORS ====================
 
 const CHART_COLORS = [
-  '#374151', // gray-700
-  '#6B7280', // gray-500
-  '#9CA3AF', // gray-400
-  '#D1D5DB', // gray-300
-  '#E5E7EB', // gray-200
-  '#F3F4F6', // gray-100
+  'hsl(var(--primary))',
+  'hsl(var(--muted-foreground))',
+  'hsl(var(--muted))',
+  '#9CA3AF',
+  '#D1D5DB',
+  '#E5E7EB',
 ];
 
 // ==================== CHART COMPONENTS ====================
@@ -364,9 +351,9 @@ function InteractivePieChart({ data, total }: { data: { value: any; count: numbe
             <Tooltip 
               formatter={(value) => [`${value} إجابة`, '']}
               contentStyle={{ 
-                backgroundColor: 'white', 
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
+                backgroundColor: 'hsl(var(--card))', 
+                border: '1px solid hsl(var(--border))',
+                borderRadius: '0.75rem',
                 fontSize: '12px',
                 direction: 'rtl'
               }}
@@ -374,12 +361,12 @@ function InteractivePieChart({ data, total }: { data: { value: any; count: numbe
           </PieChart>
         </ResponsiveContainer>
       </div>
-      <div className="flex-1 space-y-1.5">
+      <div className="flex-1 space-y-2">
         {chartData.map((item, index) => (
           <div key={index} className="flex items-center gap-2 text-xs">
             <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: item.fill }} />
-            <span className="flex-1 truncate text-gray-700">{item.name}</span>
-            <span className="font-semibold text-gray-900">{item.percentage}%</span>
+            <span className="flex-1 truncate text-foreground">{item.name}</span>
+            <span className="font-semibold text-foreground">{item.percentage}%</span>
           </div>
         ))}
       </div>
@@ -493,10 +480,10 @@ function ResponsesTimelineChart({ submissions }: { submissions: ExtendedFormSubm
     >
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="font-semibold text-gray-900 text-sm">توزيع الردود</h3>
-          <p className="text-xs text-gray-500">حسب تاريخ الإرسال</p>
+          <h3 className="font-semibold text-foreground text-sm">توزيع الردود</h3>
+          <p className="text-xs text-muted-foreground">حسب تاريخ الإرسال</p>
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Calendar className="w-3.5 h-3.5" />
           <span>{totalThisPeriod} في الفترة المعروضة</span>
         </div>
@@ -647,47 +634,39 @@ function SummaryQuestionCard({ question, qIndex, submissions, defaultExpanded = 
   const isToggleType = question.type === FieldType.TOGGLE;
   const isTextType = !isChoiceType && !isToggleType;
 
-  // Fixed color scheme for consistency
-  const colors = { bg: 'bg-gray-100', text: 'text-gray-900', badge: 'bg-gray-200 text-gray-700', icon: 'text-gray-600' };
-
   return (
     <motion.div 
       variants={itemVariants}
-      whileHover={{ scale: 1.01, y: -2 }}
-      className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md"
+      className="bg-card rounded-2xl border border-border/60 overflow-hidden transition-all duration-200 hover:border-border"
     >
       {/* Question Header */}
       <button 
-        className="w-full p-4 cursor-pointer transition-all text-right"
+        className="w-full p-4 cursor-pointer transition-all text-right hover:bg-muted/30"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-3">
           <motion.span 
-            whileHover={{ scale: 1.1 }}
-            className={cn(
-              'flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold',
-              colors.bg,
-              colors.text
-            )}
+            whileHover={{ scale: 1.05 }}
+            className="flex-shrink-0 w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-sm font-bold text-foreground"
           >
             {qIndex + 1}
           </motion.span>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-gray-900 text-sm truncate">{question.label}</h3>
+            <h3 className="font-semibold text-foreground text-sm truncate">{question.label}</h3>
             <div className="flex items-center gap-2 mt-1.5">
-              <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-medium', colors.badge)}>
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-muted text-muted-foreground">
                 <FieldIcon className="w-3 h-3" />
                 {FIELD_TYPE_LABELS[question.type] || question.type}
               </span>
-              <span className={cn('text-xs font-semibold', colors.icon)}>{question.totalResponses} إجابة</span>
+              <span className="text-xs font-semibold text-muted-foreground">{question.totalResponses} إجابة</span>
               {question.required && (
-                <span className="px-1.5 py-0.5 rounded text-xs bg-red-100 text-red-600 font-medium">مطلوب</span>
+                <span className="px-2 py-0.5 rounded-lg text-xs bg-destructive/10 text-destructive font-medium">مطلوب</span>
               )}
             </div>
           </div>
           <div className={cn(
-            'w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-300',
-            expanded ? cn(colors.bg, colors.icon, 'rotate-180') : 'bg-gray-100 text-gray-400'
+            'w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200',
+            expanded ? 'bg-muted text-foreground rotate-180' : 'bg-muted/50 text-muted-foreground'
           )}>
             <ChevronDown className="w-4 h-4" />
           </div>
@@ -728,7 +707,7 @@ function SummaryQuestionCard({ question, qIndex, submissions, defaultExpanded = 
 
               {/* Toggle questions: Yes/No Display */}
               {isToggleType && (
-                <div className="flex items-center justify-center gap-8 py-3">
+                <div className="flex items-center justify-center gap-8 py-4">
                   {question.responses.map((resp, idx) => {
                     const isYes = resp.value === true || resp.value === 'true' || resp.value === 'نعم' || resp.value === 'yes';
                     return (
@@ -740,20 +719,20 @@ function SummaryQuestionCard({ question, qIndex, submissions, defaultExpanded = 
                         className="flex flex-col items-center gap-2"
                       >
                         <div className={cn(
-                          'w-12 h-12 rounded-xl flex items-center justify-center shadow-sm',
-                          isYes ? 'bg-emerald-100' : 'bg-gray-100'
+                          'w-12 h-12 rounded-xl flex items-center justify-center',
+                          isYes ? 'bg-emerald-500/10' : 'bg-muted'
                         )}>
                           {isYes ? (
                             <CheckCircle2 className="w-6 h-6 text-emerald-600" />
                           ) : (
-                            <XCircle className="w-6 h-6 text-gray-400" />
+                            <XCircle className="w-6 h-6 text-muted-foreground" />
                           )}
                         </div>
                         <div className="text-center">
-                          <p className="text-xl font-bold text-gray-900">{resp.count}</p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xl font-bold text-foreground">{resp.count}</p>
+                          <p className="text-xs text-muted-foreground">
                             {isYes ? 'نعم' : 'لا'}
-                            <span className="text-gray-400 mr-1">({resp.percentage}%)</span>
+                            <span className="text-muted-foreground/60 mr-1">({resp.percentage}%)</span>
                           </p>
                         </div>
                       </motion.div>
@@ -767,8 +746,8 @@ function SummaryQuestionCard({ question, qIndex, submissions, defaultExpanded = 
                 <div className="space-y-2">
                   {textResponses.length === 0 ? (
                     <div className="text-center py-6">
-                      <FileText className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                      <p className="text-gray-400 text-sm">لا توجد إجابات نصية</p>
+                      <FileText className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
+                      <p className="text-muted-foreground text-sm">لا توجد إجابات نصية</p>
                     </div>
                   ) : (
                     <>
@@ -778,7 +757,7 @@ function SummaryQuestionCard({ question, qIndex, submissions, defaultExpanded = 
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
-                          className="space-y-1.5"
+                          className="space-y-2"
                         >
                           {paginatedTextResponses.map((resp, idx) => (
                             <motion.div 
@@ -786,17 +765,10 @@ function SummaryQuestionCard({ question, qIndex, submissions, defaultExpanded = 
                               initial={{ opacity: 0, x: -5 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: idx * 0.03 }}
-                              className={cn(
-                                'p-3 rounded-xl border transition-all hover:shadow-sm',
-                                colors.bg,
-                                'border-transparent'
-                              )}
+                              className="p-3 rounded-xl bg-muted border border-border/40 hover:border-border transition-all"
                             >
                               <div className="flex items-start gap-2.5">
-                                <span className={cn(
-                                  'flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold',
-                                  colors.badge
-                                )}>
+                                <span className="flex-shrink-0 w-6 h-6 rounded-lg bg-card flex items-center justify-center text-xs font-bold text-muted-foreground">
                                   {currentPage * ITEMS_PER_PAGE + idx + 1}
                                 </span>
                                 <div className="flex-1 min-w-0">
@@ -944,7 +916,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
   const currentIndex = fields.findIndex((f: FormField) => f.id === currentField?.id);
 
   // Fixed color scheme for consistent design
-  const colors = { bg: 'bg-gray-700', light: 'bg-gray-100', text: 'text-gray-600', textDark: 'text-gray-900', hover: 'hover:bg-gray-50' };
+  const colors = { bg: 'bg-primary', light: 'bg-muted', text: 'text-primary', textDark: 'text-foreground', hover: 'hover:bg-muted/50' };
 
   const fieldResponses = useMemo(() => {
     if (!currentField) return [];
@@ -1049,10 +1021,10 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
         variants={fadeInUp}
         initial="hidden"
         animate="visible"
-        className="text-center py-12 bg-white rounded-xl border border-gray-100"
+        className="text-center py-12 bg-card rounded-2xl border border-border/60"
       >
-        <ListChecks className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-        <p className="text-gray-500">لا توجد أسئلة في هذا النموذج</p>
+        <ListChecks className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+        <p className="text-muted-foreground">لا توجد أسئلة في هذا النموذج</p>
       </motion.div>
     );
   }
@@ -1065,7 +1037,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden"
+        className="bg-card rounded-3xl border border-border/60 overflow-hidden"
       >
         {/* Question Title & Navigation */}
         <div className="p-4">
@@ -1083,7 +1055,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
             </motion.div>
             
             <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-gray-900 text-base mb-1 line-clamp-2">
+              <h3 className="font-bold text-foreground text-base mb-1 line-clamp-2">
                 {currentField?.label}
               </h3>
               <div className="flex flex-wrap items-center gap-2">
@@ -1107,8 +1079,8 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
                 className={cn(
                   "w-9 h-9 rounded-xl flex items-center justify-center transition-all",
                   currentIndex === 0 
-                    ? "text-gray-300 cursor-not-allowed bg-gray-50" 
-                    : cn("text-gray-600 bg-gray-100", colors.hover, colors.text.replace('text-', 'hover:text-'))
+                    ? "text-muted-foreground/40 cursor-not-allowed bg-muted/30" 
+                    : "text-foreground bg-muted hover:bg-muted/80"
                 )}
               >
                 <ChevronRight className="w-4 h-4" />
@@ -1121,8 +1093,8 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
                 className={cn(
                   "w-9 h-9 rounded-xl flex items-center justify-center transition-all",
                   currentIndex === fields.length - 1 
-                    ? "text-gray-300 cursor-not-allowed bg-gray-50" 
-                    : cn("text-gray-600 bg-gray-100", colors.hover, colors.text.replace('text-', 'hover:text-'))
+                    ? "text-muted-foreground/40 cursor-not-allowed bg-muted/30" 
+                    : "text-foreground bg-muted hover:bg-muted/80"
                 )}
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -1136,9 +1108,8 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
               value={currentField?.id || ''} 
               onChange={(e) => onSelectQuestion(e.target.value)} 
               className={cn(
-                "w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 pl-10 text-sm text-gray-700 font-medium",
-                "focus:outline-none focus:ring-2 focus:border-transparent cursor-pointer appearance-none transition-all",
-                `focus:ring-${colors.text.replace('text-', '')}/30`
+                "w-full bg-muted border border-border/60 rounded-xl px-4 py-3 pl-10 text-sm text-foreground font-medium",
+                "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-transparent cursor-pointer appearance-none transition-all"
               )}
             >
               {fields.map((field: FormField, idx: number) => (
@@ -1152,19 +1123,19 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
         </div>
         
         {/* Stats Bar */}
-        <div className="px-4 py-3 bg-gray-50/80 border-t border-gray-100">
+        <div className="px-4 py-3 bg-muted/30 border-t border-border/40">
           {/* Progress Bar */}
           <div className="mb-3">
-            <div className="flex items-center justify-between text-xs mb-1.5">
-              <span className="text-gray-500">معدل الإجابة</span>
-              <span className={cn('font-bold', colors.text)}>{answerRate}%</span>
+            <div className="flex items-center justify-between text-xs mb-2">
+              <span className="text-muted-foreground">معدل الإجابة</span>
+              <span className="font-bold text-primary">{answerRate}%</span>
             </div>
-            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${answerRate}%` }}
                 transition={{ duration: 0.5, ease: 'easeOut' }}
-                className={cn('h-full rounded-full', colors.bg)}
+                className="h-full rounded-full bg-primary"
               />
             </div>
           </div>
@@ -1172,17 +1143,17 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
           {/* Stats Row */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 text-xs">
-              <span className="flex items-center gap-1.5 text-gray-600">
+              <span className="flex items-center gap-1.5 text-muted-foreground">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                 <span className="font-semibold">{answeredCount}</span> إجابة
               </span>
-              <span className="flex items-center gap-1.5 text-gray-600">
-                <XCircle className="w-3.5 h-3.5 text-gray-400" />
+              <span className="flex items-center gap-1.5 text-muted-foreground">
+                <XCircle className="w-3.5 h-3.5 text-muted-foreground/60" />
                 <span className="font-semibold">{emptyCount}</span> فارغ
               </span>
             </div>
-            <span className="text-xs text-gray-400">
-              سؤال <span className={cn('font-bold', colors.text)}>{currentIndex + 1}</span> من {fields.length}
+            <span className="text-xs text-muted-foreground">
+              سؤال <span className="font-bold text-primary">{currentIndex + 1}</span> من {fields.length}
             </span>
           </div>
         </div>
@@ -1193,7 +1164,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="flex gap-1.5 p-1 bg-gray-100 rounded-xl"
+        className="flex gap-2 p-1 bg-muted rounded-xl"
       >
         {[
           { id: 'all' as ResponseFilter, label: 'الكل', count: fieldResponses.length },
@@ -1214,7 +1185,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
             <span>{tab.label}</span>
             <span className={cn(
               'px-1.5 py-0.5 rounded-md text-[10px]',
-              filter === tab.id ? colors.light : 'bg-gray-200 text-gray-500'
+              filter === tab.id ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
             )}>
               {tab.count}
             </span>
@@ -1230,7 +1201,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.2 }}
-          className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden"
+          className="bg-card rounded-2xl border border-border/60 overflow-hidden"
         >
           {/* Responses List */}
           <div className="divide-y divide-gray-100 max-h-[400px] overflow-y-auto custom-scrollbar">

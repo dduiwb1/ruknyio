@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Loader2, User } from 'lucide-react';
+import { Loader2, User, LogOut } from 'lucide-react';
 
 // Profile Components
 import { 
@@ -14,10 +14,12 @@ import {
 // Hooks
 import { useProfile } from '@/lib/hooks/profile';
 import { useAuthContext } from '@/lib/auth/auth-provider';
+import { useAuth } from '@/providers';
 
 export default function ProfilePage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuthContext();
+  const { logout } = useAuth();
   
   // Profile Hook
   const {
@@ -28,6 +30,15 @@ export default function ProfilePage() {
     isLoading,
     isUpdating,
   } = useProfile();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   // Auth Check
   if (authLoading) {
@@ -109,6 +120,30 @@ export default function ProfilePage() {
                 </div>
               </div>
             )}
+
+            {/* Logout Button - Mobile Only */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="md:hidden"
+            >
+              <div className="rounded-3xl border border-destructive/30 bg-card overflow-hidden">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 sm:py-4 text-right transition-colors hover:bg-destructive/10 active:bg-destructive/20"
+                >
+                  <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-destructive text-white">
+                    <LogOut className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm sm:text-[15px] font-bold text-destructive">تسجيل الخروج</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">الخروج من حسابك الحالي</p>
+                  </div>
+                </button>
+              </div>
+            </motion.div>
           </div>
         </div>
       </div>
