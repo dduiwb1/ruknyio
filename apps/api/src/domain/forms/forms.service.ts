@@ -56,6 +56,7 @@ export class FormsService {
   /**
    * Process and upload cover image to S3
    * Accepts base64 data URL or returns existing S3 key/URL unchanged
+   * Includes timeout protection to prevent request aborts
    */
   private async processCoverImage(
     coverImage: string | undefined,
@@ -87,8 +88,9 @@ export class FormsService {
     try {
       // Extract mime type and base64 data
       // Support various image formats including webp, svg+xml, jpeg, png, gif
+      // Handle both "data:image/png;base64," and "data:image/pngbase64," formats
       const matches = normalizedCoverImage.match(
-        /^data:image\/([\w+\-]+);base64,(.+)$/s,
+        /^data:image\/([\w+\-]+)(?:;)?base64,(.+)$/is,
       );
       if (!matches) {
         // Log the format for debugging
@@ -106,21 +108,29 @@ export class FormsService {
       }
 
       // Process image with sharp (resize and convert to webp)
+      // Wrap in Promise.race with timeout to prevent request aborts
       const sharp = await import('sharp');
-      const processedBuffer = await sharp
-        .default(buffer)
-        .resize(this.FORM_COVER_WIDTH, this.FORM_COVER_HEIGHT, {
-          fit: 'cover',
-          position: 'center',
-        })
-        .webp({ quality: 85 })
-        .toBuffer();
+      const processImageWithTimeout = Promise.race([
+        sharp
+          .default(buffer)
+          .resize(this.FORM_COVER_WIDTH, this.FORM_COVER_HEIGHT, {
+            fit: 'cover',
+            position: 'center',
+          })
+          .webp({ quality: 85 })
+          .toBuffer(),
+        new Promise<Buffer>((_, reject) =>
+          setTimeout(() => reject(new Error('Image processing timeout')), 30000) // 30s timeout
+        ),
+      ]);
+
+      const processedBuffer = await processImageWithTimeout;
 
       // Generate S3 key
       const fileName = `${uuidv4()}.webp`;
       const s3Key = `users/${userId}/forms/${formId}/cover/${fileName}`;
 
-      // Upload to S3
+      // Upload to S3 with built-in retry logic
       await this.s3Service.uploadBuffer(
         this.bucket,
         s3Key,
@@ -129,24 +139,29 @@ export class FormsService {
       );
 
       // Track file in database for storage management
-      await this.prisma.userFile.create({
-        data: {
-          userId,
-          key: s3Key,
-          fileName: 'form-cover.webp',
-          fileType: 'image/webp',
-          fileSize: BigInt(processedBuffer.length),
-          category: FileCategory.FORM_COVER,
-          entityId: formId,
-        },
+      // Use executeWithRetry to handle transient db errors
+      await this.prisma.executeWithRetry(async () => {
+        await this.prisma.userFile.create({
+          data: {
+            userId,
+            key: s3Key,
+            fileName: 'form-cover.webp',
+            fileType: 'image/webp',
+            fileSize: BigInt(processedBuffer.length),
+            category: FileCategory.FORM_COVER,
+            entityId: formId,
+          },
+        });
       });
 
       // Update storage usage
-      await this.prisma.profile.update({
-        where: { userId },
-        data: {
-          storageUsed: { increment: BigInt(processedBuffer.length) },
-        },
+      await this.prisma.executeWithRetry(async () => {
+        await this.prisma.profile.update({
+          where: { userId },
+          data: {
+            storageUsed: { increment: BigInt(processedBuffer.length) },
+          },
+        });
       });
 
       return s3Key;
@@ -154,8 +169,18 @@ export class FormsService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      console.error('Failed to process cover image:', error);
-      throw new BadRequestException('Failed to process cover image');
+      // Catch S3 permission errors specifically
+      if (error instanceof Error && error.message.includes('AccessDenied')) {
+        throw new BadRequestException(
+          'Failed to upload cover image: S3 access denied. Please check AWS credentials.',
+        );
+      }
+      
+      this.logger.error('Failed to process cover image:', error);
+      // Return generic error to user
+      throw new BadRequestException(
+        'Failed to process cover image. Please try again.',
+      );
     }
   }
 
@@ -268,8 +293,10 @@ export class FormsService {
     const isMultiStep = formData.isMultiStep || (steps && steps.length > 0);
 
     // Create form with transaction to handle steps and fields properly
-    const form = await this.prisma.$transaction(async (tx) => {
-      const formId = SecureIds.form();
+    // ⚠️ IMPORTANT: Image processing can take up to 30 seconds, so extend transaction timeout
+    const form = await this.prisma.$transaction(
+      async (tx) => {
+        const formId = SecureIds.form();
 
       // Process cover image (upload to S3 if base64)
       let coverImageKey: string | undefined;
@@ -387,7 +414,12 @@ export class FormsService {
           },
         },
       });
-    });
+    },
+    {
+      timeout: 30000, // 30 ثانية (من 5000ms الافتراضي)
+      isolationLevel: 'ReadCommitted', // أفضل performance
+    }
+    );
 
     // Send form created notification email with QR code
     if (form.user?.email) {

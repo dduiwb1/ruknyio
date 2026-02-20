@@ -52,21 +52,27 @@ export class PrismaService
       ],
     });
 
-    // ⚡ Query performance monitoring
+    // ⚡ Query performance monitoring with improved thresholds
     // @ts-ignore - Prisma event typing
     this.$on('query', (e: Prisma.QueryEvent) => {
       this.queryCount++;
 
-      if (e.duration > DB_PERFORMANCE.VERY_SLOW_QUERY_THRESHOLD) {
+      // Track critical slow queries separately
+      if (e.duration > DB_PERFORMANCE.CRITICAL_SLOW_QUERY_THRESHOLD) {
         this.slowQueryCount++;
         this.logger.error(
-          `🔴 Very Slow Query (${e.duration}ms): ${e.query.substring(0, 200)}...`,
+          `🔴 CRITICAL SLOW QUERY (${e.duration}ms): ${e.query.substring(0, 150)}...`,
+        );
+      } else if (e.duration > DB_PERFORMANCE.VERY_SLOW_QUERY_THRESHOLD) {
+        this.slowQueryCount++;
+        this.logger.error(
+          `🔴 Very Slow Query (${e.duration}ms): ${e.query.substring(0, 150)}...`,
         );
       } else if (
         e.duration > DB_PERFORMANCE.SLOW_QUERY_THRESHOLD &&
         process.env.NODE_ENV !== 'production'
       ) {
-        this.logger.warn(`⚠️ Slow Query (${e.duration}ms): ${e.query.substring(0, 200)}...`);
+        this.logger.warn(`⚠️ Slow Query (${e.duration}ms): ${e.query.substring(0, 150)}...`);
       }
     });
   }
@@ -83,7 +89,7 @@ export class PrismaService
 
   /**
    * ⚡ Keepalive ping to prevent Neon from suspending during active sessions
-   * Runs every 4 minutes (Neon suspends after 5 minutes of inactivity)
+   * Runs every 3 minutes (Neon suspends after 5 minutes of inactivity)
    */
   private keepaliveInterval: NodeJS.Timeout | null = null;
   
@@ -94,22 +100,30 @@ export class PrismaService
     this.keepaliveInterval = setInterval(async () => {
       try {
         // Timeout the keepalive ping to prevent blocking other queries
-        // If it takes more than 2 seconds, we have a serious connection issue
+        // If it takes more than 5 seconds, we have a serious connection issue
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Keepalive timeout')), 2000)
+          setTimeout(() => reject(new Error('Keepalive timeout')), 5000)
         );
         
+        const startTime = Date.now();
         await Promise.race([
           this.$queryRaw`SELECT 1`,
           timeoutPromise
         ]);
+        const duration = Date.now() - startTime;
         
-        this.logger.debug('🔄 Database keepalive ping successful');
+        this.logger.debug(`🔄 Database keepalive ping successful (${duration}ms)`);
+        // If keepalive is slow, log it to diagnose connection issues
+        if (duration > 1000) {
+          this.logger.warn(
+            `⚠️ Slow keepalive ping (${duration}ms) - may indicate database performance issues`,
+          );
+        }
       } catch (error) {
         this.logger.warn('⚠️ Keepalive ping failed, will reconnect on next query');
         this.isConnected = false;
       }
-    }, 4 * 60 * 1000); // 4 minutes
+    }, 3 * 60 * 1000); // 3 minutes (reduced from 4)
   }
 
   /**

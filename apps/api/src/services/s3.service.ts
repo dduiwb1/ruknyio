@@ -34,11 +34,20 @@ export class S3Service implements OnModuleInit {
     this.client = new S3Client(clientConfig);
   }
 
+  /**
+   * Upload buffer to S3 with automatic retries on transient errors
+   * @param bucket - S3 bucket name
+   * @param key - S3 object key
+   * @param buffer - File buffer to upload
+   * @param contentType - MIME type
+   * @param maxRetries - Max retry attempts for transient errors
+   */
   async uploadBuffer(
     bucket: string,
     key: string,
     buffer: any,
     contentType: string,
+    maxRetries = 3,
   ) {
     // Normalize various input shapes to a Buffer/Uint8Array and provide ContentLength
     let body: Uint8Array | Buffer;
@@ -68,30 +77,78 @@ export class S3Service implements OnModuleInit {
       throw err;
     }
 
-    const cmd = new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: body,
-      ContentType: contentType,
-      ContentLength: (body as Buffer).length,
-      // Note: ACL removed - bucket may have Block Public Access enabled
-    });
-    try {
-      this.logger.debug(
-        `uploadBuffer: putting object to bucket=${bucket} key=${key} length=${(body as Buffer).length}`,
-      );
-      await this.client.send(cmd);
-      return key;
-    } catch (err: any) {
-      this.logger.error(
-        `S3 upload failed for bucket=${bucket} key=${key}: ${err?.name || err}`,
-      );
-      // Map common S3 error to friendlier message
-      if (err && err.name === 'NoSuchBucket') {
-        throw new BadRequestException(`S3 bucket does not exist: ${bucket}`);
+    // Retry logic for transient errors
+    let lastError: any;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const cmd = new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: body,
+          ContentType: contentType,
+          ContentLength: (body as Buffer).length,
+        });
+
+        this.logger.debug(
+          `uploadBuffer: putting object to bucket=${bucket} key=${key} length=${(body as Buffer).length}`,
+        );
+        await this.client.send(cmd);
+        return key;
+      } catch (err: any) {
+        lastError = err;
+        
+        // Determine if error is retryable (transient)
+        const isTransient = 
+          err?.name === 'RequestTimeout' ||
+          err?.name === 'ServiceUnavailable' ||
+          err?.name === 'RequestAbortedError' ||
+          err?.Code === 'RequestTimeout' ||
+          err?.Code === 'ServiceUnavailable' ||
+          err?.statusCode === 503 ||
+          err?.statusCode === 429;
+
+        const isPermissionError = 
+          err?.name === 'AccessDenied' ||
+          err?.Code === 'AccessDenied';
+
+        // Log attempt
+        if (attempt < maxRetries) {
+          if (isTransient) {
+            this.logger.warn(
+              `S3 upload attempt ${attempt}/${maxRetries} failed (transient): ${err?.name || err?.Code || err}. Retrying...`,
+            );
+            // Exponential backoff
+            await new Promise(resolve => 
+              setTimeout(resolve, Math.pow(2, attempt - 1) * 100)
+            );
+            continue;
+          } else if (isPermissionError) {
+            // Don't retry on permission errors
+            this.logger.error(
+              `S3 upload failed: AccessDenied for bucket=${bucket} key=${key}. Check IAM permissions.`,
+            );
+            throw new BadRequestException(
+              'S3 access denied. Please check your AWS credentials and IAM permissions.',
+            );
+          }
+        }
+
+        // Handle specific errors
+        if (err?.name === 'NoSuchBucket') {
+          throw new BadRequestException(`S3 bucket does not exist: ${bucket}`);
+        }
+
+        throw err;
       }
-      throw err;
     }
+
+    // All retries exhausted
+    this.logger.error(
+      `S3 upload failed after ${maxRetries} attempts for bucket=${bucket} key=${key}: ${lastError?.name || lastError}`,
+    );
+    throw new BadRequestException(
+      'Failed to upload file to S3 after multiple attempts. Please try again.',
+    );
   }
 
   async onModuleInit() {
