@@ -2,7 +2,7 @@
 -- These indexes target tables frequently queried during form creation and session management
 
 -- Forms table: Optimize slug lookups (used during form creation/updates)
-CREATE INDEX IF NOT EXISTS "forms_slug_idx" ON "forms"("slug") WHERE "deleted" IS NULL;
+CREATE INDEX IF NOT EXISTS "forms_slug_idx" ON "forms"("slug");
 CREATE INDEX IF NOT EXISTS "forms_userId_createdAt_idx" ON "forms"("userId", "createdAt" DESC);
 CREATE INDEX IF NOT EXISTS "forms_status_userId_idx" ON "forms"("status", "userId");
 
