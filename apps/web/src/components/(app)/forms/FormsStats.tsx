@@ -1,16 +1,6 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { 
-  TrendingUp,
-  TrendingDown,
-  FileText,
-  FileCheck,
-  FilePen,
-  MessageSquare,
-  Eye,
-  Percent
-} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FormsStats as StatsType } from '@/lib/hooks/useForms';
 
@@ -19,138 +9,99 @@ interface FormsStatsProps {
   isLoading?: boolean;
 }
 
-// Animation variants
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
+const ANIMATION_VARIANTS = {
+  container: {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.08 },
+    },
+  },
+  item: {
+    hidden: { opacity: 0, y: 15 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { type: 'spring' as const, stiffness: 300, damping: 25 },
     },
   },
 };
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 20, scale: 0.95 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: {
-      type: 'spring' as const,
-      stiffness: 300,
-      damping: 25,
-    },
-  },
-};
-
-const statsConfig = [
+const STATS_CONFIG = [
   {
     key: 'total',
     title: 'إجمالي النماذج',
-    subtitleKey: 'published',
-    subtitleSuffix: 'نموذج منشور',
-    bgColor: 'bg-amber-100',
-    hoverColor: 'hover:bg-amber-200',
-    textColor: 'text-amber-900',
-    icon: FileText,
+    subtitle: 'نموذج منشور',
+    subtitleKey: 'published' as keyof StatsType,
+    bgColor: 'bg-amber-100/80 dark:bg-amber-950/30',
+    skeleton: 'bg-amber-200 dark:bg-amber-900/40',
   },
   {
     key: 'published',
     title: 'النماذج المنشورة',
-    subtitleKey: 'total',
-    subtitleSuffix: 'من الإجمالي',
-    bgColor: 'bg-emerald-100',
-    hoverColor: 'hover:bg-emerald-200',
-    textColor: 'text-emerald-900',
-    icon: FileCheck,
+    subtitle: 'من الإجمالي',
+    subtitleKey: 'total' as keyof StatsType,
+    bgColor: 'bg-emerald-100/80 dark:bg-emerald-950/30',
+    skeleton: 'bg-emerald-200 dark:bg-emerald-900/40',
   },
   {
     key: 'draft',
     title: 'النماذج المسودة',
-    subtitleKey: 'total',
-    subtitleSuffix: 'من الإجمالي',
-    bgColor: 'bg-sky-100',
-    hoverColor: 'hover:bg-sky-200',
-    textColor: 'text-sky-900',
-    icon: FilePen,
+    subtitle: 'من الإجمالي',
+    subtitleKey: 'total' as keyof StatsType,
+    bgColor: 'bg-sky-100/80 dark:bg-sky-950/30',
+    skeleton: 'bg-sky-200 dark:bg-sky-900/40',
   },
   {
     key: 'totalSubmissions',
     title: 'إجمالي الإجابات',
-    subtitleKey: 'published',
-    subtitleSuffix: 'نموذج',
-    bgColor: 'bg-violet-100',
-    hoverColor: 'hover:bg-violet-200',
-    textColor: 'text-violet-900',
-    icon: MessageSquare,
+    subtitle: 'إجابة',
+    bgColor: 'bg-violet-100/80 dark:bg-violet-950/30',
+    skeleton: 'bg-violet-200 dark:bg-violet-900/40',
   },
   {
     key: 'totalViews',
     title: 'إجمالي المشاهدات',
-    subtitleKey: null,
-    subtitleSuffix: 'مشاهدة',
-    bgColor: 'bg-rose-100',
-    hoverColor: 'hover:bg-rose-200',
-    textColor: 'text-rose-900',
-    icon: Eye,
+    subtitle: 'مشاهدة',
+    bgColor: 'bg-rose-100/80 dark:bg-rose-950/30',
+    skeleton: 'bg-rose-200 dark:bg-rose-900/40',
   },
   {
     key: 'responseRate',
     title: 'معدل الاستجابة',
-    subtitleKey: null,
-    subtitleSuffix: 'نسبة التحويل',
-    bgColor: 'bg-indigo-100',
-    hoverColor: 'hover:bg-indigo-200',
-    textColor: 'text-indigo-900',
-    icon: Percent,
+    subtitle: 'نسبة التحويل',
+    bgColor: 'bg-indigo-100/80 dark:bg-indigo-950/30',
+    skeleton: 'bg-indigo-200 dark:bg-indigo-900/40',
     isPercentage: true,
   },
 ];
 
-// Format large numbers
 const formatNumber = (num: number): string => {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M';
-  }
-  if (num >= 1000) {
-    return (num / 1000).toFixed(num >= 10000 ? 0 : 1) + 'K';
-  }
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+  if (num >= 1000) return `${(num / 1000).toFixed(num >= 10000 ? 0 : 1)}K`;
   return num.toLocaleString('en-US');
 };
 
+const SkeletonCard = ({ bgColor, skeleton }: { bgColor: string; skeleton: string }) => (
+  <div className={cn('rounded-2xl p-5', bgColor)}>
+    <div className={cn('h-4 w-20 rounded animate-pulse mb-2', skeleton)} />
+    <div className="flex items-center gap-3">
+      <div className={cn('h-8 w-16 rounded animate-pulse', skeleton)} />
+      <div className={cn('h-4 w-12 rounded animate-pulse', skeleton)} />
+    </div>
+  </div>
+);
+
 export function FormsStats({ stats, isLoading }: FormsStatsProps) {
-  // Calculate response rate (submissions / views * 100)
   const responseRate = stats.totalViews > 0 
     ? Math.round((stats.totalSubmissions / stats.totalViews) * 100) 
     : 0;
 
-  // Calculate percentage change
-  const calculateChange = (current: number, total: number): { change: string; isPositive: boolean } => {
-    if (total === 0 || current === 0) return { change: '0%', isPositive: true };
-    const percentage = Math.round((current / total) * 100);
-    return { change: `${percentage}%`, isPositive: percentage > 0 };
-  };
-
   if (isLoading) {
-    const skeletonColors = ['bg-amber-100', 'bg-emerald-100', 'bg-sky-100', 'bg-violet-100', 'bg-rose-100', 'bg-indigo-100'];
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-        {skeletonColors.map((color, i) => (
-          <div
-            key={i}
-            className={cn("rounded-2xl p-4 sm:p-5 animate-pulse", color)}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div className="h-8 w-8 bg-white/50 rounded-xl" />
-            </div>
-            <div className="h-4 bg-white/50 rounded w-20 mb-2" />
-            <div className="h-3 bg-white/30 rounded w-16 mb-3" />
-            <div className="flex items-end justify-between">
-              <div className="h-8 bg-white/50 rounded w-12" />
-              <div className="h-5 bg-white/30 rounded-full w-14" />
-            </div>
-          </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3">
+        {STATS_CONFIG.map((stat, i) => (
+          <SkeletonCard key={i} bgColor={stat.bgColor} skeleton={stat.skeleton} />
         ))}
       </div>
     );
@@ -158,85 +109,43 @@ export function FormsStats({ stats, isLoading }: FormsStatsProps) {
 
   return (
     <motion.div
-      variants={containerVariants}
+      variants={ANIMATION_VARIANTS.container}
       initial="hidden"
       animate="visible"
-      className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 sm:gap-4"
+      className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3"
     >
-      {statsConfig.map((stat) => {
-        // Handle response rate separately
+      {STATS_CONFIG.map((stat) => {
         const value = stat.key === 'responseRate' 
           ? responseRate 
           : (stats[stat.key as keyof StatsType] || 0);
-        const subtitleValue = stat.subtitleKey ? stats[stat.subtitleKey as keyof StatsType] || 0 : value;
-        const change = calculateChange(
-          stat.key === 'totalSubmissions' ? stats.published : value,
-          stat.key === 'totalSubmissions' ? stats.total : stats.total
-        );
-        const Icon = stat.icon;
+        
+        const subtitleValue = 'subtitleKey' in stat && stat.subtitleKey
+          ? (stats[stat.subtitleKey] || 0)
+          : null;
         
         return (
           <motion.div
             key={stat.key}
-            variants={itemVariants}
+            variants={ANIMATION_VARIANTS.item}
             whileHover={{ scale: 1.02, y: -2 }}
             className={cn(
-              "relative rounded-2xl p-4 sm:p-5",
-              "transition-all duration-300",
-              "text-right",
-              stat.bgColor,
-              stat.hoverColor
+              'rounded-2xl p-5 transition-all duration-200 text-right',
+              stat.bgColor
             )}
           >
-            {/* Icon */}
-            <div className="flex items-center justify-between mb-3">
-              <div className={cn(
-                "w-8 h-8 rounded-xl flex items-center justify-center",
-                "bg-white/50"
-              )}>
-                <Icon className={cn("w-4 h-4", stat.textColor)} />
-              </div>
-            </div>
-
-            {/* Title */}
-            <p className={cn("text-sm font-medium mb-1", stat.textColor)}>
+            <p className="text-sm text-muted-foreground mb-1">
               {stat.title}
             </p>
 
-            {/* Subtitle */}
-            <p className="text-xs text-gray-500 mb-2">
-              {stat.subtitleKey 
-                ? `من ${subtitleValue} ${stat.subtitleSuffix}`
-                : stat.subtitleSuffix
-              }
-            </p>
-
-            {/* Value & Change Row */}
-            <div className="flex items-end justify-between">
-              {/* Value */}
-              <motion.div
-                className={cn("text-2xl sm:text-3xl font-bold", stat.textColor)}
-                initial={{ scale: 1 }}
-                whileHover={{ scale: 1.02 }}
-              >
-                {(stat as any).isPercentage ? `${value}%` : formatNumber(value)}
-              </motion.div>
-
-              {/* Change Indicator */}
-              {!(stat as any).isPercentage && (
-                <div className={cn(
-                  "flex items-center gap-0.5 text-xs font-medium px-2 py-0.5 rounded-full",
-                  change.isPositive 
-                    ? "bg-white/50 text-gray-700" 
-                    : "bg-red-100 text-red-600"
-                )}>
-                  <span>~{change.change}</span>
-                  {change.isPositive ? (
-                    <TrendingUp className="w-3 h-3" />
-                  ) : (
-                    <TrendingDown className="w-3 h-3" />
-                  )}
-                </div>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl sm:text-3xl font-bold text-foreground tabular-nums">
+                {'isPercentage' in stat && stat.isPercentage ? `${value}%` : formatNumber(value)}
+              </span>
+              
+              {subtitleValue !== null && (
+                <span className="text-xs text-muted-foreground">
+                  {subtitleValue}
+                </span>
               )}
             </div>
           </motion.div>
