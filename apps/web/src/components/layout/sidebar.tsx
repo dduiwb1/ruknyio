@@ -206,85 +206,85 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "flex h-[calc(100svh-theme(spacing.4))] w-[240px] flex-col rounded-2xl border border-border/40 bg-card m-2",
+        "flex h-[calc(100svh-theme(spacing.4))] w-[260px] flex-col rounded-2xl border border-border/50 bg-card m-2",
         className
       )}
       dir="rtl"
     >
       {/* Profile header */}
-      <div className="relative p-3" ref={profileRef}>
+      <div className="relative p-4" ref={profileRef}>
         <button
           type="button"
           onClick={() => setIsProfileOpen((v) => !v)}
-          className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-right transition-colors hover:bg-muted/50"
+          className="flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-right transition-colors hover:bg-muted/50"
         >
           {mounted && user?.avatar && !avatarLoadFailed ? (
             <img
               src={user.avatar}
               alt={user?.name ?? "المستخدم"}
-              className="size-8 shrink-0 rounded-full object-cover"
+              className="size-9 shrink-0 rounded-full object-cover"
               onError={() => setAvatarLoadFailed(true)}
             />
           ) : (
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
               {mounted ? (user?.name?.charAt(0)?.toUpperCase() ?? "R") : "R"}
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-foreground">
+            <p className="truncate text-sm font-bold text-foreground">
               {mounted ? (user?.name ?? user?.username ?? "المستخدم") : "المستخدم"}
             </p>
           </div>
           <ChevronDown
-            className={cn("size-4 shrink-0 text-muted-foreground transition-transform", isProfileOpen && "rotate-180")}
+            className={cn("size-4 shrink-0 text-muted-foreground/70 transition-transform", isProfileOpen && "rotate-180")}
             aria-hidden
           />
         </button>
 
         {isProfileOpen && (
-          <div className="absolute left-2 right-2 top-full z-50 mt-1.5 rounded-3xl border border-border/40 bg-card/95 backdrop-blur-sm p-2">
+          <div className="absolute left-2 right-2 top-full z-50 mt-2 rounded-2xl border border-border/50 bg-card/95 backdrop-blur-sm p-2.5">
             {/* Menu Items */}
-            <div className="space-y-0.5">
+            <div className="space-y-1">
               <Link
                 href="/app/profile"
                 onClick={() => setIsProfileOpen(false)}
-                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs text-foreground transition-colors hover:bg-muted/50"
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/50"
               >
-                <div className="w-6 h-6 rounded-md bg-success/10 flex items-center justify-center">
-                  <User className="size-3 text-success" />
+                <div className="w-7 h-7 rounded-lg bg-success/10 flex items-center justify-center">
+                  <User className="size-4 text-success" />
                 </div>
                 <span>الملف الشخصي</span>
               </Link>
               <Link
                 href="/app/settings"
                 onClick={() => setIsProfileOpen(false)}
-                className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs text-foreground transition-colors hover:bg-muted/50"
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/50"
               >
-                <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
-                  <Settings className="size-3 text-primary" />
+                <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Settings className="size-4 text-primary" />
                 </div>
                 <span>الإعدادات</span>
               </Link>
               <Link
                 href="/app/notifications"
                 onClick={() => setIsProfileOpen(false)}
-                className="flex items-center justify-between rounded-lg px-2.5 py-2 text-xs text-foreground transition-colors hover:bg-muted/50"
+                className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-muted/50"
               >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-6 h-6 rounded-md bg-info/10 flex items-center justify-center">
-                    <Bell className="size-3 text-info" />
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-info/10 flex items-center justify-center">
+                    <Bell className="size-4 text-info" />
                   </div>
                   <span>الإشعارات</span>
                 </div>
                 {notificationCount > 0 && (
-                  <span className="rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-medium text-destructive-foreground">
+                  <span className="rounded-full bg-destructive px-2 py-0.5 text-[10px] font-bold text-destructive-foreground">
                     {notificationCount > 99 ? "99+" : notificationCount}
                   </span>
                 )}
               </Link>
             </div>
 
-            <div className="h-px bg-border/50 mx-1 my-1" />
+            <div className="h-px bg-border/50 mx-1 my-2" />
 
             {/* Logout */}
             <button
@@ -293,10 +293,10 @@ export function Sidebar({ className }: SidebarProps) {
                 setIsProfileOpen(false);
                 handleLogout();
               }}
-              className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs text-destructive transition-colors hover:bg-destructive/10"
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-destructive transition-colors hover:bg-destructive/10"
             >
-              <div className="w-6 h-6 rounded-md bg-destructive/10 flex items-center justify-center">
-                <LogOut className="size-3" />
+              <div className="w-7 h-7 rounded-lg bg-destructive/10 flex items-center justify-center">
+                <LogOut className="size-4" />
               </div>
               <span>تسجيل الخروج</span>
             </button>
@@ -305,39 +305,39 @@ export function Sidebar({ className }: SidebarProps) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-2.5 py-2.5 space-y-1 scrollbar-thin [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1.5 scrollbar-thin [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {navSections.map((section) => {
           const isExpanded = expandedSection === section.id;
           const SectionIcon = section.icon;
 
           return (
-            <div key={section.id} className="rounded-3xl overflow-hidden">
+            <div key={section.id} className="rounded-2xl overflow-hidden">
               {/* Section Header */}
               <motion.button
                 onClick={() => toggleSection(section.id)}
                 className={cn(
-                  "flex w-full items-center gap-2 overflow-hidden rounded-full p-2 text-right outline-none ring-primary/50 transition-all h-9 text-sm",
+                  "flex w-full items-center gap-2.5 overflow-hidden rounded-xl p-2.5 text-right outline-none ring-primary/50 transition-all h-10 text-sm",
                   "focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50",
                   "[&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
                   isExpanded
-                    ? "bg-muted/70 text-foreground font-medium"
-                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    ? "bg-muted/60 text-foreground font-semibold"
+                    : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
                 )}
                 whileTap={{ scale: 0.98 }}
               >
-                <div className="flex items-center gap-2 flex-1">
+                <div className="flex items-center gap-2.5 flex-1">
                   <motion.div
                     animate={{ rotate: isExpanded ? 90 : 0 }}
                     transition={{ type: "spring", stiffness: 400, damping: 25 }}
                   >
-                    <ChevronLeft className="size-3 text-muted-foreground" />
+                    <ChevronLeft className="size-3.5 text-muted-foreground/70" />
                   </motion.div>
-                  <div className={cn("w-6 h-6 rounded-md flex items-center justify-center", section.iconBg)}>
-                    <SectionIcon className={cn("size-3.5", section.iconColor)} />
+                  <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", section.iconBg)}>
+                    <SectionIcon className={cn("size-4", section.iconColor)} />
                   </div>
                   <span className="text-sm">{section.label}</span>
                 </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted/80 text-muted-foreground font-medium">
                   {section.items.length}
                 </span>
               </motion.button>
@@ -352,7 +352,7 @@ export function Sidebar({ className }: SidebarProps) {
                     exit="hidden"
                     className="overflow-hidden"
                   >
-                    <div className="py-1 pr-4 space-y-0.5">
+                    <div className="py-1.5 pr-5 space-y-1">
                       {section.items.map((item, index) => {
                         const Icon = item.icon;
                         const isActive = isItemActive(item);
@@ -367,14 +367,14 @@ export function Sidebar({ className }: SidebarProps) {
                             <Link
                               href={item.href}
                               className={cn(
-                                "flex w-full items-center gap-2 overflow-hidden rounded-full p-2 text-right outline-none ring-primary/50 transition-all h-8 text-sm",
+                                "flex w-full items-center gap-2.5 overflow-hidden rounded-xl p-2 text-right outline-none ring-primary/50 transition-all h-9 text-sm",
                                 "focus-visible:ring-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
                                 isActive
                                   ? "bg-primary text-primary-foreground font-medium"
                                   : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
                               )}
                             >
-                              {Icon && <Icon className="size-3.5 shrink-0" />}
+                              {Icon && <Icon className="size-4 shrink-0" />}
                               <span className="truncate flex-1">{item.label}</span>
                             </Link>
                           </motion.div>
@@ -390,17 +390,17 @@ export function Sidebar({ className }: SidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div className="p-2.5 border-t border-border/30">
+      <div className="p-3 border-t border-border/50">
         {(!user?.role || ["USER", "BASIC"].includes(user.role.toUpperCase())) ? (
           <Link href="/app/upgrade" className="block">
-            <div className="p-3 rounded-xl bg-warning/10 border border-warning/20 hover:bg-warning/15 transition-colors">
-              <div className="flex items-start gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-warning flex items-center justify-center shrink-0">
-                  <Zap className="w-3.5 h-3.5 text-white" />
+            <div className="p-3.5 rounded-xl bg-gradient-to-br from-warning/10 to-warning/5 border border-warning/20 hover:from-warning/15 hover:to-warning/10 transition-all duration-200">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-xl bg-warning flex items-center justify-center shrink-0">
+                  <Zap className="w-4 h-4 text-warning-foreground" />
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-foreground mb-0.5">ترقية حسابك</p>
-                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  <p className="text-sm font-semibold text-foreground mb-0.5">ترقية حسابك</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
                     احصل على مزايا إضافية
                   </p>
                 </div>
@@ -409,14 +409,14 @@ export function Sidebar({ className }: SidebarProps) {
           </Link>
         ) : (
           <Link href="/app/help" className="block">
-            <div className="p-3 rounded-xl bg-info/10 border border-info/20 hover:bg-info/15 transition-colors">
-              <div className="flex items-start gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-info flex items-center justify-center shrink-0">
-                  <HelpCircle className="w-3.5 h-3.5 text-white" />
+            <div className="p-3.5 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 hover:from-primary/15 hover:to-primary/10 transition-all duration-200">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shrink-0">
+                  <HelpCircle className="w-4 h-4 text-primary-foreground" />
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-foreground mb-0.5">تحتاج مساعدة؟</p>
-                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  <p className="text-sm font-semibold text-foreground mb-0.5">تحتاج مساعدة؟</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
                     تواصل معنا عبر الدعم الفني
                   </p>
                 </div>
@@ -433,27 +433,27 @@ export function SidebarSkeleton({ className }: { className?: string }) {
   return (
     <aside
       className={cn(
-        "flex h-[calc(100svh-theme(spacing.4))] w-[240px] flex-col rounded-2xl border border-border/40 bg-card m-2 animate-pulse",
+        "flex h-[calc(100svh-theme(spacing.4))] w-[260px] flex-col rounded-2xl border border-border/50 bg-card m-2 animate-pulse",
         className
       )}
       dir="rtl"
     >
-      <div className="p-3">
-        <div className="flex items-center gap-2.5">
-          <div className="size-8 rounded-full bg-muted" />
+      <div className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="size-9 rounded-full bg-muted" />
           <div className="min-w-0 flex-1">
             <div className="h-4 w-24 rounded bg-muted" />
           </div>
           <div className="size-4 rounded bg-muted" />
         </div>
       </div>
-      <nav className="flex-1 space-y-2 px-2.5 py-2.5">
+      <nav className="flex-1 space-y-2 px-3 py-2">
         {[1, 2, 3, 4, 5].map((s) => (
-          <div key={s} className="h-9 rounded-full bg-muted" />
+          <div key={s} className="h-10 rounded-xl bg-muted" />
         ))}
       </nav>
-      <div className="p-2.5 border-t border-border/30">
-        <div className="h-16 rounded-xl bg-muted" />
+      <div className="p-3 border-t border-border/50">
+        <div className="h-[72px] rounded-xl bg-muted" />
       </div>
     </aside>
   );

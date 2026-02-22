@@ -128,7 +128,7 @@ export default function ProfilePage() {
               transition={{ delay: 0.3 }}
               className="md:hidden"
             >
-              <div className="rounded-3xl border border-destructive/30 bg-card overflow-hidden">
+              <div className="rounded-2xl border border-destructive/30 bg-card overflow-hidden">
                 <button
                   type="button"
                   onClick={handleLogout}

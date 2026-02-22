@@ -191,30 +191,105 @@ export function clearAccessToken(): void {
   clearCsrfToken();
 }
 
-// ===== Refresh Token Protection (Shared State) =====
-let isRefreshing = false;
-let refreshFailed = false;
-let isLoggingOut = false; // Prevent refresh attempts during logout
-let refreshPromise: Promise<string | null> | null = null;
-let lastRefreshTime: number = Date.now();
+// ===== Refresh Token Protection (Global Mutex) =====
+// 🔒 Golden Rule: ONE refresh at a time, all callers wait for the SAME promise
+// 🔒 Using window for TRUE global state (survives module reloads)
+
+const REFRESH_STATE_KEY = '__rukny_refresh_state__';
+
+interface RefreshState {
+  refreshFailed: boolean;
+  isLoggingOut: boolean;
+  refreshPromise: Promise<RefreshResult> | null;
+  lastRefreshTime: number;
+}
+
+function getGlobalRefreshState(): RefreshState {
+  if (typeof window === 'undefined') {
+    // SSR: return isolated state
+    return {
+      refreshFailed: false,
+      isLoggingOut: false,
+      refreshPromise: null,
+      lastRefreshTime: Date.now(),
+    };
+  }
+  
+  // Browser: use window for TRUE global state
+  if (!(window as any)[REFRESH_STATE_KEY]) {
+    (window as any)[REFRESH_STATE_KEY] = {
+      refreshFailed: false,
+      isLoggingOut: false,
+      refreshPromise: null,
+      lastRefreshTime: Date.now(),
+    } as RefreshState;
+  }
+  return (window as any)[REFRESH_STATE_KEY];
+}
+
+// 🔒 Cross-page-load protection: prevent hammering refresh when session is invalid
+const REFRESH_FAILED_KEY = 'rukny_refresh_failed';
+const REFRESH_FAILED_TTL_MS = 30_000; // 30 seconds cooldown after failure
+
+function isRefreshBlockedByPreviousFailure(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const stored = sessionStorage.getItem(REFRESH_FAILED_KEY);
+    if (!stored) return false;
+    const failedAt = parseInt(stored, 10);
+    if (Date.now() - failedAt < REFRESH_FAILED_TTL_MS) {
+      return true; // Still in cooldown period
+    }
+    sessionStorage.removeItem(REFRESH_FAILED_KEY);
+  } catch {
+    // sessionStorage not available
+  }
+  return false;
+}
+
+function markRefreshFailed(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(REFRESH_FAILED_KEY, Date.now().toString());
+  } catch {
+    // sessionStorage not available
+  }
+}
+
+function clearRefreshFailedMark(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.removeItem(REFRESH_FAILED_KEY);
+  } catch {
+    // sessionStorage not available
+  }
+}
+
+/** Result returned by refreshOnce() */
+export interface RefreshResult {
+  success: boolean;
+  csrfToken?: string;
+  expiresIn?: number;
+}
 
 /**
  * Update the last refresh time (for session timeout warning)
  */
 export function updateLastRefreshTime(): void {
-  lastRefreshTime = Date.now();
+  const state = getGlobalRefreshState();
+  state.lastRefreshTime = Date.now();
 }
 
 /**
  * Set logout state to prevent refresh attempts during logout
  */
 export function setLoggingOut(value: boolean): void {
-  isLoggingOut = value;
+  const state = getGlobalRefreshState();
+  state.isLoggingOut = value;
   if (value) {
     // When logging out, clear refresh state
-    isRefreshing = false;
-    refreshFailed = true;
-    refreshPromise = null;
+    state.refreshFailed = true;
+    state.refreshPromise = null;
     clearSilentRefresh();
   }
 }
@@ -224,32 +299,20 @@ let silentRefreshTimerId: ReturnType<typeof setTimeout> | null = null;
 
 /**
  * Schedule a single silent refresh before access token expires.
- * Refreshes at ~80% of expires_in (min 1 min) to avoid session gap.
+ * ⚡ Performance: Refresh at ~50% of expires_in to handle slow Neon cold starts
+ * - 50% gives ~15 min buffer for 30 min tokens
+ * - Min 2 min to avoid excessive refresh attempts
+ * 🔒 Uses refreshOnce() to respect the global mutex
  */
 export function scheduleSilentRefresh(expiresInSeconds: number): void {
   if (typeof window === 'undefined') return;
   clearSilentRefresh();
-  const ms = Math.max(60_000, Math.floor(expiresInSeconds * 0.8) * 1000);
+  // ⚡ Changed from 80% to 50% - gives more buffer for slow DB connections
+  const ms = Math.max(120_000, Math.floor(expiresInSeconds * 0.5) * 1000);
   silentRefreshTimerId = setTimeout(async () => {
     silentRefreshTimerId = null;
-    try {
-      const res = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data.success && data.csrf_token) {
-        setCsrfToken(data.csrf_token);
-        updateLastRefreshTime();
-        if (typeof data.expires_in === 'number') {
-          scheduleSilentRefresh(data.expires_in);
-        }
-      }
-    } catch {
-      // ignore; next 401 will trigger normal refresh
-    }
+    // 🔒 Use the global mutex - no direct fetch!
+    await refreshOnce();
   }, ms);
 }
 
@@ -267,24 +330,103 @@ export function clearSilentRefresh(): void {
  * Get the last refresh time
  */
 export function getLastRefreshTime(): number {
-  return lastRefreshTime;
+  return getGlobalRefreshState().lastRefreshTime;
 }
 
 /**
- * Get current refresh state (for use by api-client.ts)
+ * Get current refresh state
  */
 export function getRefreshState(): { isRefreshing: boolean; refreshFailed: boolean; isLoggingOut: boolean } {
-  return { isRefreshing, refreshFailed, isLoggingOut };
+  const state = getGlobalRefreshState();
+  return { 
+    isRefreshing: state.refreshPromise !== null, 
+    refreshFailed: state.refreshFailed, 
+    isLoggingOut: state.isLoggingOut 
+  };
 }
 
 /**
- * Set refresh state (for use by api-client.ts)
+ * 🔒 GOLDEN RULE: Single entry point for ALL refresh operations
+ * 
+ * - Only ONE fetch('/api/auth/refresh') happens at a time
+ * - All concurrent callers wait for the SAME promise
+ * - Handles CSRF token update and silent refresh scheduling
+ * - Uses window-level state for TRUE cross-module mutex
+ * 
+ * @returns RefreshResult with success status and tokens
  */
-export function setRefreshState(refreshing: boolean, failed?: boolean): void {
-  isRefreshing = refreshing;
-  if (failed !== undefined) {
-    refreshFailed = failed;
+export async function refreshOnce(): Promise<RefreshResult> {
+  const state = getGlobalRefreshState();
+  
+  // 🚪 Don't attempt refresh during logout
+  if (state.isLoggingOut) {
+    return { success: false };
   }
+
+  // If refresh already failed this session (in-memory), don't try again
+  if (state.refreshFailed) {
+    return { success: false };
+  }
+  
+  // 🔒 Cross-page protection: check if refresh failed recently in another page load
+  if (isRefreshBlockedByPreviousFailure()) {
+    state.refreshFailed = true; // Sync in-memory state
+    return { success: false };
+  }
+
+  // 🔒 MUTEX: If already refreshing, wait for the SAME promise
+  if (state.refreshPromise) {
+    return state.refreshPromise;
+  }
+
+  // Create the single shared promise
+  state.refreshPromise = (async (): Promise<RefreshResult> => {
+    try {
+      const response = await fetch('/api/auth/refresh', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        // Refresh failed - session is invalid
+        handleAuthFailure('expired');
+        return { success: false };
+      }
+
+      const data = await response.json();
+      if (data.success && data.csrf_token) {
+        // 🔒 Update CSRF token from response
+        setCsrfToken(data.csrf_token);
+        updateLastRefreshTime();
+        
+        // Schedule next silent refresh
+        if (typeof data.expires_in === 'number') {
+          scheduleSilentRefresh(data.expires_in);
+        }
+        
+        return {
+          success: true,
+          csrfToken: data.csrf_token,
+          expiresIn: data.expires_in,
+        };
+      }
+
+      handleAuthFailure('invalid');
+      return { success: false };
+    } catch {
+      handleAuthFailure('expired');
+      return { success: false };
+    } finally {
+      // 🔒 Clear the promise so next refresh can start fresh
+      const s = getGlobalRefreshState();
+      s.refreshPromise = null;
+    }
+  })();
+
+  return state.refreshPromise;
 }
 
 // Auth pages where redirect should NOT happen
@@ -302,10 +444,14 @@ const AUTH_PAGES = [
  * Handle authentication failure - redirect to login
  */
 function handleAuthFailure(reason: 'expired' | 'invalid' = 'expired'): void {
+  const state = getGlobalRefreshState();
   clearAccessToken();
   clearSilentRefresh();
-  refreshFailed = true;
-  refreshPromise = null;
+  state.refreshFailed = true;
+  state.refreshPromise = null;
+  
+  // 🔒 Mark failure in sessionStorage to prevent hammering across page loads
+  markRefreshFailed();
   
   if (typeof window !== 'undefined') {
     const pathname = window.location.pathname;
@@ -326,79 +472,22 @@ function handleAuthFailure(reason: 'expired' | 'invalid' = 'expired'): void {
  * Reset refresh state (call after successful login)
  */
 export function resetRefreshState(): void {
-  isRefreshing = false;
-  refreshFailed = false;
-  isLoggingOut = false;
-  refreshPromise = null;
+  const state = getGlobalRefreshState();
+  state.refreshFailed = false;
+  state.isLoggingOut = false;
+  state.refreshPromise = null;
   clearSilentRefresh();
+  // 🔒 Clear sessionStorage mark so user can refresh after re-login
+  clearRefreshFailedMark();
 }
 
 /**
- * Refresh access token using refresh token cookie
- * Uses a shared promise to prevent concurrent refresh attempts
- * 
- * 🔒 Note: Access token is now in httpOnly cookie
- * This function just triggers the refresh and updates the CSRF token
+ * @deprecated Use refreshOnce() directly instead
+ * Kept for backwards compatibility with existing code
  */
 async function refreshAccessToken(): Promise<boolean> {
-  // 🚪 Don't attempt refresh during logout
-  if (isLoggingOut) {
-    return false;
-  }
-
-  // If refresh already failed, don't try again
-  if (refreshFailed) {
-    return false;
-  }
-
-  // 🔒 If already refreshing, wait for the same promise
-  // This ensures all concurrent requests wait for ONE refresh attempt
-  if (isRefreshing && refreshPromise) {
-    return refreshPromise.then(() => !refreshFailed);
-  }
-
-  isRefreshing = true;
-
-  // Create a shared promise that all concurrent requests will wait for
-  refreshPromise = (async () => {
-    try {
-      // 🔒 Use Route Handler for proper cookie forwarding
-      const response = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        credentials: 'include', // Include cookies
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        // Refresh failed - session is invalid
-        // The API will clear the cookie, so we just need to handle client state
-        handleAuthFailure('expired');
-        return null;
-      }
-
-      const data = await response.json();
-      if (data.success && data.csrf_token) {
-        // 🔒 Update CSRF token from response
-        setCsrfToken(data.csrf_token);
-        isRefreshing = false;
-        refreshPromise = null;
-        return data.csrf_token;
-      }
-
-      handleAuthFailure('invalid');
-      return null;
-    } catch {
-      handleAuthFailure('expired');
-      return null;
-    } finally {
-      isRefreshing = false;
-    }
-  })();
-
-  const result = await refreshPromise;
-  return result !== null;
+  const result = await refreshOnce();
+  return result.success;
 }
 
 /**

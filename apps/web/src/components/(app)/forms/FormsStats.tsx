@@ -1,6 +1,12 @@
 'use client';
 
+/**
+ * 📊 Forms Stats Component
+ * بطاقات إحصائيات متناسقة مع لوحة التحكم
+ */
+
 import { motion } from 'framer-motion';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FormsStats as StatsType } from '@/lib/hooks/useForms';
 
@@ -9,71 +15,13 @@ interface FormsStatsProps {
   isLoading?: boolean;
 }
 
-const ANIMATION_VARIANTS = {
-  container: {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.08 },
-    },
-  },
-  item: {
-    hidden: { opacity: 0, y: 15 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { type: 'spring' as const, stiffness: 300, damping: 25 },
-    },
-  },
-};
-
 const STATS_CONFIG = [
-  {
-    key: 'total',
-    title: 'إجمالي النماذج',
-    subtitle: 'نموذج منشور',
-    subtitleKey: 'published' as keyof StatsType,
-    bgColor: 'bg-amber-100/80 dark:bg-amber-950/30',
-    skeleton: 'bg-amber-200 dark:bg-amber-900/40',
-  },
-  {
-    key: 'published',
-    title: 'النماذج المنشورة',
-    subtitle: 'من الإجمالي',
-    subtitleKey: 'total' as keyof StatsType,
-    bgColor: 'bg-emerald-100/80 dark:bg-emerald-950/30',
-    skeleton: 'bg-emerald-200 dark:bg-emerald-900/40',
-  },
-  {
-    key: 'draft',
-    title: 'النماذج المسودة',
-    subtitle: 'من الإجمالي',
-    subtitleKey: 'total' as keyof StatsType,
-    bgColor: 'bg-sky-100/80 dark:bg-sky-950/30',
-    skeleton: 'bg-sky-200 dark:bg-sky-900/40',
-  },
-  {
-    key: 'totalSubmissions',
-    title: 'إجمالي الإجابات',
-    subtitle: 'إجابة',
-    bgColor: 'bg-violet-100/80 dark:bg-violet-950/30',
-    skeleton: 'bg-violet-200 dark:bg-violet-900/40',
-  },
-  {
-    key: 'totalViews',
-    title: 'إجمالي المشاهدات',
-    subtitle: 'مشاهدة',
-    bgColor: 'bg-rose-100/80 dark:bg-rose-950/30',
-    skeleton: 'bg-rose-200 dark:bg-rose-900/40',
-  },
-  {
-    key: 'responseRate',
-    title: 'معدل الاستجابة',
-    subtitle: 'نسبة التحويل',
-    bgColor: 'bg-indigo-100/80 dark:bg-indigo-950/30',
-    skeleton: 'bg-indigo-200 dark:bg-indigo-900/40',
-    isPercentage: true,
-  },
+  { key: 'total', title: 'إجمالي النماذج' },
+  { key: 'published', title: 'المنشورة' },
+  { key: 'totalSubmissions', title: 'الإجابات', highlight: true },
+  { key: 'totalViews', title: 'المشاهدات' },
+  { key: 'responseRate', title: 'معدل الاستجابة', isPercentage: true },
+  { key: 'draft', title: 'المسودات' },
 ];
 
 const formatNumber = (num: number): string => {
@@ -82,15 +30,19 @@ const formatNumber = (num: number): string => {
   return num.toLocaleString('en-US');
 };
 
-const SkeletonCard = ({ bgColor, skeleton }: { bgColor: string; skeleton: string }) => (
-  <div className={cn('rounded-2xl p-5', bgColor)}>
-    <div className={cn('h-4 w-20 rounded animate-pulse mb-2', skeleton)} />
-    <div className="flex items-center gap-3">
-      <div className={cn('h-8 w-16 rounded animate-pulse', skeleton)} />
-      <div className={cn('h-4 w-12 rounded animate-pulse', skeleton)} />
+export function FormsStatsSkeleton() {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="rounded-2xl bg-muted/30 p-4 sm:p-5 animate-pulse">
+          <div className="h-3 w-16 bg-muted rounded mb-3" />
+          <div className="h-6 w-12 bg-muted rounded mb-2" />
+          <div className="h-3 w-10 bg-muted rounded" />
+        </div>
+      ))}
     </div>
-  </div>
-);
+  );
+}
 
 export function FormsStats({ stats, isLoading }: FormsStatsProps) {
   const responseRate = stats.totalViews > 0 
@@ -98,59 +50,57 @@ export function FormsStats({ stats, isLoading }: FormsStatsProps) {
     : 0;
 
   if (isLoading) {
-    return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3">
-        {STATS_CONFIG.map((stat, i) => (
-          <SkeletonCard key={i} bgColor={stat.bgColor} skeleton={stat.skeleton} />
-        ))}
-      </div>
-    );
+    return <FormsStatsSkeleton />;
   }
 
   return (
-    <motion.div
-      variants={ANIMATION_VARIANTS.container}
-      initial="hidden"
-      animate="visible"
-      className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3"
-    >
-      {STATS_CONFIG.map((stat) => {
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3">
+      {STATS_CONFIG.map((stat, index) => {
         const value = stat.key === 'responseRate' 
           ? responseRate 
           : (stats[stat.key as keyof StatsType] || 0);
         
-        const subtitleValue = 'subtitleKey' in stat && stat.subtitleKey
-          ? (stats[stat.subtitleKey] || 0)
-          : null;
+        const change = 0; // يمكن إضافة حساب التغيير لاحقاً
+        const trend = change >= 0 ? 'up' : 'down';
         
         return (
           <motion.div
             key={stat.key}
-            variants={ANIMATION_VARIANTS.item}
-            whileHover={{ scale: 1.02, y: -2 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
             className={cn(
-              'rounded-2xl p-5 transition-all duration-200 text-right',
-              stat.bgColor
+              "rounded-2xl p-4 sm:p-5",
+              stat.highlight 
+                ? "bg-[#c8e972]/20 dark:bg-[#c8e972]/10" 
+                : "bg-muted/30 dark:bg-muted/20"
             )}
           >
-            <p className="text-sm text-muted-foreground mb-1">
-              {stat.title}
-            </p>
+            {/* Title */}
+            <p className="text-xs sm:text-sm text-muted-foreground mb-2">{stat.title}</p>
 
-            <div className="flex items-center gap-3">
-              <span className="text-2xl sm:text-3xl font-bold text-foreground tabular-nums">
-                {'isPercentage' in stat && stat.isPercentage ? `${value}%` : formatNumber(value)}
-              </span>
-              
-              {subtitleValue !== null && (
-                <span className="text-xs text-muted-foreground">
-                  {subtitleValue}
-                </span>
+            {/* Value */}
+            <h3 className="text-xl sm:text-2xl font-bold text-foreground tabular-nums mb-1">
+              {stat.isPercentage ? `${value}%` : formatNumber(value)}
+            </h3>
+
+            {/* Change with Trend */}
+            <div className="flex items-center gap-1.5">
+              {trend === 'up' ? (
+                <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+              ) : (
+                <TrendingDown className="w-3.5 h-3.5 text-rose-500" />
               )}
+              <span className={cn(
+                "text-xs font-medium",
+                trend === 'up' ? "text-emerald-500" : "text-rose-500"
+              )}>
+                {change >= 0 ? '+' : ''}{change}%
+              </span>
             </div>
           </motion.div>
         );
       })}
-    </motion.div>
+    </div>
   );
 }

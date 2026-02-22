@@ -9,7 +9,7 @@ import { EmailService } from '../../integrations/email/email.service';
 import { SecurityDetectorService } from '../../infrastructure/security/detector.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { RedisService } from '../../core/cache/redis.service';
-import { TOTP, generateSecret, generateURI, verify as otpVerify } from 'otplib';
+import { generateSecret, generateURI, verifySync } from 'otplib';
 import * as qrcode from 'qrcode';
 import {
   UpdateProfileDto,
@@ -176,9 +176,9 @@ export class UserService {
     }
 
     // Verify code using otplib
-    const verified = otpVerify({ token: code, secret: user.twoFactorSecret });
+    const result = verifySync({ token: code, secret: user.twoFactorSecret });
 
-    if (!verified) {
+    if (!result.valid) {
       // Log failed 2FA verification
       await this.securityLogService.createLog({
         userId,
@@ -247,9 +247,9 @@ export class UserService {
     }
 
     // Verify code before disabling using otplib
-    const verified = otpVerify({ token: code, secret: user.twoFactorSecret });
+    const result = verifySync({ token: code, secret: user.twoFactorSecret });
 
-    if (!verified) {
+    if (!result.valid) {
       // Log failed 2FA disable attempt
       await this.securityLogService.createLog({
         userId,

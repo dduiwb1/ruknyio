@@ -85,11 +85,44 @@ export class PrismaService
     
     // ⚡ Start keepalive ping for Neon (prevents auto-suspend during active use)
     this.startKeepalive();
+    
+    // ⚡ Connection warming: Pre-warm common table queries for auth/refresh
+    // This helps reduce cold start latency on first real request
+    if (process.env.NODE_ENV === 'production') {
+      this.warmConnectionPool().catch(err => {
+        this.logger.warn(`Connection warming failed (non-critical): ${err.message}`);
+      });
+    }
+  }
+  
+  /**
+   * ⚡ Warm up connection pool with common queries
+   * Executes lightweight queries on frequently accessed tables
+   * to prime the query planner and connection pool
+   */
+  private async warmConnectionPool(): Promise<void> {
+    const warmupStart = Date.now();
+    try {
+      // Run warmup queries in parallel for efficiency
+      await Promise.all([
+        // Session table (used in token refresh)
+        this.$queryRaw`SELECT 1 FROM "sessions" LIMIT 1`,
+        // User table (used in auth)
+        this.$queryRaw`SELECT 1 FROM "users" LIMIT 1`,
+      ]);
+      
+      const warmupDuration = Date.now() - warmupStart;
+      this.logger.log(`⚡ Connection pool warmed up (${warmupDuration}ms)`);
+    } catch {
+      // Tables might not exist yet (first deployment), ignore
+    }
   }
 
   /**
    * ⚡ Keepalive ping to prevent Neon from suspending during active sessions
-   * Runs every 3 minutes (Neon suspends after 5 minutes of inactivity)
+   * Runs every 90 seconds (Neon suspends after 5 minutes of inactivity)
+   * 
+   * ⚡ Changed from 3 minutes to 90 seconds for better responsiveness
    */
   private keepaliveInterval: NodeJS.Timeout | null = null;
   
@@ -123,7 +156,7 @@ export class PrismaService
         this.logger.warn('⚠️ Keepalive ping failed, will reconnect on next query');
         this.isConnected = false;
       }
-    }, 3 * 60 * 1000); // 3 minutes (reduced from 4)
+    }, 90 * 1000); // ⚡ 90 seconds (reduced from 3 minutes) for better Neon responsiveness
   }
 
   /**

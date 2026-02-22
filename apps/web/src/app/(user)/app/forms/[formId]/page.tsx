@@ -99,7 +99,7 @@ function StatCard({
   const iconColor = colorClasses[color] || colorClasses.gray;
 
   return (
-    <div className="flex items-center gap-3 p-4 rounded-2xl bg-card border border-border/60 hover:border-border transition-colors">
+    <div className="flex items-center gap-3 p-4 rounded-2xl bg-card border border-border/50 hover:border-border transition-colors">
       <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
         <Icon className={cn("w-5 h-5", iconColor)} />
       </div>
@@ -288,7 +288,7 @@ export default function FormDetailsPage() {
   // Loading State
   if (loading) {
     return (
-      <div className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 bg-card m-2 md:ms-0 rounded-3xl border border-border/60 overflow-hidden" dir="rtl">
+      <div className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 bg-card m-2 md:ms-0 rounded-2xl border border-border/50 overflow-hidden" dir="rtl">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
@@ -302,7 +302,7 @@ export default function FormDetailsPage() {
   // Error State
   if (error || !form) {
     return (
-      <div className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 bg-card m-2 md:ms-0 rounded-3xl border border-border/60 overflow-hidden" dir="rtl">
+      <div className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 bg-card m-2 md:ms-0 rounded-2xl border border-border/50 overflow-hidden" dir="rtl">
         <div className="flex-1 flex flex-col items-center justify-center p-6">
           <div className="w-20 h-20 rounded-2xl bg-destructive/10 flex items-center justify-center mb-4">
             <AlertCircle className="w-10 h-10 text-destructive" />
@@ -326,9 +326,9 @@ export default function FormDetailsPage() {
   }
 
   return (
-    <div className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 bg-card m-2 md:ms-0 rounded-3xl border border-border/60 overflow-hidden" dir="rtl">
+    <div className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 bg-card m-2 md:ms-0 rounded-2xl border border-border/50 overflow-hidden" dir="rtl">
       <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        <div className="p-4 sm:p-6 space-y-4">
+        <div className="p-4 sm:p-6 space-y-5">
           
           {/* Back Link */}
           <motion.div
@@ -348,7 +348,7 @@ export default function FormDetailsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-card rounded-3xl border border-border/60 overflow-hidden"
+            className="bg-card rounded-2xl border border-border/50 overflow-hidden"
           >
             {/* Form Info */}
             <div className="p-4 sm:p-6">
@@ -365,7 +365,7 @@ export default function FormDetailsPage() {
                 {/* Title & Meta */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2 mb-1">
-                    <h1 className="text-base sm:text-lg font-bold text-gray-900 line-clamp-1">
+                    <h1 className="text-base sm:text-lg font-bold text-foreground line-clamp-1">
                       {form.title}
                     </h1>
                     {/* Status Badge */}
@@ -385,14 +385,14 @@ export default function FormDetailsPage() {
                   </div>
                   
                   {form.description && (
-                    <p className="text-xs text-gray-500 line-clamp-1 mb-2">
+                    <p className="text-xs text-muted-foreground line-clamp-1 mb-2">
                       {form.description}
                     </p>
                   )}
 
                   {/* Tags Row */}
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 text-gray-700">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-muted text-muted-foreground">
                       {FORM_TYPE_CONFIG[form.type]?.icon} {FORM_TYPE_LABELS[form.type]}
                     </span>
                     {form.requiresAuthentication ? (
@@ -522,7 +522,7 @@ export default function FormDetailsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-card rounded-2xl border border-border/60 p-4"
+              className="bg-card rounded-2xl border border-border/50 p-4"
             >
               <h2 className="flex items-center gap-2.5 text-base font-bold text-foreground mb-4">
                 <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
@@ -535,7 +535,7 @@ export default function FormDetailsPage() {
               <div className="mb-3">
                 <label className="block text-xs font-medium text-muted-foreground mb-2">رابط النموذج</label>
                 <div className="flex gap-2">
-                  <div className="flex-1 flex items-center gap-2 px-3 py-2.5 bg-muted rounded-xl text-sm text-foreground truncate border border-border/60 min-w-0">
+                  <div className="flex-1 flex items-center gap-2 px-3 py-2.5 bg-muted rounded-xl text-sm text-foreground truncate border border-border/50 min-w-0">
                     <Link2 className="w-4 h-4 text-primary flex-shrink-0" />
                     <span className="truncate font-mono text-xs" dir="ltr">{formLink}</span>
                   </div>
@@ -566,7 +566,7 @@ export default function FormDetailsPage() {
               {/* Slug */}
               <div className="mb-3">
                 <label className="block text-xs font-medium text-muted-foreground mb-2">المعرّف الفريد</label>
-                <div className="flex items-center gap-2 px-3 py-2.5 bg-muted rounded-xl text-sm text-foreground border border-border/60 font-mono">
+                <div className="flex items-center gap-2 px-3 py-2.5 bg-muted rounded-xl text-sm text-foreground border border-border/50 font-mono">
                   <span className="text-primary">/</span>{form.slug}
                 </div>
               </div>
@@ -576,14 +576,14 @@ export default function FormDetailsPage() {
                 <button 
                   onClick={handleOpenForm}
                   disabled={form.status !== FormStatus.PUBLISHED}
-                  className="flex items-center justify-center gap-2 px-3 py-2.5 bg-muted text-foreground rounded-xl text-sm font-medium border border-border/60 hover:bg-muted/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center gap-2 px-3 py-2.5 bg-muted text-foreground rounded-xl text-sm font-medium border border-border/50 hover:bg-muted/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ExternalLink className="w-4 h-4" />
                   <span>فتح</span>
                 </button>
                 <button 
                   onClick={() => setQrModalOpen(true)}
-                  className="flex items-center justify-center gap-2 px-3 py-2.5 bg-muted text-foreground rounded-xl text-sm font-medium border border-border/60 hover:bg-muted/80 transition-colors"
+                  className="flex items-center justify-center gap-2 px-3 py-2.5 bg-muted text-foreground rounded-xl text-sm font-medium border border-border/50 hover:bg-muted/80 transition-colors"
                 >
                   <QrCode className="w-4 h-4" />
                   <span>QR</span>
@@ -596,7 +596,7 @@ export default function FormDetailsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="bg-card rounded-2xl border border-border/60 p-4"
+              className="bg-card rounded-2xl border border-border/50 p-4"
             >
               <h2 className="flex items-center gap-2.5 text-base font-bold text-foreground mb-4">
                 <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
@@ -646,7 +646,7 @@ export default function FormDetailsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="bg-card rounded-2xl border border-border/60 p-4"
+              className="bg-card rounded-2xl border border-border/50 p-4"
             >
               <h2 className="flex items-center gap-2.5 text-base font-bold text-foreground mb-4">
                 <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
@@ -657,7 +657,7 @@ export default function FormDetailsPage() {
 
               <div className="flex flex-wrap gap-3">
                 {form.linkedEvent && (
-                  <div className="flex items-center gap-3 px-4 py-3 bg-muted rounded-xl border border-border/60">
+                  <div className="flex items-center gap-3 px-4 py-3 bg-muted rounded-xl border border-border/50">
                     <div className="w-10 h-10 rounded-xl bg-card flex items-center justify-center">
                       <Calendar className="w-5 h-5 text-primary" />
                     </div>
@@ -668,7 +668,7 @@ export default function FormDetailsPage() {
                   </div>
                 )}
                 {form.linkedStore && (
-                  <div className="flex items-center gap-3 px-4 py-3 bg-muted rounded-xl border border-border/60">
+                  <div className="flex items-center gap-3 px-4 py-3 bg-muted rounded-xl border border-border/50">
                     <div className="w-10 h-10 rounded-xl bg-card flex items-center justify-center">
                       <Globe className="w-5 h-5 text-primary" />
                     </div>
@@ -688,7 +688,7 @@ export default function FormDetailsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="bg-card rounded-2xl border border-border/60 p-4"
+              className="bg-card rounded-2xl border border-border/50 p-4"
             >
               <div className="flex items-center justify-between mb-4">
                 <h2 className="flex items-center gap-2.5 text-base font-bold text-foreground">
@@ -706,7 +706,7 @@ export default function FormDetailsPage() {
                 {form.fields.slice(0, 5).map((field, index) => (
                   <div 
                     key={field.id}
-                    className="flex items-center gap-3 p-3 bg-card rounded-xl border border-border/60 hover:border-border transition-colors"
+                    className="flex items-center gap-3 p-3 bg-card rounded-xl border border-border/50 hover:border-border transition-colors"
                   >
                     <span className="w-7 h-7 rounded-lg bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
                       {index + 1}
@@ -740,7 +740,7 @@ export default function FormDetailsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="bg-card rounded-2xl border border-border/60 p-4"
+              className="bg-card rounded-2xl border border-border/50 p-4"
             >
               <h2 className="flex items-center gap-2.5 text-base font-bold text-foreground mb-4">
                 <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
@@ -751,7 +751,7 @@ export default function FormDetailsPage() {
 
               <div className="grid sm:grid-cols-2 gap-3">
                 {form.opensAt && (
-                  <div className="p-4 bg-muted rounded-xl border border-border/60">
+                  <div className="p-4 bg-muted rounded-xl border border-border/50">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
                         <CheckCircle2 className="w-4 h-4 text-white" />
@@ -767,7 +767,7 @@ export default function FormDetailsPage() {
                   </div>
                 )}
                 {form.closesAt && (
-                  <div className="p-4 bg-muted rounded-xl border border-border/60">
+                  <div className="p-4 bg-muted rounded-xl border border-border/50">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-7 h-7 rounded-lg bg-destructive flex items-center justify-center">
                         <AlertCircle className="w-4 h-4 text-destructive-foreground" />
@@ -818,7 +818,7 @@ export default function FormDetailsPage() {
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               className="fixed inset-0 flex items-center justify-center z-50 p-4"
             >
-              <div className="bg-card rounded-3xl border border-border/60 w-full max-w-sm overflow-hidden">
+              <div className="bg-card rounded-2xl border border-border/50 w-full max-w-sm overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b border-border/40">
                   <div className="flex items-center gap-2.5">
@@ -839,7 +839,7 @@ export default function FormDetailsPage() {
                 <div className="p-6">
                   {/* QR Code */}
                   <div className="flex justify-center mb-4">
-                    <div className="p-4 bg-background rounded-2xl border-2 border-border/60">
+                    <div className="p-4 bg-background rounded-2xl border-2 border-border/50">
                       <QRCodeSVG 
                         value={formLink}
                         size={180}

@@ -2,7 +2,7 @@
 
 /**
  * 🎛️ لوحة التحكم - Control Panel
- * صفحة رئيسية بسيطة وسلسة
+ * صفحة رئيسية بتصميم عصري ونظيف
  */
 
 import { useEffect, useState, useRef } from "react";
@@ -22,14 +22,14 @@ import {
   RecentOrdersSkeleton,
   DashboardHeader,
   DashboardHeaderSkeleton,
-  RevenueChart,
-  RevenueChartSkeleton,
-  TotalSalesChart,
-  TotalSalesChartSkeleton,
   TopProductsTable,
   TopProductsTableSkeleton,
-  RecentActivities,
-  RecentActivitiesSkeleton,
+  OverviewStats,
+  OverviewStatsSkeleton,
+  ActivityBarChart,
+  ActivityBarChartSkeleton,
+  TasksList,
+  TasksListSkeleton,
   type RevenueChartData,
 } from "@/components/(app)/dashboard";
 
@@ -70,7 +70,7 @@ interface Order {
 interface DashboardStats {
   events: { active: number; total: number };
   products: { active: number; total: number };
-  forms: { active: number; total: number };
+  forms: { active: number; total: number; submissions: number };
   views: { total: number; thisMonth: number };
 }
 
@@ -172,7 +172,7 @@ export default function DashboardPage() {
 
   if (!isAuthenticated) return null;
 
-  // Stats cards data - تصميم مطابق للنماذج
+  // Stats cards data
   const statsData = [
     {
       title: "المشاهدات",
@@ -181,7 +181,6 @@ export default function DashboardPage() {
         ? `+${Math.round((dashboardStats.views.thisMonth / Math.max(dashboardStats.views.total, 1)) * 100)}%` 
         : "+0%",
       trend: "up" as const,
-      colorVariant: "indigo" as const,
     },
     {
       title: "الطلبات",
@@ -190,7 +189,6 @@ export default function DashboardPage() {
         ? `+${orderStats.pendingOrders}` 
         : "+0%",
       trend: "up" as const,
-      colorVariant: "purple" as const,
     },
     {
       title: "المنتجات",
@@ -199,7 +197,6 @@ export default function DashboardPage() {
         ? `+${storeStats.activeProducts}` 
         : "+0%",
       trend: "up" as const,
-      colorVariant: "cyan" as const,
     },
     {
       title: "الإيرادات",
@@ -208,7 +205,6 @@ export default function DashboardPage() {
         : "0",
       change: "+12.5%",
       trend: "up" as const,
-      colorVariant: "blue" as const,
     },
   ];
 
@@ -221,7 +217,6 @@ export default function DashboardPage() {
         ? `+${dashboardStats.forms.active}` 
         : "+0%",
       trend: "up" as const,
-      colorVariant: "emerald" as const,
     },
     {
       title: "الفعاليات",
@@ -230,7 +225,6 @@ export default function DashboardPage() {
         ? `+${dashboardStats.events.active}` 
         : "+0%",
       trend: "up" as const,
-      colorVariant: "amber" as const,
     },
     {
       title: "المكتملة",
@@ -239,7 +233,6 @@ export default function DashboardPage() {
         ? `${Math.round((orderStats.completedOrders / orderStats.totalOrders) * 100)}%` 
         : "0%",
       trend: "up" as const,
-      colorVariant: "cyan" as const,
     },
     {
       title: "نفاد المخزون",
@@ -248,9 +241,58 @@ export default function DashboardPage() {
         ? "تنبيه" 
         : "جيد",
       trend: (storeStats?.outOfStock && storeStats.outOfStock > 0 ? "down" : "up") as "up" | "down",
-      colorVariant: "rose" as const,
     },
   ];
+
+  // Overview stats data - بيانات حقيقية
+  const overviewStatsData = [
+    {
+      label: "النقرات",
+      value: dashboardStats?.views?.total || 0,
+      change: dashboardStats?.views?.thisMonth && dashboardStats?.views?.total
+        ? Number(((dashboardStats.views.thisMonth / Math.max(dashboardStats.views.total - dashboardStats.views.thisMonth, 1)) * 100).toFixed(1))
+        : 0,
+    },
+    {
+      label: "الطلبات",
+      value: orderStats?.totalOrders || 0,
+      change: orderStats?.pendingOrders && orderStats?.totalOrders
+        ? Number(((orderStats.pendingOrders / Math.max(orderStats.totalOrders, 1)) * 100).toFixed(1))
+        : 0,
+    },
+    {
+      label: "إجابات النماذج",
+      value: dashboardStats?.forms?.submissions || 0,
+      change: dashboardStats?.forms?.submissions && dashboardStats?.forms?.total
+        ? Number(((dashboardStats.forms.submissions / Math.max(dashboardStats.forms.total, 1)) * 100).toFixed(1))
+        : 0,
+      highlight: true,
+    },
+    {
+      label: "المنتجات النشطة",
+      value: storeStats?.activeProducts || 0,
+      change: storeStats?.activeProducts && storeStats?.totalProducts
+        ? Number(((storeStats.activeProducts / Math.max(storeStats.totalProducts, 1)) * 100).toFixed(1))
+        : 0,
+    },
+  ];
+
+  // Activities data - بيانات النشاطات الحقيقية
+  const activitiesData = recentActivities.slice(0, 6).map((activity: any, index: number) => ({
+    id: activity.id || String(index),
+    title: activity.title || activity.description || "نشاط جديد",
+    description: activity.description || undefined,
+    type: activity.type || "alert",
+    time: activity.time || "الآن",
+    isNew: index === 0,
+  }));
+
+  // Chart days data
+  const chartDaysData = chartData?.current?.map((day, index) => ({
+    day: day.day,
+    value: day.orders + day.revenue / 1000,
+    isHighlighted: index === 3,
+  })) || undefined;
 
   return (
     <div className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 gap-4 m-2 md:ms-0" dir="rtl">
@@ -275,65 +317,76 @@ export default function DashboardPage() {
               {loading
                 ? Array.from({ length: 4 }).map((_, i) => <StatsCardSkeleton key={i} />)
                 : statsData.map((stat, index) => (
+                    <StatsCard key={index} {...stat} highlight={index === 0} />
+                  ))}
+            </div>
+
+            {/* Stats Cards - القسم الثاني */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {loading
+                ? Array.from({ length: 4 }).map((_, i) => <StatsCardSkeleton key={i} />)
+                : secondaryStats.map((stat, index) => (
                     <StatsCard key={index} {...stat} />
                   ))}
-          </div>
+            </div>
 
-          {/* Stats Cards - القسم الثاني */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            {loading
-              ? Array.from({ length: 4 }).map((_, i) => <StatsCardSkeleton key={i} />)
-              : secondaryStats.map((stat, index) => (
-                  <StatsCard key={index} {...stat} />
-                ))}
-          </div>
+            {/* New Charts Section - Overview & Activity */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {loading ? (
+                <>
+                  <OverviewStatsSkeleton />
+                  <ActivityBarChartSkeleton />
+                </>
+              ) : (
+                <>
+                  <OverviewStats 
+                    title="نظرة عامة"
+                    subtitle="إحصائياتك. اختر فترة وتابع نشاطك"
+                    stats={overviewStatsData}
+                  />
+                  <ActivityBarChart 
+                    title="كل الوقت"
+                    totalValue={`${Math.floor((orderStats?.totalRevenue || 0) / 1000)}K IQD`}
+                    data={chartDaysData}
+                    badge={{
+                      value: formatNumber(dashboardStats?.views?.total || 0),
+                      trend: "up"
+                    }}
+                  />
+                </>
+              )}
+            </div>
 
-          {/* Charts Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Recent Orders & Top Products */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {loading ? (
+                <>
+                  <RecentOrdersSkeleton />
+                  <TopProductsTableSkeleton />
+                </>
+              ) : (
+                <>
+                  <RecentOrders orders={recentOrders} formatCurrency={formatCurrency} />
+                  <TopProductsTable products={topProducts} formatCurrency={formatCurrency} />
+                </>
+              )}
+            </div>
+
+            {/* Activities List - آخر النشاطات */}
             {loading ? (
-              <>
-                <RevenueChartSkeleton />
-                <TotalSalesChartSkeleton />
-              </>
+              <TasksListSkeleton />
             ) : (
-              <>
-                <RevenueChart 
-                  data={chartData || undefined}
-                  currentTotal={chartData?.summary?.currentTotal || orderStats?.totalRevenue || 0}
-                  previousTotal={chartData?.summary?.previousTotal || Math.round((orderStats?.totalRevenue || 0) * 0.85)}
-                />
-                <TotalSalesChart 
-                  data={trafficSources.length > 0 ? trafficSources.map((source) => ({
-                    name: source.name,
-                    value: source.value,
-                    color: source.color || "bg-slate-400 dark:bg-slate-500"
-                  })) : undefined}
-                />
-              </>
+              <TasksList 
+                title="آخر النشاطات"
+                tasks={activitiesData.length > 0 ? activitiesData : [
+                  { id: "1", title: "تم إنشاء متجرك بنجاح", type: "store_created", time: "منذ 5 د", isNew: true },
+                  { id: "2", title: "تمت إضافة منتج جديد", description: "قميص رجالي كلاسيك", type: "product_created", time: "منذ 30 د" },
+                  { id: "3", title: "طلب جديد #1234", description: "من أحمد محمد", type: "order_received", time: "منذ 1 س" },
+                  { id: "4", title: "تم تحديث الملف الشخصي", type: "profile_updated", time: "منذ 2 س" },
+                  { id: "5", title: "تسجيل جديد في الفعالية", description: "ورشة التصميم", type: "event_registration", time: "منذ 3 س" },
+                ]}
+              />
             )}
-          </div>
-
-          {/* Recent Orders & Top Products */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {loading ? (
-              <>
-                <RecentOrdersSkeleton />
-                <TopProductsTableSkeleton />
-              </>
-            ) : (
-              <>
-                <RecentOrders orders={recentOrders} formatCurrency={formatCurrency} />
-                <TopProductsTable products={topProducts} formatCurrency={formatCurrency} />
-              </>
-            )}
-          </div>
-
-          {/* Recent Activities */}
-          {loading ? (
-            <RecentActivitiesSkeleton />
-          ) : (
-            <RecentActivities activities={recentActivities} />
-          )}
           </div>
         </div>
       </div>

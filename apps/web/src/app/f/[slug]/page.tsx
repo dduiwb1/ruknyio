@@ -71,6 +71,11 @@ interface FormTheme {
   appearance: 'light' | 'dark' | 'system';
   showLogo: boolean;
   presetId?: string;
+  // صورة الخلفية
+  backgroundType?: 'solid' | 'gradient' | 'image';
+  backgroundImage?: string;
+  backgroundGradient?: string;
+  backgroundBlur?: number;
 }
 
 // Default theme
@@ -87,6 +92,11 @@ const DEFAULT_THEME: FormTheme = {
   spacing: 'normal',
   appearance: 'light',
   showLogo: true,
+  // صورة الخلفية
+  backgroundType: 'solid',
+  backgroundImage: undefined,
+  backgroundGradient: undefined,
+  backgroundBlur: 0,
 };
 
 // Apply theme to CSS variables
@@ -1489,20 +1499,79 @@ export default function PublicFormPage() {
   const formUrl = typeof window !== 'undefined' ? window.location.href : '';
   const ownerName = form.user?.profile?.name || form.user?.email?.split('@')[0] || 'مستخدم';
 
+  // حساب أنماط الخلفية بناءً على نوع الخلفية
+  const getBackgroundStyles = (): React.CSSProperties => {
+    const baseStyles: React.CSSProperties = {
+      ...themeStyles,
+      color: formTheme.appearance !== 'system' ? formTheme.textColor : undefined,
+    };
+
+    switch (formTheme.backgroundType) {
+      case 'image':
+        if (formTheme.backgroundImage) {
+          return {
+            ...baseStyles,
+            backgroundImage: `url(${formTheme.backgroundImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            backgroundAttachment: 'fixed',
+          };
+        }
+        return { ...baseStyles, backgroundColor: formTheme.backgroundColor };
+      case 'gradient':
+        if (formTheme.backgroundGradient) {
+          return {
+            ...baseStyles,
+            background: formTheme.backgroundGradient,
+          };
+        }
+        return { ...baseStyles, backgroundColor: formTheme.backgroundColor };
+      case 'solid':
+      default:
+        return {
+          ...baseStyles,
+          backgroundColor: formTheme.appearance !== 'system' ? formTheme.backgroundColor : undefined,
+        };
+    }
+  };
+
+  const backgroundStyles = getBackgroundStyles();
+  const hasBackgroundImage = formTheme.backgroundType === 'image' && formTheme.backgroundImage;
+
   return (
     <div 
       className={cn(
-        "min-h-screen transition-colors",
+        "min-h-screen transition-colors relative",
         formTheme.appearance === 'dark' ? 'dark bg-gray-900' : 
         formTheme.appearance === 'light' ? 'bg-white' : 'bg-background'
       )}
       dir="rtl"
-      style={{
-        ...themeStyles,
-        backgroundColor: formTheme.appearance !== 'system' ? formTheme.backgroundColor : undefined,
-        color: formTheme.appearance !== 'system' ? formTheme.textColor : undefined,
-      }}
+      style={backgroundStyles}
     >
+      {/* طبقة ضبابية فوق صورة الخلفية */}
+      {hasBackgroundImage && formTheme.backgroundBlur && formTheme.backgroundBlur > 0 && (
+        <div 
+          className="absolute inset-0 z-0"
+          style={{
+            backdropFilter: `blur(${formTheme.backgroundBlur}px)`,
+            WebkitBackdropFilter: `blur(${formTheme.backgroundBlur}px)`,
+          }}
+        />
+      )}
+      
+      {/* طبقة تراكب لتحسين قراءة النص فوق الصورة */}
+      {hasBackgroundImage && (
+        <div 
+          className={cn(
+            "absolute inset-0 z-0",
+            formTheme.appearance === 'dark' 
+              ? "bg-black/40" 
+              : "bg-white/60"
+          )}
+        />
+      )}
+      
       {/* Simple Header + بطاقة المعلومات تنبثق من هنا */}
       <header className="sticky top-2 z-40 mx-4 sm:mx-auto max-w-2xl relative">
         <div className="bg-card/95 backdrop-blur-xl rounded-4xl border border-border/60 px-4 py-3 flex items-center justify-between gap-3 transition-all duration-300">
@@ -1720,7 +1789,7 @@ export default function PublicFormPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-2xl mx-auto px-4 py-6">
+      <main className="max-w-2xl mx-auto px-4 py-6 relative z-10">
         {/* Cover Image - Carousel للصور المتعددة */}
         {form.bannerImages && form.bannerImages.length > 0 && (
           <motion.div

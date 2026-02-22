@@ -19,7 +19,7 @@ export function EmptyFormsState({ onCreateForm }: EmptyFormsStateProps) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-2xl border border-gray-100 p-8 sm:p-12 text-center relative overflow-hidden"
+      className="rounded-3xl bg-muted/30 p-8 sm:p-12 text-center relative overflow-hidden"
     >
       {/* Background decoration */}
       <div className="absolute inset-0 opacity-[0.02]">
@@ -45,7 +45,7 @@ export function EmptyFormsState({ onCreateForm }: EmptyFormsStateProps) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="text-xl sm:text-2xl font-bold text-gray-900 mb-2"
+        className="text-xl sm:text-2xl font-bold text-foreground mb-2"
       >
         ابدأ بإنشاء نموذجك الأول
       </motion.h3>
@@ -54,7 +54,7 @@ export function EmptyFormsState({ onCreateForm }: EmptyFormsStateProps) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="text-sm text-gray-500 mb-8 max-w-sm mx-auto"
+        className="text-sm text-muted-foreground mb-8 max-w-sm mx-auto"
       >
         أنشئ نماذج احترافية واجمع البيانات من المستخدمين بسهولة
       </motion.p>
@@ -66,7 +66,7 @@ export function EmptyFormsState({ onCreateForm }: EmptyFormsStateProps) {
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         onClick={onCreateForm}
-        className="inline-flex items-center gap-2.5 px-6 py-3 bg-gradient-to-r from-gray-900 to-gray-800 text-white rounded-xl font-medium hover:from-gray-800 hover:to-gray-700 transition-all shadow-lg shadow-gray-900/20"
+        className="inline-flex items-center gap-2.5 px-6 py-3 bg-foreground text-background rounded-xl font-medium hover:bg-foreground/90 transition-all shadow-lg shadow-foreground/20"
       >
         <Plus className="w-5 h-5" />
         <span>إنشاء نموذج جديد</span>
@@ -78,9 +78,9 @@ export function EmptyFormsState({ onCreateForm }: EmptyFormsStateProps) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="mt-10 pt-8 border-t border-gray-100"
+        className="mt-10 pt-8 border-t border-border"
       >
-        <p className="text-xs text-gray-400 mb-4">أفكار للبدء</p>
+        <p className="text-xs text-muted-foreground mb-4">أفكار للبدء</p>
         <div className="flex flex-wrap items-center justify-center gap-2">
           {FORM_SUGGESTIONS.map((suggestion, index) => (
             <motion.button
@@ -90,7 +90,7 @@ export function EmptyFormsState({ onCreateForm }: EmptyFormsStateProps) {
               transition={{ delay: 0.6 + index * 0.1 }}
               whileHover={{ scale: 1.05 }}
               onClick={onCreateForm}
-              className="inline-flex items-center gap-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded-full text-xs text-gray-600 transition-all border border-gray-100"
+              className="inline-flex items-center gap-2 px-3 py-2 bg-muted hover:bg-muted/80 rounded-full text-xs text-muted-foreground transition-all border border-border"
             >
               <span className={`w-5 h-5 rounded-full ${suggestion.bg} flex items-center justify-center`}>
                 <suggestion.icon className={`w-3 h-3 ${suggestion.color}`} />

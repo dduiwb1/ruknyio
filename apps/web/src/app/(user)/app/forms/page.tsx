@@ -286,7 +286,7 @@ export default function FormsPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="rounded-2xl border border-border/50 bg-card p-8 text-center"
+                className="rounded-3xl bg-muted/30 p-8 text-center"
               >
                 <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
                 <h3 className="text-base font-semibold text-foreground mb-1">

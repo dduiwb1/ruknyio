@@ -182,10 +182,15 @@ export class TokenService {
     ipAddress?: string,
     userAgent?: string,
   ): Promise<TokenPair> {
+    const startTime = Date.now();
+    const timings: Record<string, number> = {};
+    
     const refreshTokenHash = this.hashToken(refreshToken);
+    timings.hash = Date.now() - startTime;
 
     // 1. البحث عن الجلسة بواسطة refreshTokenHash الحالي
     // ⚡ Performance: حد أدنى من الحقول + فهرس refreshTokenHash
+    const sessionQueryStart = Date.now();
     const session = await this.prisma.session.findUnique({
       where: { refreshTokenHash },
       select: {
@@ -203,6 +208,12 @@ export class TokenService {
         user: { select: { email: true } },
       },
     });
+    timings.sessionQuery = Date.now() - sessionQueryStart;
+    
+    // ⚡ Log slow queries (> 500ms)
+    if (timings.sessionQuery > 500) {
+      console.warn(`[TokenService] ⚠️ Slow session query: ${timings.sessionQuery}ms`);
+    }
 
     // 2. إذا لم نجد الجلسة بـ hash الحالي، نبحث عن سرقة محتملة أو فترة سماح
     if (!session) {
@@ -385,6 +396,7 @@ export class TokenService {
 
     // 8. تحديث الجلسة (Rotation) - فقط Refresh Token Hash الجديد
     // ⚠️ بعد هذه النقطة، أي استخدام للـ token القديم = سرقة محتملة
+    const updateStart = Date.now();
     await this.prisma.session.update({
       where: { id: session.id },
       data: {
@@ -400,6 +412,17 @@ export class TokenService {
         userAgent: userAgent || session.userAgent,
       },
     });
+    timings.sessionUpdate = Date.now() - updateStart;
+    
+    // ⚡ Log total refresh time (warn if > 1s)
+    const totalTime = Date.now() - startTime;
+    if (totalTime > 1000 || !isProduction) {
+      console.log(`[TokenService] Refresh completed in ${totalTime}ms`, {
+        sessionQuery: timings.sessionQuery,
+        sessionUpdate: timings.sessionUpdate,
+        hash: timings.hash,
+      });
+    }
 
     return {
       accessToken: newAccessToken,

@@ -33,6 +33,8 @@ export class DashboardService {
           // Forms stats (2 queries)
           activeForms,
           totalForms,
+          // Form submissions count
+          totalFormSubmissions,
           // User's store
           userStore,
         ] = await Promise.all([
@@ -56,6 +58,12 @@ export class DashboardService {
           }),
           this.prisma.form.count({
             where: { userId },
+          }),
+          // Total form submissions count
+          this.prisma.form_submissions.count({
+            where: {
+              form: { userId },
+            },
           }),
           // Store (for products + orders)
           this.prisma.store.findFirst({
@@ -125,6 +133,7 @@ export class DashboardService {
           forms: {
             active: activeForms,
             total: totalForms,
+            submissions: totalFormSubmissions,
           },
           views: {
             total: totalViews,

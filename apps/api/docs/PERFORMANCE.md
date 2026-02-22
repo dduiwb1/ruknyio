@@ -54,3 +54,44 @@ npx prisma migrate dev --name add_session_composite_index
 ```
 
 ثم إعادة تشغيل الخادم.
+
+---
+
+## تحسينات Neon PostgreSQL (Serverless DB)
+
+### 1. تحسين Keepalive Frequency
+- **قبل**: ping كل 3 دقائق
+- **بعد**: ping كل 90 ثانية
+- **السبب**: Neon يُعلّق قاعدة البيانات بعد 5 دقائق من عدم النشاط، 90 ثانية تضمن عدم الوصول لهذا الحد
+
+### 2. Connection Pool Warming عند Startup
+- **ماذا**: تنفيذ queries خفيفة على الجداول الرئيسية (sessions, users) عند بدء التشغيل
+- **السبب**: تسخين الـ query planner و connection pool قبل أول طلب حقيقي
+
+### 3. تحسين Silent Refresh Timing (Frontend)
+- **قبل**: تجديد عند 80% من expires_in (24 دقيقة لـ 30 دقيقة token)
+- **بعد**: تجديد عند 50% من expires_in (15 دقيقة لـ 30 دقيقة token)
+- **السبب**: يعطي وقت أكبر للتعامل مع cold starts البطيئة لـ Neon
+
+### 4. Performance Timing Logging
+- **ماذا**: تسجيل وقت كل query في `refreshTokens()`
+- **السبب**: تتبع الاستعلامات البطيئة (> 500ms) وتشخيص المشاكل
+
+---
+
+## مراقبة الأداء في Production
+
+### استخدام الـ logs
+```bash
+# البحث عن refreshes بطيئة
+grep "Refresh completed" logs.txt | grep -v "under 1000ms"
+
+# البحث عن slow queries
+grep "⚠️ Slow" logs.txt
+```
+
+### Health Endpoint
+```
+GET /health → يعرض queryCount, slowQueries
+GET /health/metrics → Prometheus format للـ monitoring
+```

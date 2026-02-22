@@ -45,52 +45,52 @@ export function DeleteFormModal({
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="fixed inset-0 flex items-center justify-center z-50 p-4"
           >
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden relative">
+            <div className="bg-card rounded-2xl shadow-xl w-full max-w-sm overflow-hidden relative">
               {/* Close Button */}
               <button
                 onClick={onCancel}
-                className="absolute top-3 left-3 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                className="absolute top-3 left-3 p-1.5 rounded-lg hover:bg-muted transition-colors"
               >
-                <X className="w-4 h-4 text-gray-400" />
+                <X className="w-4 h-4 text-muted-foreground" />
               </button>
 
               {/* Content */}
               <div className="p-6 pt-8 text-center">
                 {/* Icon */}
-                <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center">
-                  <AlertTriangle className="w-7 h-7 text-red-500" />
+                <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <AlertTriangle className="w-7 h-7 text-destructive" />
                 </div>
 
                 {/* Title */}
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                   حذف النموذج
                 </h3>
 
                 {/* Description */}
-                <p className="text-sm text-gray-500 mb-1">
+                <p className="text-sm text-muted-foreground mb-1">
                   هل أنت متأكد من حذف
                 </p>
-                <p className="text-sm font-medium text-gray-900 mb-3">
+                <p className="text-sm font-medium text-foreground mb-3">
                   "{formTitle}"
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-muted-foreground">
                   سيتم حذف جميع الحقول والإجابات المرتبطة بهذا النموذج
                 </p>
               </div>
 
               {/* Actions */}
-              <div className="p-4 flex items-center gap-3 border-t border-gray-100">
+              <div className="p-4 flex items-center gap-3 border-t border-border">
                 <button
                   onClick={onCancel}
                   disabled={isDeleting}
-                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
                 >
                   إلغاء
                 </button>
                 <button
                   onClick={onConfirm}
                   disabled={isDeleting}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
                 >
                   {isDeleting ? (
                     <>

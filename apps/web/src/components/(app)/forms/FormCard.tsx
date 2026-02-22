@@ -98,11 +98,11 @@ export function FormCardComponent({
       exit={{ opacity: 0, y: -10 }}
       whileHover={{ y: -2 }}
       transition={{ duration: 0.2 }}
-      className="bg-white rounded-4xl border border-gray-200 p-3 group cursor-pointer hover:shadow-lg transition-all duration-200"
+      className="bg-card rounded-3xl p-3 group cursor-pointer hover:shadow-lg transition-all duration-200"
       onClick={() => onView?.(form)}
     >
       {/* Image/Icon Section */}
-      <div className="relative aspect-[4/3] bg-gradient-to-br from-gray-50 to-gray-100 rounded-3xl overflow-hidden mb-3">
+      <div className="relative aspect-[4/3] bg-muted rounded-2xl overflow-hidden mb-3">
         {/* Cover Image or Icon */}
         {form.coverImage ? (
           <img 
@@ -114,7 +114,7 @@ export function FormCardComponent({
           <div className="absolute inset-0 flex items-center justify-center">
             <div className={cn(
               "w-16 h-16 rounded-2xl flex items-center justify-center",
-              "bg-white/80 backdrop-blur-sm shadow-sm"
+              "bg-card/80 backdrop-blur-sm shadow-sm"
             )}>
               <TypeIcon className={cn("w-8 h-8", typeStyle.color)} />
             </div>
@@ -159,8 +159,8 @@ export function FormCardComponent({
               <button
                 onClick={(e) => e.stopPropagation()}
                 className={cn(
-                  "w-7 h-7 rounded-lg bg-white/90 backdrop-blur-sm flex items-center justify-center",
-                  "text-gray-500 hover:text-gray-900 hover:bg-white",
+                  "w-7 h-7 rounded-lg bg-card/90 backdrop-blur-sm flex items-center justify-center",
+                  "text-muted-foreground hover:text-foreground hover:bg-card",
                   "transition-all duration-200 shadow-sm",
                   "opacity-0 group-hover:opacity-100",
                   "data-[state=open]:opacity-100"
@@ -250,19 +250,19 @@ export function FormCardComponent({
       <div className="text-right">
         {/* Name & Type Row */}
         <div className="flex items-center justify-between gap-2 mb-2">
-          <h3 className="font-bold text-gray-900 text-[14px] leading-tight line-clamp-1 flex-1 min-w-0">
+          <h3 className="font-bold text-foreground text-[14px] leading-tight line-clamp-1 flex-1 min-w-0">
             {form.title}
           </h3>
           <span className={cn(
             "px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap",
-            "bg-gray-100 text-gray-700"
+            "bg-muted text-muted-foreground"
           )}>
             {FORM_TYPE_LABELS[form.type]}
           </span>
         </div>
 
         {/* Description */}
-        <p className="text-[12px] text-gray-400 line-clamp-2 mb-3 leading-relaxed">
+        <p className="text-[12px] text-muted-foreground line-clamp-2 mb-3 leading-relaxed">
           {form.description || 'بدون وصف'}
         </p>
 
@@ -271,24 +271,24 @@ export function FormCardComponent({
           {/* Responses Tag */}
           <span className={cn(
             "flex items-center gap-1 text-[11px]",
-            submissionsCount > 0 ? "text-violet-500" : "text-gray-400"
+            submissionsCount > 0 ? "text-violet-500" : "text-muted-foreground"
           )}>
             <span className={cn(
               "w-2 h-2 rounded-full",
-              submissionsCount > 0 ? "bg-violet-400" : "bg-gray-300"
+              submissionsCount > 0 ? "bg-violet-400" : "bg-muted-foreground/30"
             )} />
             {submissionsCount} رد
           </span>
 
           {/* Views Tag */}
-          <span className="flex items-center gap-1 text-[11px] text-gray-400">
-            <span className="w-2 h-2 rounded-full bg-gray-300" />
+          <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+            <span className="w-2 h-2 rounded-full bg-muted-foreground/30" />
             {form.viewCount || 0} مشاهدة
           </span>
 
           {/* Fields Tag */}
-          <span className="flex items-center gap-1 text-[11px] text-gray-400">
-            <span className="w-2 h-2 rounded-full bg-gray-300" />
+          <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+            <span className="w-2 h-2 rounded-full bg-muted-foreground/30" />
             {fieldsCount} حقل
           </span>
         </div>
@@ -300,29 +300,29 @@ export function FormCardComponent({
 // Skeleton loader for FormCard
 export function FormCardSkeleton() {
   return (
-    <div className="bg-white rounded-4xl border border-gray-200 p-3 animate-pulse">
+    <div className="bg-card rounded-3xl p-3 animate-pulse">
       {/* Image Skeleton */}
-      <div className="relative aspect-[4/3] bg-gray-200 rounded-3xl mb-3" />
+      <div className="relative aspect-[4/3] bg-muted rounded-2xl mb-3" />
       
       {/* Content Skeleton */}
       <div className="text-right">
         {/* Name & Type Row */}
         <div className="flex items-center justify-between gap-2 mb-2">
-          <div className="h-4 bg-gray-200 rounded flex-1" />
-          <div className="h-7 w-16 bg-gray-200 rounded-lg" />
+          <div className="h-4 bg-muted rounded flex-1" />
+          <div className="h-7 w-16 bg-muted rounded-lg" />
         </div>
         
         {/* Description */}
         <div className="space-y-1.5 mb-3">
-          <div className="h-3 bg-gray-100 rounded w-full" />
-          <div className="h-3 bg-gray-100 rounded w-3/4" />
+          <div className="h-3 bg-muted/60 rounded w-full" />
+          <div className="h-3 bg-muted/60 rounded w-3/4" />
         </div>
         
         {/* Tags */}
         <div className="flex items-center gap-2">
-          <div className="h-3 w-12 bg-gray-100 rounded" />
-          <div className="h-3 w-14 bg-gray-100 rounded" />
-          <div className="h-3 w-10 bg-gray-100 rounded" />
+          <div className="h-3 w-12 bg-muted/60 rounded" />
+          <div className="h-3 w-14 bg-muted/60 rounded" />
+          <div className="h-3 w-10 bg-muted/60 rounded" />
         </div>
       </div>
     </div>

@@ -2,10 +2,11 @@
 
 /**
  * 📦 Recent Orders Component
- * قائمة آخر الطلبات - تصميم متناسق
+ * قائمة آخر الطلبات - تصميم موحد ونظيف
  */
 
-import { Package, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, ArrowUpRight, Loader2 } from 'lucide-react';
+import { motion } from "framer-motion";
+import { Clock, CheckCircle2, XCircle, Truck, ShoppingBag, ArrowUpLeft, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
@@ -29,12 +30,12 @@ interface RecentOrdersProps {
   formatCurrency: (amount: number) => string;
 }
 
-const statusConfig: Record<string, { label: string; icon: React.ElementType; colorBg: string; colorText: string }> = {
-  PENDING: { label: 'معلق', icon: Clock, colorBg: 'bg-warning/10', colorText: 'text-warning' },
-  PROCESSING: { label: 'قيد المعالجة', icon: Loader2, colorBg: 'bg-info/10', colorText: 'text-info' },
-  SHIPPED: { label: 'تم الشحن', icon: Truck, colorBg: 'bg-violet-500/10', colorText: 'text-violet-600 dark:text-violet-400' },
-  COMPLETED: { label: 'مكتمل', icon: CheckCircle2, colorBg: 'bg-success/10', colorText: 'text-success' },
-  CANCELLED: { label: 'ملغي', icon: XCircle, colorBg: 'bg-destructive/10', colorText: 'text-destructive' },
+const statusConfig: Record<string, { label: string; icon: React.ElementType; color: string }> = {
+  PENDING: { label: "معلق", icon: Clock, color: "text-amber-500" },
+  PROCESSING: { label: "قيد المعالجة", icon: Loader2, color: "text-blue-500" },
+  SHIPPED: { label: "تم الشحن", icon: Truck, color: "text-violet-500" },
+  COMPLETED: { label: "مكتمل", icon: CheckCircle2, color: "text-emerald-500" },
+  CANCELLED: { label: "ملغي", icon: XCircle, color: "text-rose-500" },
 };
 
 function getStatusConfig(status: string) {
@@ -49,116 +50,127 @@ function formatTimeAgo(dateString: string): string {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return 'الآن';
-  if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
-  if (diffHours < 24) return `منذ ${diffHours} ساعة`;
-  return `منذ ${diffDays} يوم`;
+  if (diffMins < 1) return "الآن";
+  if (diffMins < 60) return `منذ ${diffMins} د`;
+  if (diffHours < 24) return `منذ ${diffHours} س`;
+  return `منذ ${diffDays} ي`;
 }
 
 export function RecentOrders({ orders, formatCurrency }: RecentOrdersProps) {
   if (orders.length === 0) {
     return (
-      <div className="rounded-4xl border border-border/50 bg-card">
-        <div className="flex items-center gap-3 p-4 border-b border-border/50">
-          <div className="p-2 rounded-lg bg-info/10">
-            <ShoppingBag className="w-4 h-4 text-info" />
-          </div>
-          <h3 className="text-sm font-semibold text-foreground">آخر الطلبات</h3>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="rounded-3xl bg-muted/30 p-5 sm:p-6"
+      >
+        <h3 className="text-base font-bold text-foreground mb-4">آخر الطلبات</h3>
+        <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+          <ShoppingBag className="h-10 w-10 mb-2 opacity-30" />
+          <p className="text-sm">لا توجد طلبات حالياً</p>
         </div>
-        <div className="flex flex-col items-center justify-center py-12 px-4">
-          <div className="p-4 rounded-xl bg-muted/40 mb-3">
-            <Package className="w-8 h-8 text-muted-foreground" />
-          </div>
-          <p className="text-sm font-medium text-foreground">لا توجد طلبات</p>
-          <p className="text-xs text-muted-foreground">ستظهر الطلبات هنا</p>
-        </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="rounded-4xl border border-border/50 bg-card">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="rounded-3xl bg-muted/30 p-5 sm:p-6"
+    >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border/50">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-info/10">
-            <ShoppingBag className="w-4 h-4 text-info" />
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">آخر الطلبات</h3>
-            <p className="text-xs text-muted-foreground">{orders.length} طلبات</p>
-          </div>
-        </div>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-base font-bold text-foreground">آخر الطلبات</h3>
         <Link
           href="/app/store/orders"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-primary hover:bg-primary/10 transition-colors"
+          className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
         >
           عرض الكل
-          <ArrowUpRight className="w-3.5 h-3.5" />
+          <ArrowUpLeft className="w-3 h-3" />
         </Link>
       </div>
 
       {/* Orders List */}
-      <div className="divide-y divide-border/40">
-        {orders.map((order) => {
+      <div className="space-y-2">
+        {orders.map((order, index) => {
           const config = getStatusConfig(order.status);
           const StatusIcon = config.icon;
 
           return (
-            <div key={order.id} className="p-4 hover:bg-muted/30 transition-colors">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className={cn("p-2 rounded-lg", config.colorBg)}>
-                    <StatusIcon className={cn("w-4 h-4", config.colorText)} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-foreground">#{order.orderNumber}</span>
-                      <span className={cn("text-[10px] px-2 py-0.5 rounded-md font-medium", config.colorBg, config.colorText)}>{config.label}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate">{order.customerName}</p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                      <span>{order.items.length} منتج</span>
-                      <span>•</span>
-                      <span>{formatTimeAgo(order.createdAt)}</span>
-                    </div>
-                  </div>
+            <motion.div
+              key={order.id}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className={cn(
+                "flex items-center gap-3 px-4 py-3 rounded-2xl bg-card",
+                index === 0 && "bg-[#c8e972]/20 dark:bg-[#c8e972]/10"
+              )}
+            >
+              {/* Status Icon */}
+              <div className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                index === 0 ? "bg-[#c8e972]" : "bg-muted/60"
+              )}>
+                <StatusIcon className={cn(
+                  "w-4 h-4",
+                  index === 0 ? "text-foreground" : config.color
+                )} />
+              </div>
+
+              {/* Order Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-foreground">
+                    #{order.orderNumber}
+                  </span>
+                  <span className={cn("text-xs", config.color)}>
+                    {config.label}
+                  </span>
                 </div>
-                <p className="text-sm font-bold tabular-nums text-success">
-                  {formatCurrency(order.total)}
+                <p className="text-xs text-muted-foreground truncate">
+                  {order.customerName} • {order.items.length} منتج
                 </p>
               </div>
-            </div>
+
+              {/* Amount & Time */}
+              <div className="text-left shrink-0">
+                <p className="text-sm font-bold text-foreground tabular-nums">
+                  {formatCurrency(order.total)}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {formatTimeAgo(order.createdAt)}
+                </p>
+              </div>
+            </motion.div>
           );
         })}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
 export function RecentOrdersSkeleton() {
   return (
-    <div className="rounded-4xl border border-border/50 bg-card">
-      <div className="flex items-center justify-between p-4 border-b border-border/50">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-muted animate-pulse" />
-          <div className="space-y-1.5">
-            <div className="h-4 w-20 rounded bg-muted animate-pulse" />
-            <div className="h-3 w-12 rounded bg-muted animate-pulse" />
-          </div>
-        </div>
-        <div className="h-7 w-16 rounded-lg bg-muted animate-pulse" />
+    <div className="rounded-3xl bg-muted/30 p-5 sm:p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="h-5 w-24 bg-muted/60 rounded animate-pulse" />
+        <div className="h-4 w-16 bg-muted/60 rounded animate-pulse" />
       </div>
-      <div className="divide-y divide-border/40">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-muted animate-pulse" />
-              <div className="flex-1 space-y-1.5">
-                <div className="h-4 w-24 rounded bg-muted animate-pulse" />
-                <div className="h-3 w-32 rounded bg-muted animate-pulse" />
-              </div>
-              <div className="h-4 w-20 rounded bg-muted animate-pulse" />
+      <div className="space-y-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-card">
+            <div className="w-8 h-8 rounded-full bg-muted/60 animate-pulse" />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-4 w-24 bg-muted/60 rounded animate-pulse" />
+              <div className="h-3 w-32 bg-muted/60 rounded animate-pulse" />
+            </div>
+            <div className="space-y-1">
+              <div className="h-4 w-16 bg-muted/60 rounded animate-pulse" />
+              <div className="h-3 w-10 bg-muted/60 rounded animate-pulse" />
             </div>
           </div>
         ))}

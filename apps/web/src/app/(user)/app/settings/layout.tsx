@@ -66,11 +66,11 @@ export default function SettingsLayout({
       dir="rtl"
     >
       <SettingsSidebar />
-      <div className="flex-1 min-w-0 bg-card rounded-2xl border border-border/60 overflow-hidden flex flex-col">
+      <div className="flex-1 min-w-0 bg-card rounded-2xl border border-border/50 overflow-hidden flex flex-col">
         {/* Mobile Header */}
-        <header className="sticky top-0 z-40 lg:hidden bg-card border-b border-border/60">
+        <header className="sticky top-0 z-40 lg:hidden bg-card/95 backdrop-blur-md border-b border-border/50">
           {/* Top Row - Title & Actions */}
-          <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center justify-between px-4 py-4">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               {/* زر رجوع إلى لوحة التحكم */}
               {currentTab && (
@@ -78,7 +78,7 @@ export default function SettingsLayout({
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     type="button"
-                    className="flex-shrink-0 w-9 h-9 rounded-xl bg-muted hover:bg-muted/80 transition-colors flex items-center justify-center"
+                    className="flex-shrink-0 w-10 h-10 rounded-xl bg-muted/60 hover:bg-muted/80 transition-colors flex items-center justify-center"
                     aria-label="الرجوع إلى الإعدادات"
                   >
                     <ChevronRight className="w-5 h-5 text-foreground" />
@@ -87,14 +87,14 @@ export default function SettingsLayout({
               )}
               
               {/* Icon & Title */}
-              <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
                   <HeaderIcon className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-base font-semibold text-foreground truncate">{headerTitle}</h1>
+                  <h1 className="text-base font-bold text-foreground truncate">{headerTitle}</h1>
                   {currentSection && (
-                    <p className="text-xs text-muted-foreground truncate">{currentSection.label}</p>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">{currentSection.label}</p>
                   )}
                 </div>
               </div>
@@ -102,22 +102,22 @@ export default function SettingsLayout({
           </div>
 
           {/* Breadcrumb Row */}
-          <div className="px-4 pb-3 pt-0.5">
+          <div className="px-4 pb-3">
             <SettingsBreadcrumb />
           </div>
         </header>
 
         {/* Desktop Header */}
-        <header className="hidden lg:block border-b border-border/60 bg-card">
-          <div className="px-6 py-5">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-11 h-11 rounded-xl bg-muted flex items-center justify-center">
-                <HeaderIcon className="w-5 h-5 text-primary" />
+        <header className="hidden lg:block border-b border-border/50 bg-card">
+          <div className="px-6 py-6">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <HeaderIcon className="w-6 h-6 text-primary" />
               </div>
               <div>
                 <h1 className="text-xl font-bold text-foreground">{headerTitle}</h1>
                 {currentSection && (
-                  <p className="text-sm text-muted-foreground mt-0.5">{currentSection.label}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{currentSection.label}</p>
                 )}
               </div>
             </div>
@@ -152,13 +152,13 @@ export default function SettingsLayout({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative bg-card border border-border/60 rounded-3xl p-6 max-w-[360px] w-full"
+              className="relative bg-card border border-border/50 rounded-2xl p-6 max-w-[360px] w-full"
               onClick={(e) => e.stopPropagation()}
             >
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setShowPreview(false)}
-                className="absolute top-4 left-4 p-2.5 bg-muted hover:bg-muted/80 rounded-xl transition-colors z-10"
+                className="absolute top-4 left-4 p-2.5 bg-muted/60 hover:bg-muted/80 rounded-xl transition-colors z-10"
                 aria-label="إغلاق"
               >
                 <X className="w-5 h-5 text-foreground" />

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useRef, memo, useCallback } from 'react';
-import Image from 'next/image';
 import { toast } from 'sonner';
 import { Upload, ImagePlus, Trash2, X, Check, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -223,13 +222,11 @@ function FormBannersUpload({
                 >
                   {/* Image */}
                   <div className="relative w-full h-28">
-                    <Image 
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img 
                       src={previewUrl} 
                       alt={`بانر ${i + 1}`} 
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 640px) 50vw, 33vw"
-                      unoptimized={isFile}
+                      className="w-full h-full object-cover"
                     />
                   </div>
                   

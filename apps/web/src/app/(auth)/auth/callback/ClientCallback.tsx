@@ -18,8 +18,6 @@ function CallbackContent() {
   const { handleOAuthCallback } = useAuth();
 
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const MAX_RETRIES = 3;
   const exchangeAttemptedRef = useRef(false);
 
   useEffect(() => {
@@ -55,7 +53,7 @@ function CallbackContent() {
     const exchangeCode = async () => {
       try {
         exchangeAttemptedRef.current = true;
-        console.log(`[ClientCallback] Calling handleOAuthCallback with code (attempt ${retryCount + 1}/${MAX_RETRIES}):`, code.substring(0, 20) + '...');
+        console.log('[ClientCallback] Calling handleOAuthCallback with code:', code.substring(0, 20) + '...');
         const response = await handleOAuthCallback(code);
         console.log('[ClientCallback] handleOAuthCallback completed:', {
           needsProfileCompletion: response.needsProfileCompletion,
@@ -74,24 +72,16 @@ function CallbackContent() {
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'فشل التوثيق';
-        console.error(`[ClientCallback] ❌ Exchange failed (attempt ${retryCount + 1}):`, message);
+        console.error('[ClientCallback] ❌ Exchange failed:', message);
         
-        // Retry logic for transient errors
-        if (retryCount < MAX_RETRIES) {
-          const delay = Math.min(1000 * Math.pow(2, retryCount), 5000); // Exponential backoff
-          console.log(`[ClientCallback] 🔄 Retrying in ${delay}ms...`);
-          setTimeout(() => {
-            exchangeAttemptedRef.current = false;
-            setRetryCount(prev => prev + 1);
-          }, delay);
-        } else {
-          setError(message);
-        }
+        // 🔒 No retry - OAuth codes are single-use
+        // If it fails, show error immediately
+        setError(message);
       }
     };
 
     exchangeCode();
-  }, [searchParams, handleOAuthCallback, router, retryCount]);
+  }, [searchParams, handleOAuthCallback, router]);
 
   if (error) {
     return (
@@ -106,10 +96,6 @@ function CallbackContent() {
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           className="flex flex-col items-center w-full max-w-sm"
         >
-          {/* Error Icon */}
-          <div className="flex items-center justify-center w-20 h-20 rounded-full bg-red-100 dark:bg-red-900/30 mb-6">
-            <XCircle className="w-10 h-10 text-red-600 dark:text-red-400" />
-          </div>
 
           {/* Header */}
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2 text-center">

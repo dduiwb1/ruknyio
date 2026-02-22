@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../core/database/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
-import { TOTP, generateSecret, generateURI, verify } from 'otplib';
+import { generateSecret, generateURI, verifySync } from 'otplib';
 import * as QRCode from 'qrcode';
 import * as crypto from 'crypto';
 
@@ -255,9 +255,9 @@ export class TwoFactorService {
 
     // التحقق من الرمز باستخدام otplib
     const cleanToken = token.replace(/\s/g, ''); // إزالة المسافات
-    const isValid = verify({ token: cleanToken, secret });
+    const result = verifySync({ token: cleanToken, secret });
 
-    if (!isValid) {
+    if (!result.valid) {
       throw new UnauthorizedException(
         'رمز التحقق غير صحيح. تأكد من إدخال الرمز الظاهر في التطبيق',
       );
@@ -316,9 +316,9 @@ export class TwoFactorService {
 
     // التحقق من الرمز باستخدام otplib
     const cleanToken = token.replace(/\s/g, '');
-    const isValid = verify({ token: cleanToken, secret });
+    const result = verifySync({ token: cleanToken, secret });
 
-    if (isValid) {
+    if (result.valid) {
       return { valid: true };
     }
 

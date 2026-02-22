@@ -186,25 +186,25 @@ export async function getCurrentUser(): Promise<User> {
 /**
  * 🔒 Refresh access token using refresh token cookie
  * 
- * Both tokens are now in httpOnly cookies - this endpoint
- * refreshes them and returns a new CSRF token
+ * 🔒 IMPORTANT: This function uses the centralized refreshOnce() mutex
+ * to ensure only ONE refresh request happens at a time, even across
+ * multiple tabs or concurrent API calls.
  */
 export async function refreshToken(): Promise<AuthResponse> {
-  const { data } = await api.post<AuthResponse>('/auth/refresh');
+  // Import refreshOnce dynamically to avoid circular dependencies
+  const { refreshOnce } = await import('./client');
   
-  // Runtime validation with Zod schema
-  const validated = AuthResponseSchema.parse(data);
+  const result = await refreshOnce();
   
-  // 🔒 Store CSRF token from response
-  if (validated.csrf_token) {
-    setCsrfToken(validated.csrf_token);
+  if (!result.success) {
+    throw new Error('Token refresh failed');
   }
-  // تقليل انقطاع الجلسة: جدولة تجديد صامت قبل انتهاء الصلاحية
-  if (typeof validated.expires_in === 'number') {
-    scheduleSilentRefresh(validated.expires_in);
-  }
-
-  return validated;
+  
+  return {
+    success: true,
+    csrf_token: result.csrfToken,
+    expires_in: result.expiresIn,
+  };
 }
 
 /**
@@ -290,25 +290,74 @@ export function getLinkedInAuthUrl(): string {
 /**
  * Exchange OAuth code for tokens
  * Called after OAuth redirect with one-time code
+ * 
+ * 🔒 MUTEX: Only ONE exchange per code - subsequent calls wait for the same promise
  */
-export async function exchangeOAuthCode(code: string): Promise<AuthResponse> {
-  try {
-    const { data } = await api.post<AuthResponse>('/auth/oauth/exchange', { code });
-    
-    // Runtime validation with Zod schema
-    const validated = AuthResponseSchema.parse(data);
-    
-    if (validated.access_token) {
-      setAccessToken(validated.access_token);
-    }
-    if (typeof validated.expires_in === 'number') {
-      scheduleSilentRefresh(validated.expires_in);
-    }
 
-    return validated;
-  } catch (error) {
-    throw error;
+// Global mutex for OAuth exchange
+const OAUTH_EXCHANGE_KEY = '__rukny_oauth_exchange__';
+
+interface OAuthExchangeState {
+  codes: Map<string, Promise<AuthResponse>>;
+  usedCodes: Set<string>;
+}
+
+function getOAuthExchangeState(): OAuthExchangeState {
+  if (typeof window === 'undefined') {
+    return { codes: new Map(), usedCodes: new Set() };
   }
+  if (!(window as any)[OAUTH_EXCHANGE_KEY]) {
+    (window as any)[OAUTH_EXCHANGE_KEY] = {
+      codes: new Map<string, Promise<AuthResponse>>(),
+      usedCodes: new Set<string>(),
+    };
+  }
+  return (window as any)[OAUTH_EXCHANGE_KEY];
+}
+
+export async function exchangeOAuthCode(code: string): Promise<AuthResponse> {
+  const state = getOAuthExchangeState();
+  
+  // 🔒 Check if code was already successfully used
+  if (state.usedCodes.has(code)) {
+    throw new Error('This authorization code has already been used');
+  }
+  
+  // 🔒 MUTEX: If exchange is in progress for this code, wait for it
+  const existingPromise = state.codes.get(code);
+  if (existingPromise) {
+    return existingPromise;
+  }
+  
+  // Create the single promise for this code
+  const exchangePromise = (async (): Promise<AuthResponse> => {
+    try {
+      const { data } = await api.post<AuthResponse>('/auth/oauth/exchange', { code });
+      
+      // Runtime validation with Zod schema
+      const validated = AuthResponseSchema.parse(data);
+      
+      // 🔒 Mark code as used on success
+      state.usedCodes.add(code);
+      
+      if (validated.access_token) {
+        setAccessToken(validated.access_token);
+      }
+      if (typeof validated.expires_in === 'number') {
+        scheduleSilentRefresh(validated.expires_in);
+      }
+
+      return validated;
+    } finally {
+      // 🔒 Clear the pending promise (allow retry on failure)
+      state.codes.delete(code);
+    }
+  })();
+  
+  // Store the promise for concurrent callers
+  state.codes.set(code, exchangePromise);
+  
+  return exchangePromise;
 }
 
 // ============ WebSocket Token ============

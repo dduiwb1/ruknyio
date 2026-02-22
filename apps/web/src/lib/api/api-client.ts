@@ -7,19 +7,15 @@
  * - Credentials for httpOnly cookies
  * - Redirect to login on auth failure
  * 
- * Uses shared refresh logic from client.ts to prevent duplicate refresh attempts
+ * 🔒 Uses centralized refreshOnce() from client.ts - NEVER make direct refresh calls!
  */
 
 import { API_URL } from '@/lib/config';
 import { 
   getAccessToken, 
   clearAccessToken, 
-  setCsrfToken,
-  updateLastRefreshTime,
   getRefreshState,
-  setRefreshState,
-  resetRefreshState,
-  scheduleSilentRefresh,
+  refreshOnce,
 } from './client';
 
 interface SecureFetchOptions extends RequestInit {
@@ -40,10 +36,10 @@ const AUTH_PAGES = [
 
 /**
  * Handle authentication failure - redirect to login
+ * 🔒 Note: refreshOnce() already handles auth failure, this is just for secureFetch edge cases
  */
 function handleAuthFailure(reason: 'expired' | 'invalid' = 'expired'): void {
   clearAccessToken();
-  setRefreshState(false, true); // isRefreshing = false, refreshFailed = true
   
   if (typeof window !== 'undefined') {
     const pathname = window.location.pathname;
@@ -55,62 +51,13 @@ function handleAuthFailure(reason: 'expired' | 'invalid' = 'expired'): void {
   }
 }
 
-// Shared promise to prevent concurrent refresh attempts
-let sharedRefreshPromise: Promise<boolean> | null = null;
-
 /**
- * Refresh access token using refresh token cookie.
- * Auth uses httpOnly cookies: refresh returns new access/refresh in Set-Cookie and csrf_token in body.
- * Uses a shared promise to ensure only one refresh happens at a time.
+ * 🔒 DEPRECATED: Use refreshOnce() from client.ts directly
+ * This wrapper is kept for backwards compatibility
  */
 async function refreshAccessToken(): Promise<boolean> {
-  const { isRefreshing, refreshFailed } = getRefreshState();
-  
-  if (refreshFailed) return false;
-  if (isRefreshing && sharedRefreshPromise) {
-    return sharedRefreshPromise;
-  }
-
-  setRefreshState(true, false);
-
-  sharedRefreshPromise = (async () => {
-    try {
-      const response = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!response.ok) {
-        handleAuthFailure('expired');
-        return false;
-      }
-
-      const data = await response.json();
-      // Tokens are in httpOnly cookies; body has success + csrf_token + expires_in
-      if (data.success && data.csrf_token) {
-        setCsrfToken(data.csrf_token);
-        updateLastRefreshTime();
-        setRefreshState(false, false);
-        sharedRefreshPromise = null;
-        if (typeof data.expires_in === 'number') {
-          scheduleSilentRefresh(data.expires_in);
-        }
-        return true;
-      }
-
-      handleAuthFailure('invalid');
-      return false;
-    } catch {
-      handleAuthFailure('expired');
-      return false;
-    } finally {
-      setRefreshState(false, getRefreshState().refreshFailed);
-      if (getRefreshState().refreshFailed) sharedRefreshPromise = null;
-    }
-  })();
-
-  return sharedRefreshPromise;
+  const result = await refreshOnce();
+  return result.success;
 }
 
 /**

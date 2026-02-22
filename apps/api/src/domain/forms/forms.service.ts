@@ -54,6 +54,26 @@ export class FormsService {
   ) {}
 
   /**
+   * Extract S3 key from a presigned URL
+   * Example: https://bucket.s3.region.amazonaws.com/users/xxx/forms/yyy/cover/zzz.webp?X-Amz-... 
+   * Returns: users/xxx/forms/yyy/cover/zzz.webp
+   */
+  private extractS3KeyFromUrl(url: string): string | null {
+    try {
+      const urlObj = new URL(url);
+      // Remove leading slash and return the path without query params
+      const path = urlObj.pathname.replace(/^\//, '');
+      // Validate it looks like an S3 key for forms
+      if (path.startsWith('users/') || path.startsWith('forms/')) {
+        return path;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Process and upload cover image to S3
    * Accepts base64 data URL or returns existing S3 key/URL unchanged
    * Includes timeout protection to prevent request aborts
@@ -65,13 +85,23 @@ export class FormsService {
   ): Promise<string | undefined> {
     if (!coverImage) return undefined;
 
-    // If it's already a URL or S3 key (not base64), return as-is
+    // If it's already an S3 key (not base64 or URL), return as-is
     if (
-      coverImage.startsWith('http') ||
       coverImage.startsWith('users/') ||
       coverImage.startsWith('forms/')
     ) {
       return coverImage;
+    }
+
+    // If it's a presigned URL, extract the S3 key
+    if (coverImage.startsWith('http')) {
+      const s3Key = this.extractS3KeyFromUrl(coverImage);
+      if (s3Key) {
+        return s3Key;
+      }
+      // If we can't extract the key, log warning and return undefined
+      this.logger.warn(`Could not extract S3 key from URL: ${coverImage.substring(0, 100)}...`);
+      return undefined;
     }
 
     // Normalize the cover image - handle cases where 'data:' was stripped by sanitizer

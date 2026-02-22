@@ -156,7 +156,7 @@ function StatsCardSkeleton() {
 
 function QuestionCardSkeleton() {
   return (
-    <div className="bg-card rounded-2xl border border-border/60 p-4">
+    <div className="bg-card rounded-2xl border border-border/50 p-4">
       <div className="flex items-center gap-3">
         <Skeleton className="w-10 h-10 rounded-xl" />
         <div className="flex-1">
@@ -198,7 +198,7 @@ function SubmissionsLoadingSkeleton() {
       </div>
       
       {/* Header Skeleton */}
-      <div className="bg-card rounded-3xl border border-border/60 p-4">
+      <div className="bg-card rounded-2xl border border-border/50 p-4">
         <div className="flex items-center gap-3 mb-4">
           <Skeleton className="w-11 h-11 rounded-xl" />
           <div className="flex-1">
@@ -230,7 +230,7 @@ function EmptyResponsesState({ onCopyLink }: { onCopyLink: () => void }) {
     <motion.div 
       initial={{ opacity: 0, y: 20 }} 
       animate={{ opacity: 1, y: 0 }} 
-      className="bg-card rounded-3xl border border-border/60 overflow-hidden"
+      className="bg-card rounded-2xl border border-border/50 overflow-hidden"
     >
       {/* Decorative Header */}
       <div className="h-32 bg-muted relative overflow-hidden">
@@ -637,7 +637,7 @@ function SummaryQuestionCard({ question, qIndex, submissions, defaultExpanded = 
   return (
     <motion.div 
       variants={itemVariants}
-      className="bg-card rounded-2xl border border-border/60 overflow-hidden transition-all duration-200 hover:border-border"
+      className="bg-card rounded-2xl border border-border/50 overflow-hidden transition-all duration-200 hover:border-border"
     >
       {/* Question Header */}
       <button 
@@ -1021,7 +1021,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
         variants={fadeInUp}
         initial="hidden"
         animate="visible"
-        className="text-center py-12 bg-card rounded-2xl border border-border/60"
+        className="text-center py-12 bg-card rounded-2xl border border-border/50"
       >
         <ListChecks className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
         <p className="text-muted-foreground">لا توجد أسئلة في هذا النموذج</p>
@@ -1037,7 +1037,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-card rounded-3xl border border-border/60 overflow-hidden"
+        className="bg-card rounded-2xl border border-border/50 overflow-hidden"
       >
         {/* Question Title & Navigation */}
         <div className="p-4">
@@ -1108,7 +1108,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
               value={currentField?.id || ''} 
               onChange={(e) => onSelectQuestion(e.target.value)} 
               className={cn(
-                "w-full bg-muted border border-border/60 rounded-xl px-4 py-3 pl-10 text-sm text-foreground font-medium",
+                "w-full bg-muted border border-border/50 rounded-xl px-4 py-3 pl-10 text-sm text-foreground font-medium",
                 "focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-transparent cursor-pointer appearance-none transition-all"
               )}
             >
@@ -1201,7 +1201,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.2 }}
-          className="bg-card rounded-2xl border border-border/60 overflow-hidden"
+          className="bg-card rounded-2xl border border-border/50 overflow-hidden"
         >
           {/* Responses List */}
           <div className="divide-y divide-gray-100 max-h-[400px] overflow-y-auto custom-scrollbar">

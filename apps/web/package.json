@@ -12,7 +12,7 @@
     "analyze:browser": "cross-env BUNDLE_ANALYZE=browser next build --webpack"
   },
   "dependencies": {
-    "@next/bundle-analyzer": "^15.5.10",
+    "@next/bundle-analyzer": "^15.5.12",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-aspect-ratio": "^1.1.8",

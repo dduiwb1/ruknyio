@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Store, Plus, RefreshCw, AlertCircle, Package, CheckCircle2, ShoppingCart, TrendingUp, AlertTriangle, DollarSign, ArrowUp } from 'lucide-react';
+import { Store, Plus, RefreshCw, AlertCircle, Package, CheckCircle2, ShoppingCart, TrendingUp, TrendingDown, AlertTriangle, DollarSign, ArrowUp } from 'lucide-react';
 import { PhonePreview } from '@/components/(app)/shared/PhonePreview';
 
 export default function StorePage() {
@@ -99,97 +99,54 @@ export default function StorePage() {
 
 function StoreStats() {
   const stats = [
-    {
-      title: 'إجمالي المنتجات',
-      value: '0',
-      bgColor: 'bg-sky-50 dark:bg-sky-950/30',
-      iconBg: 'bg-sky-500',
-      icon: Package,
-      change: '+12',
-      changeLabel: 'منتج جديد',
-    },
-    {
-      title: 'المنتجات النشطة',
-      value: '0',
-      bgColor: 'bg-emerald-50 dark:bg-emerald-950/30',
-      iconBg: 'bg-emerald-500',
-      icon: CheckCircle2,
-      change: '+8.5%',
-      changeLabel: 'هذا الأسبوع',
-    },
-    {
-      title: 'الطلبات الجديدة',
-      value: '0',
-      bgColor: 'bg-violet-50 dark:bg-violet-950/30',
-      iconBg: 'bg-violet-500',
-      icon: ShoppingCart,
-      change: '+23',
-      changeLabel: 'طلب جديد',
-    },
-    {
-      title: 'إجمالي المبيعات',
-      value: '0',
-      bgColor: 'bg-amber-50 dark:bg-amber-950/30',
-      iconBg: 'bg-amber-500',
-      icon: TrendingUp,
-      change: '+15%',
-      changeLabel: 'هذا الشهر',
-    },
-    {
-      title: 'المحتاجة لإعادة التخزين',
-      value: '0',
-      bgColor: 'bg-rose-50 dark:bg-rose-950/30',
-      iconBg: 'bg-rose-500',
-      icon: AlertTriangle,
-      change: '3',
-      changeLabel: 'تحتاج انتباه',
-    },
-    {
-      title: 'العائد هذا الشهر',
-      value: '0 د.ع',
-      bgColor: 'bg-indigo-50 dark:bg-indigo-950/30',
-      iconBg: 'bg-indigo-500',
-      icon: DollarSign,
-      change: '+25%',
-      changeLabel: 'عن الشهر السابق',
-    },
+    { key: 'products', title: 'إجمالي المنتجات', value: 0 },
+    { key: 'active', title: 'المنتجات النشطة', value: 0 },
+    { key: 'orders', title: 'الطلبات', value: 0, highlight: true },
+    { key: 'sales', title: 'المبيعات', value: 0 },
+    { key: 'lowStock', title: 'نفاد المخزون', value: 0 },
+    { key: 'revenue', title: 'العائد', value: 0, isCurrency: true },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {stats.map((stat, i) => {
-        const Icon = stat.icon;
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      {stats.map((stat, index) => {
+        const change = 0;
+        const trend = change >= 0 ? 'up' : 'down';
+        
         return (
-          <div
-            key={i}
-            className={`${stat.bgColor} rounded-2xl p-5 flex items-start gap-4 hover:brightness-95 dark:hover:brightness-110 transition-all`}
+          <motion.div
+            key={stat.key}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
+            className={`rounded-2xl p-4 sm:p-5 ${
+              stat.highlight 
+                ? "bg-[#c8e972]/20 dark:bg-[#c8e972]/10" 
+                : "bg-muted/30 dark:bg-muted/20"
+            }`}
           >
-            {/* Icon */}
-            <div className={`w-11 h-11 rounded-xl ${stat.iconBg} flex items-center justify-center flex-shrink-0`}>
-              <Icon className="w-5 h-5 text-white" />
-            </div>
+            {/* Title */}
+            <p className="text-xs sm:text-sm text-muted-foreground mb-2">{stat.title}</p>
 
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-muted-foreground mb-1.5">{stat.title}</p>
-              <div className="flex items-end gap-2">
-                <div className="text-2xl font-bold text-foreground tabular-nums">
-                  {stat.value}
-                </div>
-                {stat.change && (
-                  <div className="flex items-center gap-1 mb-0.5">
-                    <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                      <ArrowUp className="w-3 h-3" />
-                      <span className="text-xs font-semibold">{stat.change}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-              {stat.changeLabel && (
-                <p className="text-xs text-muted-foreground/80 mt-1">{stat.changeLabel}</p>
+            {/* Value */}
+            <h3 className="text-xl sm:text-2xl font-bold text-foreground tabular-nums mb-1">
+              {stat.isCurrency ? `${stat.value} د.ع` : stat.value.toLocaleString()}
+            </h3>
+
+            {/* Change with Trend */}
+            <div className="flex items-center gap-1.5">
+              {trend === 'up' ? (
+                <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+              ) : (
+                <TrendingDown className="w-3.5 h-3.5 text-rose-500" />
               )}
+              <span className={`text-xs font-medium ${
+                trend === 'up' ? "text-emerald-500" : "text-rose-500"
+              }`}>
+                {change >= 0 ? '+' : ''}{change}%
+              </span>
             </div>
-          </div>
+          </motion.div>
         );
       })}
     </div>
@@ -198,21 +155,12 @@ function StoreStats() {
 
 function StoreStatsSkeleton() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div
-          key={i}
-          className="bg-card dark:bg-card/50 rounded-2xl p-5 flex items-start gap-4 animate-pulse"
-        >
-          {/* Icon Skeleton */}
-          <div className="w-12 h-12 rounded-xl bg-muted/50" />
-
-          {/* Content Skeleton */}
-          <div className="flex-1 space-y-2">
-            <div className="h-3 w-24 rounded bg-muted/50" />
-            <div className="h-8 w-20 rounded bg-muted/50" />
-            <div className="h-2.5 w-16 rounded bg-muted/30" />
-          </div>
+        <div key={i} className="rounded-2xl bg-muted/30 p-4 sm:p-5 animate-pulse">
+          <div className="h-3 w-16 bg-muted rounded mb-3" />
+          <div className="h-6 w-12 bg-muted rounded mb-2" />
+          <div className="h-3 w-10 bg-muted rounded" />
         </div>
       ))}
     </div>

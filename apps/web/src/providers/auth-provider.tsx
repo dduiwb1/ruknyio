@@ -139,31 +139,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     initAuth();
   }, []);
 
-  // Set up proactive token refresh (every 25 minutes - 5 min before 30m expiry)
-  useEffect(() => {
-    if (!state.isAuthenticated) return;
-
-    const refreshInterval = setInterval(async () => {
-      try {
-        await refreshToken();
-        // 🔒 Update session timeout tracker
-        updateLastRefreshTime();
-        // Token refresh successful
-      } catch {
-        // Token refresh failed, log out
-        clearCsrfToken();
-        setState({
-          user: null,
-          isLoading: false,
-          isAuthenticated: false,
-          needsProfileCompletion: false,
-          error: 'Session expired. Please login again.',
-        });
-      }
-    }, 25 * 60 * 1000); // 25 minutes (refresh 5 min before 30m token expiry)
-
-    return () => clearInterval(refreshInterval);
-  }, [state.isAuthenticated]);
+  // 🔒 Note: Proactive token refresh is handled by scheduleSilentRefresh() in client.ts
+  // It automatically schedules refresh at 50% of token expiry time
+  // No need for manual setInterval here - it would cause duplicate refresh attempts
 
   // Send magic link (QuickSign)
   const sendMagicLink = useCallback(async (email: string): Promise<QuickSignResponse> => {

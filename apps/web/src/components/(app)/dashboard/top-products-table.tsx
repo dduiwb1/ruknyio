@@ -1,12 +1,13 @@
 "use client";
 
 /**
- * 📦 Top Products Table Component
- * جدول المنتجات الأكثر مبيعاً - تصميم متناسق
+ * 📦 Top Products Component
+ * المنتجات الأكثر مبيعاً - تصميم موحد ونظيف
  */
 
 import { motion } from "framer-motion";
-import { Package, TrendingUp, ArrowUpRight } from "lucide-react";
+import { Package, TrendingUp, ArrowUpLeft } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 interface TopProduct {
@@ -22,129 +23,110 @@ interface TopProductsTableProps {
   formatCurrency?: (amount: number) => string;
 }
 
-const defaultProducts: TopProduct[] = [
-  { id: "1", name: "قميص رجالي كلاسيك", price: 79490, quantity: 82, amount: 6518180 },
-  { id: "2", name: "بنطلون جينز", price: 128500, quantity: 37, amount: 4754500 },
-  { id: "3", name: "تيشيرت قطني", price: 39990, quantity: 64, amount: 2559360 },
-  { id: "4", name: "جاكيت خفيف", price: 20000, quantity: 184, amount: 3680000 },
-];
+const defaultProducts: TopProduct[] = [];
 
 function defaultFormatCurrency(amount: number): string {
   return `${amount.toLocaleString("en-US")} IQD`;
 }
 
-// تحديد لون الترتيب
-const rankColors = [
-  "bg-warning text-warning-foreground",      // #1
-  "bg-muted text-muted-foreground",           // #2
-  "bg-warning/60 text-warning-foreground",    // #3
-  "bg-muted/60 text-muted-foreground",        // #4+
-];
-
 export function TopProductsTable({
   products = defaultProducts,
   formatCurrency = defaultFormatCurrency,
 }: TopProductsTableProps) {
+  if (!products || products.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="rounded-3xl bg-muted/30 p-5 sm:p-6"
+      >
+        <h3 className="text-base font-bold text-foreground mb-4">المنتجات الأكثر مبيعاً</h3>
+        <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+          <Package className="h-10 w-10 mb-2 opacity-30" />
+          <p className="text-sm">لا توجد منتجات حالياً</p>
+        </div>
+      </motion.div>
+    );
+  }
+
   const totalAmount = products.reduce((sum, p) => sum + p.amount, 0);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.2 }}
-      className="overflow-hidden rounded-4xl border border-border/50 bg-card"
+      transition={{ duration: 0.5 }}
+      className="rounded-3xl bg-muted/30 p-5 sm:p-6"
     >
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 px-5 py-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-warning/10">
-            <Package className="h-4 w-4 text-warning" />
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">المنتجات الأكثر مبيعاً</h3>
-            <p className="text-xs text-muted-foreground">أفضل {products.length} منتجات أداءً</p>
-          </div>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-base font-bold text-foreground">المنتجات الأكثر مبيعاً</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            إجمالي: {formatCurrency(totalAmount)}
+          </p>
         </div>
-        
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-warning/10 text-xs font-semibold text-warning">
-          <TrendingUp className="h-3.5 w-3.5" />
-          <span>{formatCurrency(totalAmount)}</span>
-        </div>
+        <Link
+          href="/app/store/products"
+          className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+        >
+          عرض الكل
+          <ArrowUpLeft className="w-3 h-3" />
+        </Link>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-muted/30 border-b border-border/30">
-              <th className="px-5 py-3 text-right text-xs font-semibold text-muted-foreground">
-                #
-              </th>
-              <th className="px-5 py-3 text-right text-xs font-semibold text-muted-foreground">
-                المنتج
-              </th>
-              <th className="px-5 py-3 text-right text-xs font-semibold text-muted-foreground">
-                السعر
-              </th>
-              <th className="px-5 py-3 text-right text-xs font-semibold text-muted-foreground">
-                الكمية
-              </th>
-              <th className="px-5 py-3 text-right text-xs font-semibold text-muted-foreground">
-                المبلغ
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((product, index) => (
-              <motion.tr
-                key={product.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 + index * 0.1 }}
-                className="border-b border-border/20 last:border-0 transition-colors hover:bg-muted/30 group"
-              >
-                {/* Rank */}
-                <td className="px-5 py-4">
-                  <span className={cn(
-                    "inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-bold",
-                    rankColors[index] || rankColors[3]
-                  )}>
-                    {index + 1}
-                  </span>
-                </td>
-                
-                {/* Product Name */}
-                <td className="px-5 py-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
-                      {product.name}
-                    </span>
-                    <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                </td>
-                
-                {/* Price */}
-                <td className="px-5 py-4 text-sm tabular-nums text-muted-foreground">
-                  {formatCurrency(product.price)}
-                </td>
-                
-                {/* Quantity */}
-                <td className="px-5 py-4">
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-info/10 text-info text-sm font-semibold tabular-nums">
-                    {product.quantity}
-                  </span>
-                </td>
-                
-                {/* Amount */}
-                <td className="px-5 py-4">
-                  <span className="text-sm font-bold tabular-nums text-success">
-                    {formatCurrency(product.amount)}
-                  </span>
-                </td>
-              </motion.tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Products List */}
+      <div className="space-y-2">
+        {products.map((product, index) => (
+          <motion.div
+            key={product.id}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: index * 0.05 }}
+            className={cn(
+              "flex items-center gap-3 px-4 py-3 rounded-2xl bg-card",
+              index === 0 && "bg-[#c8e972]/20 dark:bg-[#c8e972]/10"
+            )}
+          >
+            {/* Rank */}
+            <div className={cn(
+              "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm font-bold",
+              index === 0 
+                ? "bg-[#c8e972] text-foreground" 
+                : index === 1 
+                  ? "bg-muted/80 text-foreground"
+                  : index === 2
+                    ? "bg-amber-500/20 text-amber-600"
+                    : "bg-muted/60 text-muted-foreground"
+            )}>
+              {index + 1}
+            </div>
+
+            {/* Product Info */}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground truncate">
+                {product.name}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {formatCurrency(product.price)} × {product.quantity}
+              </p>
+            </div>
+
+            {/* Amount */}
+            <div className="text-left shrink-0">
+              <p className="text-sm font-bold text-foreground tabular-nums">
+                {formatCurrency(product.amount)}
+              </p>
+              <div className="flex items-center justify-end gap-1">
+                <TrendingUp className="w-3 h-3 text-emerald-500" />
+                <span className="text-[10px] text-emerald-500">
+                  {product.quantity} مبيعة
+                </span>
+              </div>
+            </div>
+          </motion.div>
+        ))}
       </div>
     </motion.div>
   );
@@ -152,29 +134,28 @@ export function TopProductsTable({
 
 export function TopProductsTableSkeleton() {
   return (
-    <div className="overflow-hidden rounded-xl border border-border/50 bg-card">
-      <div className="flex items-center justify-between gap-4 border-b border-border/50 px-5 py-4">
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-muted animate-pulse" />
-          <div className="space-y-1.5">
-            <div className="h-4 w-32 rounded bg-muted animate-pulse" />
-            <div className="h-3 w-24 rounded bg-muted animate-pulse" />
-          </div>
+    <div className="rounded-3xl bg-muted/30 p-5 sm:p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="space-y-1">
+          <div className="h-5 w-36 bg-muted/60 rounded animate-pulse" />
+          <div className="h-3 w-24 bg-muted/60 rounded animate-pulse" />
         </div>
-        <div className="h-7 w-24 rounded-lg bg-muted animate-pulse hidden sm:block" />
+        <div className="h-4 w-16 bg-muted/60 rounded animate-pulse" />
       </div>
-      <div className="p-5">
-        <div className="space-y-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex items-center gap-4">
-              <div className="h-7 w-7 rounded-lg bg-muted animate-pulse" />
-              <div className="h-4 w-32 rounded bg-muted animate-pulse flex-1" />
-              <div className="h-4 w-20 rounded bg-muted animate-pulse" />
-              <div className="h-6 w-12 rounded-lg bg-muted animate-pulse" />
-              <div className="h-4 w-24 rounded bg-muted animate-pulse" />
+      <div className="space-y-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-card">
+            <div className="w-8 h-8 rounded-full bg-muted/60 animate-pulse" />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-4 w-3/4 bg-muted/60 rounded animate-pulse" />
+              <div className="h-3 w-1/2 bg-muted/60 rounded animate-pulse" />
             </div>
-          ))}
-        </div>
+            <div className="space-y-1">
+              <div className="h-4 w-20 bg-muted/60 rounded animate-pulse" />
+              <div className="h-3 w-14 bg-muted/60 rounded animate-pulse" />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

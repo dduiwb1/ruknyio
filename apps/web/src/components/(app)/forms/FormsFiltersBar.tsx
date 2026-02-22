@@ -28,10 +28,10 @@ const SORT_OPTIONS: { value: FormsSortOption; label: string; icon?: React.Elemen
 ];
 
 const STATUS_FILTERS: { value: FormStatus | ''; label: string; icon: React.ElementType; color: string }[] = [
-  { value: '', label: 'الكل', icon: Filter, color: 'text-gray-500' },
-  { value: FormStatus.PUBLISHED, label: 'منشور', icon: CheckCircle2, color: 'text-green-500' },
+  { value: '', label: 'الكل', icon: Filter, color: 'text-muted-foreground' },
+  { value: FormStatus.PUBLISHED, label: 'منشور', icon: CheckCircle2, color: 'text-emerald-500' },
   { value: FormStatus.DRAFT, label: 'مسودة', icon: Clock, color: 'text-amber-500' },
-  { value: FormStatus.CLOSED, label: 'مغلق', icon: Ban, color: 'text-red-500' },
+  { value: FormStatus.CLOSED, label: 'مغلق', icon: Ban, color: 'text-rose-500' },
 ];
 
 export function FormsFiltersBar({ 
@@ -53,13 +53,13 @@ export function FormsFiltersBar({
     <div className="space-y-4">
       {/* Search Input */}
       <div className="relative group">
-        <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+        <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
         <input
           type="text"
           value={filters.search || ''}
           onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
           placeholder="ابحث عن نموذج..."
-          className="w-full pr-12 pl-12 py-3.5 bg-gray-100 rounded-2xl text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white border border-transparent focus:border-blue-200 transition-all"
+          className="w-full pr-12 pl-12 py-3.5 bg-muted rounded-2xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:bg-card border border-transparent focus:border-border transition-all"
         />
         <AnimatePresence>
           {filters.search && (
@@ -68,7 +68,7 @@ export function FormsFiltersBar({
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               onClick={clearSearch}
-              className="absolute left-4 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors"
+              className="absolute left-4 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors"
             >
               <X className="w-4 h-4" />
             </motion.button>
@@ -80,7 +80,7 @@ export function FormsFiltersBar({
       <div className="flex items-center gap-3 flex-wrap">
         {/* Status Filter Pills */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-gray-400 ml-1 flex items-center gap-1">
+          <span className="text-xs text-muted-foreground ml-1 flex items-center gap-1">
             <SlidersHorizontal className="w-3.5 h-3.5" />
             الحالة:
           </span>
@@ -99,8 +99,8 @@ export function FormsFiltersBar({
                 className={cn(
                   "inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium transition-all duration-200 whitespace-nowrap border",
                   isActive
-                    ? "bg-gray-900 text-white border-gray-900 shadow-md"
-                    : "bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                    ? "bg-foreground text-background border-foreground shadow-md"
+                    : "bg-card text-muted-foreground border-border hover:border-border/80 hover:bg-muted"
                 )}
               >
                 <Icon className={cn("w-3.5 h-3.5", !isActive && status.color)} />
@@ -111,11 +111,11 @@ export function FormsFiltersBar({
         </div>
 
         {/* Divider */}
-        <div className="h-6 w-px bg-gray-200 hidden sm:block" />
+        <div className="h-6 w-px bg-border hidden sm:block" />
 
         {/* Sort Pills */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-gray-400 ml-1 flex items-center gap-1">
+          <span className="text-xs text-muted-foreground ml-1 flex items-center gap-1">
             <ArrowUpDown className="w-3.5 h-3.5" />
             ترتيب:
           </span>
@@ -130,8 +130,8 @@ export function FormsFiltersBar({
                 className={cn(
                   "px-4 py-2 rounded-xl text-xs font-medium transition-all duration-200 whitespace-nowrap border",
                   isActive
-                    ? "bg-blue-50 text-blue-600 border-blue-200"
-                    : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                    ? "bg-primary/10 text-primary border-primary/30"
+                    : "bg-card text-muted-foreground border-border hover:border-border/80 hover:bg-muted"
                 )}
               >
                 {option.label}
@@ -147,9 +147,9 @@ export function FormsFiltersBar({
           key={resultsCount}
           initial={{ opacity: 0, y: -5 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2"
+          className="text-sm text-muted-foreground flex items-center gap-2"
         >
-          <span className="inline-flex items-center justify-center w-6 h-6 bg-gray-100 rounded-lg text-xs font-semibold text-gray-700">
+          <span className="inline-flex items-center justify-center w-6 h-6 bg-muted rounded-lg text-xs font-semibold text-foreground">
             {resultsCount}
           </span>
           نموذج
@@ -162,7 +162,7 @@ export function FormsFiltersBar({
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 10 }}
               onClick={() => onFiltersChange({})}
-              className="inline-flex items-center gap-1.5 text-sm text-red-500 hover:text-red-600 transition-colors"
+              className="inline-flex items-center gap-1.5 text-sm text-rose-500 hover:text-rose-600 transition-colors"
             >
               <X className="w-4 h-4" />
               مسح الفلاتر

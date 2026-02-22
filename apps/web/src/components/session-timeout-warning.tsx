@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Clock, RefreshCw, LogOut } from 'lucide-react';
-import { getAccessToken, clearAccessToken, setCsrfToken, clearCsrfToken, updateLastRefreshTime } from '@/lib/api/client';
+import { getAccessToken, clearAccessToken, clearCsrfToken, refreshOnce } from '@/lib/api/client';
 import { toast } from '@/components/toast-provider';
 
 interface SessionTimeoutWarningProps {
@@ -162,27 +162,15 @@ export function SessionTimeoutWarning({
   }, [enabled, checkInterval, checkSession]);
 
   // Extend session by refreshing token
+  // 🔒 Uses centralized refreshOnce() mutex - NO direct fetch!
   const handleExtendSession = async () => {
     setIsRefreshing(true);
     try {
-      // 🔒 Use Route Handler for proper cookie forwarding
-      const response = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const result = await refreshOnce();
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.csrf_token) {
-          // 🔒 Update CSRF token and refresh time
-          setCsrfToken(data.csrf_token);
-          updateLastRefreshTime();
-          setShowWarning(false);
-          toast.success('تم تمديد الجلسة');
-        }
+      if (result.success) {
+        setShowWarning(false);
+        toast.success('تم تمديد الجلسة');
       } else {
         toast.error('فشل تمديد الجلسة');
         handleLogout();
