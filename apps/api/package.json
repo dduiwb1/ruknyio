@@ -9,12 +9,12 @@
     "node": ">=20.19.0"
   },
   "scripts": {
-    "build": "prisma generate && nest build",
+    "build": "prisma generate && npx nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "nest start",
-    "start:dev": "nest start --watch",
-    "start:dev:lowmem": "cross-env NODE_OPTIONS=--max-old-space-size=2048 nest start --watch",
-    "start:debug": "nest start --debug --watch",
+    "start": "npx nest start",
+    "start:dev": "npx nest start --watch",
+    "start:dev:lowmem": "cross-env NODE_OPTIONS=--max-old-space-size=2048 npx nest start --watch",
+    "start:debug": "npx nest start --debug --watch",
     "start:prod": "node dist/main",
     "deploy": "prisma migrate deploy && node dist/main",
     "migrate": "prisma migrate deploy",
