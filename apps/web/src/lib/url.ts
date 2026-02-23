@@ -11,8 +11,8 @@
  *   import { getAppUrl, getAuthUrl, getPublicUrl } from '@/lib/url';
  *   
  *   // Dashboard URLs
- *   getAppUrl('/settings')     → prod: "https://app.rukny.io/app/settings"  | dev: "/app/settings"
- *   getAppUrl('/')             → prod: "https://app.rukny.io/app"           | dev: "/app"
+ *   getAppUrl('/settings')     → prod: "https://app.rukny.io/settings"     | dev: "/app/settings"
+ *   getAppUrl('/')             → prod: "https://app.rukny.io"              | dev: "/app"
  *   
  *   // Auth URLs  
  *   getAuthUrl('/login')       → prod: "https://accounts.rukny.io/login"    | dev: "/login"
@@ -60,21 +60,19 @@ function getDomainInfo(): { rootDomain: string; protocol: string } {
  * Generate a URL for the app dashboard (app.rukny.io)
  * 
  * @param path - Path within the app (e.g., '/settings', '/profile')
- *               Will be prefixed with /app automatically
  * @returns Full URL in production, relative path in development
  */
 export function getAppUrl(path: string = '/'): string {
   const cleanPath = path === '/' ? '' : path.replace(/^\/+/, '/');
-  const appPath = `/app${cleanPath}`;
   
   if (!isSubdomainMode()) {
-    // Development: use path-based routing
-    return appPath;
+    // Development: use path-based routing with /app prefix
+    return `/app${cleanPath}`;
   }
   
-  // Production: use app subdomain (keep /app prefix for compatibility)
+  // Production on app subdomain: clean URLs without /app prefix
   const { rootDomain, protocol } = getDomainInfo();
-  return `${protocol}://app.${rootDomain}${appPath}`;
+  return `${protocol}://app.${rootDomain}${cleanPath}`;
 }
 
 /**

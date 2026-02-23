@@ -5,6 +5,15 @@ import { usePathname } from 'next/navigation';
 import { Sidebar, SidebarSkeleton } from '@/components/layout/sidebar';
 import { MobileNavigation, MobileNavigationSkeleton } from '@/components/layout/mobile-navigation';
 
+/**
+ * Normalize pathname: on app subdomain, usePathname() returns paths without /app prefix
+ * (e.g., /settings instead of /app/settings). This function handles both cases.
+ */
+function matchesAppPath(pathname: string | null, subPath: string): boolean {
+  if (!pathname) return false;
+  return pathname.startsWith(`/app${subPath}`) || pathname.startsWith(subPath);
+}
+
 export default function UserLayout({
   children,
 }: {
@@ -19,9 +28,9 @@ export default function UserLayout({
   }, []);
   
   // Don't show main sidebar on settings pages, form creation pages, and preview pages (they have their own layout)
-  const isSettingsPage = pathname?.startsWith('/app/settings');
-  const isFormCreatePage = pathname?.startsWith('/app/forms/create');
-  const isFormPreviewPage = pathname?.startsWith('/app/forms/preview');
+  const isSettingsPage = matchesAppPath(pathname, '/settings');
+  const isFormCreatePage = matchesAppPath(pathname, '/forms/create');
+  const isFormPreviewPage = matchesAppPath(pathname, '/forms/preview');
   const hideSidebar = isSettingsPage || isFormCreatePage || isFormPreviewPage;
 
   return (

@@ -111,25 +111,28 @@ export function proxy(request: NextRequest) {
   // 📱 app.rukny.io — Dashboard Subdomain
   // ========================================
   if (subdomain === 'app') {
-    if (pathname === '/') {
-      return NextResponse.redirect(
-        new URL(buildSubdomainUrl('app', '/app', search, rootDomain, protocol))
-      );
-    }
-
+    // Auth routes on app subdomain → redirect to accounts subdomain
     if (isAuthPath(pathname)) {
       return NextResponse.redirect(
         new URL(buildSubdomainUrl('accounts', pathname, search, rootDomain, protocol))
       );
     }
 
+    // If path has /app prefix, redirect to strip it for clean URLs
+    // e.g., app.rukny.io/app/settings → app.rukny.io/settings
     if (isAppPath(pathname)) {
-      return NextResponse.next();
+      const cleanPath = pathname.replace(/^\/app/, '') || '/';
+      return NextResponse.redirect(
+        new URL(buildSubdomainUrl('app', cleanPath, search, rootDomain, protocol))
+      );
     }
 
-    return NextResponse.redirect(
-      new URL(buildSubdomainUrl(null, pathname, search, rootDomain, protocol))
-    );
+    // Rewrite all other paths by prepending /app internally
+    // e.g., app.rukny.io/settings → internally serves /app/settings
+    // URL stays clean: app.rukny.io/settings
+    const url = request.nextUrl.clone();
+    url.pathname = `/app${pathname}`;
+    return NextResponse.rewrite(url);
   }
 
   // ========================================
@@ -162,8 +165,9 @@ export function proxy(request: NextRequest) {
   // ========================================
   
   if (isAppPath(pathname)) {
+    const cleanPath = pathname.replace(/^\/app/, '') || '/';
     return NextResponse.redirect(
-      new URL(buildSubdomainUrl('app', pathname, search, rootDomain, protocol))
+      new URL(buildSubdomainUrl('app', cleanPath, search, rootDomain, protocol))
     );
   }
 
