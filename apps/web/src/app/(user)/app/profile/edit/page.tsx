@@ -32,6 +32,7 @@ import { PhoneMockup } from '@/components/(app)/profile';
 import { useProfile } from '@/lib/hooks/profile';
 import { useAuthContext } from '@/lib/auth/auth-provider';
 import { getAvatarUrl, getInitials } from '@/lib/utils/avatar';
+import { getAuthUrl } from '@/lib/url';
 import BannersUpload from './BannersUpload';
 
 // Types
@@ -213,7 +214,7 @@ export default function EditProfilePage() {
   }
 
   if (!isAuthenticated) {
-    router.push('/login?callbackUrl=/app/profile/edit');
+    window.location.replace(getAuthUrl('/login'));
     return null;
   }
 

@@ -4,14 +4,17 @@ import type { NextRequest } from 'next/server';
 /**
  * 🌐 Subdomain Routing & Route Protection Proxy
  * 
- * Production: Routes based on subdomains
- *   - app.rukny.io/app/*       → Dashboard (keeps /app prefix for compatibility)
- *   - accounts.rukny.io/*      → Auth pages (/login, /complete-profile, etc.)
- *   - rukny.io                 → Public pages (landing, /[username], /f/[slug])
+ * Handles:
+ * 1. Subdomain routing (production only)
+ *    - app.rukny.io     → Dashboard (clean URLs, rewrite to /app/*)
+ *    - accounts.rukny.io → Auth pages (/login, /complete-profile, etc.)
+ *    - rukny.io          → Public pages (landing, /[username], /f/[slug])
  * 
- * Development (localhost): Path-based routing as usual (no changes)
+ * 2. Route protection (all environments)
+ *    - Protected routes without session → redirect to login
+ *    - Auth routes with active session → redirect to dashboard
  * 
- * Strategy: Redirects only, no rewrites — all internal path checks remain intact.
+ * Development (localhost): Path-based routing, only route protection active.
  */
 
 // Auth-related paths (map to accounts.rukny.io in production)
@@ -28,6 +31,11 @@ const AUTH_PATHS = [
 
 // App dashboard paths (map to app.rukny.io in production)
 const APP_PATH_PREFIX = '/app';
+
+// Protected route prefixes that require authentication
+const PROTECTED_PREFIXES = [
+  '/app',
+];
 
 // Paths that should be skipped
 const SKIP_PATHS = [
@@ -88,6 +96,61 @@ function buildSubdomainUrl(
   return `${protocol}://${domain}${pathname}${search}`;
 }
 
+// ============ Auth Helpers ============
+
+/**
+ * Check if user has an active session (access or refresh token in cookies)
+ */
+function hasSession(request: NextRequest): boolean {
+  const accessToken = request.cookies.get('__Secure-access_token')?.value || 
+                      request.cookies.get('access_token')?.value;
+  const refreshToken = request.cookies.get('__Secure-refresh_token')?.value ||
+                       request.cookies.get('refresh_token')?.value;
+  return !!(accessToken || refreshToken);
+}
+
+/**
+ * Check if the resolved path (after rewrite) is a protected route
+ */
+function isProtectedPath(resolvedPathname: string): boolean {
+  return PROTECTED_PREFIXES.some(prefix => 
+    resolvedPathname === prefix || resolvedPathname.startsWith(prefix + '/')
+  );
+}
+
+/**
+ * Build login URL with callback
+ */
+function buildLoginUrl(
+  request: NextRequest,
+  callbackPath: string,
+  subdomain: string | null,
+  rootDomain: string,
+  protocol: string
+): string {
+  if (subdomain !== null) {
+    // Production: redirect to accounts subdomain
+    return `${protocol}://accounts.${rootDomain}/login?callbackUrl=${encodeURIComponent(callbackPath)}`;
+  }
+  // Development: same domain
+  return `/login?callbackUrl=${encodeURIComponent(callbackPath)}`;
+}
+
+/**
+ * Build app URL for redirecting authenticated users away from auth pages
+ */
+function buildAppRedirectUrl(
+  request: NextRequest,
+  subdomain: string | null,
+  rootDomain: string,
+  protocol: string
+): string {
+  if (subdomain !== null) {
+    return `${protocol}://app.${rootDomain}/`;
+  }
+  return '/app';
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hostname = request.headers.get('host') || 'localhost:3000';
@@ -97,11 +160,36 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // In development (localhost), don't apply subdomain routing
-  if (isLocalhost(hostname)) {
+  const isLocal = isLocalhost(hostname);
+  const userHasSession = hasSession(request);
+
+  // ========================================
+  // 🏠 Development (localhost) — Path-based only
+  // ========================================
+  if (isLocal) {
+    // Protected route without session → redirect to login
+    if (isProtectedPath(pathname) && !userHasSession) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('callbackUrl', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // Authenticated user on auth pages → redirect to app
+    // Exception: /auth/callback and /complete-profile need to work even with session
+    if (isAuthPath(pathname) && userHasSession) {
+      const authExceptions = ['/auth/callback', '/complete-profile', '/welcome'];
+      const isException = authExceptions.some(p => pathname === p || pathname.startsWith(p + '/'));
+      if (!isException) {
+        return NextResponse.redirect(new URL('/app', request.url));
+      }
+    }
+
     return NextResponse.next();
   }
 
+  // ========================================
+  // 🌐 Production — Subdomain routing + protection
+  // ========================================
   const subdomain = getSubdomain(hostname);
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'rukny.io';
   const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
@@ -119,7 +207,6 @@ export function proxy(request: NextRequest) {
     }
 
     // If path has /app prefix, redirect to strip it for clean URLs
-    // e.g., app.rukny.io/app/settings → app.rukny.io/settings
     if (isAppPath(pathname)) {
       const cleanPath = pathname.replace(/^\/app/, '') || '/';
       return NextResponse.redirect(
@@ -127,9 +214,15 @@ export function proxy(request: NextRequest) {
       );
     }
 
-    // Rewrite all other paths by prepending /app internally
-    // e.g., app.rukny.io/settings → internally serves /app/settings
-    // URL stays clean: app.rukny.io/settings
+    // 🛡️ Route protection: all pages on app subdomain are protected
+    if (!userHasSession) {
+      const callbackPath = pathname === '/' ? '/' : pathname;
+      return NextResponse.redirect(
+        new URL(buildLoginUrl(request, callbackPath, subdomain, rootDomain, protocol))
+      );
+    }
+
+    // Rewrite: prepend /app internally for clean URLs
     const url = request.nextUrl.clone();
     url.pathname = `/app${pathname}`;
     return NextResponse.rewrite(url);
@@ -140,6 +233,12 @@ export function proxy(request: NextRequest) {
   // ========================================
   if (subdomain === 'accounts') {
     if (pathname === '/') {
+      // 🛡️ Authenticated user → redirect to app
+      if (userHasSession) {
+        return NextResponse.redirect(
+          new URL(buildAppRedirectUrl(request, subdomain, rootDomain, protocol))
+        );
+      }
       return NextResponse.redirect(
         new URL(buildSubdomainUrl('accounts', '/login', search, rootDomain, protocol))
       );
@@ -152,6 +251,15 @@ export function proxy(request: NextRequest) {
     }
 
     if (isAuthPath(pathname)) {
+      // 🛡️ Authenticated user on auth pages → redirect to app
+      // Exception: /auth/callback and /complete-profile need to work even with session
+      const authExceptions = ['/auth/callback', '/complete-profile', '/welcome'];
+      const isException = authExceptions.some(p => pathname === p || pathname.startsWith(p + '/'));
+      if (userHasSession && !isException) {
+        return NextResponse.redirect(
+          new URL(buildAppRedirectUrl(request, subdomain, rootDomain, protocol))
+        );
+      }
       return NextResponse.next();
     }
 

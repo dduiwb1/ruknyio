@@ -32,6 +32,7 @@ import {
 import { cn } from '@/lib/utils';
 import { buildApiPath } from '@/lib/config';
 import { secureFetch } from '@/lib/api/api-client';
+import { getAuthUrl } from '@/lib/url';
 import Link from 'next/link';
 
 // ============ Types ============
@@ -151,9 +152,9 @@ export default function NotificationsPage() {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push('/login');
+      window.location.replace(getAuthUrl('/login'));
     }
-  }, [authLoading, isAuthenticated, router]);
+  }, [authLoading, isAuthenticated]);
 
   // Fetch notifications/activities
   useEffect(() => {

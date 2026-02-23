@@ -56,6 +56,7 @@ import { useProfile } from '@/lib/hooks/profile';
 import type { SocialLink } from '@/lib/types/profile';
 import { useAuthContext } from '@/lib/auth/auth-provider';
 import { getAccessToken } from '@/lib/api/client';
+import { getAuthUrl } from '@/lib/url';
 
 // Utils
 import { detectPlatform, KNOWN_PLATFORMS, getSimpleIconKey, getFaviconUrl } from '@/lib/utils/urlDetection';
@@ -1163,7 +1164,7 @@ export default function LinksPage() {
   }
 
   if (!isAuthenticated) {
-    router.push('/login?callbackUrl=/app/profile/links');
+    window.location.replace(getAuthUrl('/login'));
     return null;
   }
 

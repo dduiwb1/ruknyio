@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuth } from '@/providers/auth-provider';
+import { getAuthUrl } from '@/lib/url';
 import { Sidebar, SidebarSkeleton } from '@/components/layout/sidebar';
 import { MobileNavigation, MobileNavigationSkeleton } from '@/components/layout/mobile-navigation';
 
@@ -20,13 +22,34 @@ export default function UserLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { isLoading: authLoading, isAuthenticated } = useAuth();
   const [mounted, setMounted] = useState(false);
   
   // Prevent hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // 🔐 Centralized auth guard — protects ALL (user) routes
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      const loginUrl = getAuthUrl('/login');
+      window.location.replace(loginUrl);
+    }
+  }, [authLoading, isAuthenticated]);
   
+  // 🔐 Show loading spinner while checking auth
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="flex h-svh items-center justify-center" dir="rtl">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
+        </div>
+      </div>
+    );
+  }
+
   // Don't show main sidebar on settings pages, form creation pages, and preview pages (they have their own layout)
   const isSettingsPage = matchesAppPath(pathname, '/settings');
   const isFormCreatePage = matchesAppPath(pathname, '/forms/create');

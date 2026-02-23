@@ -15,6 +15,7 @@ import {
 import { useProfile } from '@/lib/hooks/profile';
 import { useAuthContext } from '@/lib/auth/auth-provider';
 import { useAuth } from '@/providers';
+import { getAuthUrl } from '@/lib/url';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -34,7 +35,7 @@ export default function ProfilePage() {
   const handleLogout = async () => {
     try {
       await logout();
-      router.push('/login');
+      window.location.replace(getAuthUrl('/login'));
     } catch (error) {
       console.error('Logout failed:', error);
     }
@@ -55,7 +56,7 @@ export default function ProfilePage() {
   }
 
   if (!isAuthenticated) {
-    router.push('/login?callbackUrl=/app/profile');
+    window.location.replace(getAuthUrl('/login'));
     return null;
   }
 

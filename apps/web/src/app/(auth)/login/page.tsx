@@ -15,10 +15,17 @@ import AuthForm from '@/components/ui/auth-form';
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { sendMagicLink, isLoading, error, clearError } = useAuth();
+  const { sendMagicLink, isLoading, error, clearError, isAuthenticated, isLoading: authLoading } = useAuth();
   
   const [email, setEmail] = useState('');
   const [sessionMessage, setSessionMessage] = useState<string | null>(null);
+
+  // 🛡️ Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      router.replace('/app');
+    }
+  }, [authLoading, isAuthenticated, router]);
 
   // Check for session expired message
   useEffect(() => {
@@ -32,6 +39,15 @@ function LoginContent() {
     // Reset refresh state when landing on login page
     resetRefreshState();
   }, [searchParams]);
+
+  // Show loading while checking auth
+  if (authLoading || isAuthenticated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#ffffff] dark:bg-zinc-900">
+        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

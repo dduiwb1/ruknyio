@@ -7,6 +7,7 @@ import { FormFullPreview, type FormPreviewData } from '@/components/(app)/forms/
 import { DEFAULT_THEME } from '@/components/(app)/forms/FormThemeCustomizer';
 import { isValidFormSlug } from '@/lib/utils/generateFormSlug';
 import { Loader2, ShieldAlert, AlertTriangle } from 'lucide-react';
+import { getAuthUrl } from '@/lib/url';
 
 // LocalStorage key for preview data
 const FORM_PREVIEW_KEY = 'rukny_form_preview';
@@ -152,7 +153,7 @@ function FormPreviewContent() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             {isAuthError ? (
               <button
-                onClick={() => router.push('/login')}
+                onClick={() => window.location.replace(getAuthUrl('/login'))}
                 className="px-6 py-2.5 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors"
               >
                 تسجيل الدخول
