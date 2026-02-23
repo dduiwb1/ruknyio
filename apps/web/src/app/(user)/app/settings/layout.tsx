@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   ChevronRight,
+  ArrowRight,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -64,47 +65,44 @@ export default function SettingsLayout({
     >
       <SettingsSidebar />
       <div className="flex-1 min-w-0 bg-card rounded-2xl border border-border/40 overflow-hidden flex flex-col">
-        {/* Mobile Header - only show when a tab/section is selected */}
-        <header className={cn(
-          "sticky top-0 z-40 lg:hidden bg-card/95 backdrop-blur-md border-b border-border/40",
-          !currentTab && "hidden"
-        )}>
-          <div className="flex items-center gap-2.5 px-4 py-3">
-            {/* زر رجوع */}
-            {currentTab && (
-              <Link href="/app/settings">
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  type="button"
-                  className="flex-shrink-0 w-8 h-8 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors flex items-center justify-center"
-                  aria-label="الرجوع إلى الإعدادات"
-                >
-                  <ChevronRight className="w-4 h-4 text-foreground" />
-                </motion.button>
-              </Link>
-            )}
+        {/* Mobile Header - always visible */}
+        <header className="sticky top-0 z-40 lg:hidden bg-card/95 backdrop-blur-md border-b border-border/40">
+          <div className="flex items-center gap-3 px-4 py-3.5">
+            {/* زر رجوع - إلى لوحة التحكم أو قائمة الإعدادات */}
+            <Link href={currentTab ? "/app/settings" : "/app"}>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                type="button"
+                className="flex-shrink-0 w-9 h-9 rounded-xl bg-muted/60 hover:bg-muted/80 transition-colors flex items-center justify-center"
+                aria-label={currentTab ? "الرجوع إلى الإعدادات" : "الرجوع إلى لوحة التحكم"}
+              >
+                <ArrowRight className="w-4.5 h-4.5 text-foreground" />
+              </motion.button>
+            </Link>
             
             {/* Icon & Title */}
-            <div className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="flex items-center gap-2.5 flex-1 min-w-0">
               <div className={cn(
-                "flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center",
+                "flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center",
                 "bg-primary/10"
               )}>
-                <HeaderIcon className="w-3.5 h-3.5 text-primary" />
+                <HeaderIcon className="w-4 h-4 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className="text-[13px] font-semibold text-foreground truncate">{headerTitle}</h1>
+                <h1 className="text-[15px] font-bold text-foreground truncate">{headerTitle}</h1>
                 {currentSection && currentItemLabel && (
-                  <p className="text-[11px] text-muted-foreground truncate">{currentSection.label}</p>
+                  <p className="text-[12px] text-muted-foreground truncate">{currentSection.label}</p>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Breadcrumb Row */}
-          <div className="px-4 pb-2">
-            <SettingsBreadcrumb />
-          </div>
+          {/* Breadcrumb Row - only when viewing a specific tab */}
+          {currentTab && (
+            <div className="px-4 pb-2">
+              <SettingsBreadcrumb />
+            </div>
+          )}
         </header>
 
         {/* Desktop Header */}

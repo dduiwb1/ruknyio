@@ -35,24 +35,27 @@ import Link from 'next/link';
 
 // Loading skeleton component
 const SettingsSkeleton = () => (
-  <div className="animate-pulse space-y-3">
+  <div className="animate-pulse space-y-4">
     {[1, 2].map(g => (
-      <div key={g} className="rounded-xl border border-border/50 bg-card overflow-hidden">
-        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border/30 bg-muted/20">
-          <div className="w-7 h-7 bg-muted rounded-lg" />
-          <div className="h-3 bg-muted rounded-lg w-24" />
+      <div key={g} className="rounded-3xl border border-border/50 bg-card overflow-hidden">
+        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border/30 bg-muted/20">
+          <div className="w-9 h-9 bg-muted rounded-xl" />
+          <div className="space-y-1.5">
+            <div className="h-3.5 bg-muted rounded-lg w-28" />
+            <div className="h-2.5 bg-muted/40 rounded-lg w-40" />
+          </div>
         </div>
         {[1, 2, 3].map(i => (
           <div key={i} className={cn(
-            "flex items-center gap-3 px-4 py-3",
+            "flex items-center gap-3.5 px-5 py-4",
             i < 3 && "border-b border-border/30"
           )}>
-            <div className="w-9 h-9 bg-muted/60 rounded-lg" />
-            <div className="flex-1 space-y-1.5">
-              <div className="h-3 bg-muted rounded-lg w-24" />
-              <div className="h-2.5 bg-muted/40 rounded-lg w-36" />
+            <div className="w-11 h-11 bg-muted/60 rounded-xl" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3.5 bg-muted rounded-lg w-28" />
+              <div className="h-3 bg-muted/40 rounded-lg w-40" />
             </div>
-            <div className="w-3.5 h-3.5 bg-muted/30 rounded" />
+            <div className="w-4 h-4 bg-muted/30 rounded" />
           </div>
         ))}
       </div>
@@ -100,8 +103,8 @@ const allSettings: SettingItem[] = [
     description: 'أضف طبقة حماية إضافية لحسابك',
     icon: Shield,
     category: 'security',
-    color: 'text-primary',
-    iconBgSolid: 'bg-primary/12',
+    color: 'text-emerald-600 dark:text-emerald-400',
+    iconBgSolid: 'bg-emerald-500/12',
     badge: 'موصى به'
   },
   {
@@ -110,8 +113,8 @@ const allSettings: SettingItem[] = [
     description: 'إدارة الأجهزة المتصلة بحسابك',
     icon: MonitorSmartphone,
     category: 'security',
-    color: 'text-primary',
-    iconBgSolid: 'bg-primary/12'
+    color: 'text-emerald-600 dark:text-emerald-400',
+    iconBgSolid: 'bg-emerald-500/12'
   },
   {
     id: 'devices',
@@ -119,8 +122,8 @@ const allSettings: SettingItem[] = [
     description: 'الأجهزة التي سجلت الدخول منها',
     icon: Smartphone,
     category: 'security',
-    color: 'text-primary',
-    iconBgSolid: 'bg-primary/12'
+    color: 'text-emerald-600 dark:text-emerald-400',
+    iconBgSolid: 'bg-emerald-500/12'
   },
   {
     id: 'logs',
@@ -128,8 +131,8 @@ const allSettings: SettingItem[] = [
     description: 'تتبع النشاطات والتغييرات الأمنية',
     icon: ScrollText,
     category: 'security',
-    color: 'text-primary',
-    iconBgSolid: 'bg-primary/12'
+    color: 'text-emerald-600 dark:text-emerald-400',
+    iconBgSolid: 'bg-emerald-500/12'
   },
   {
     id: 'ip-protection',
@@ -137,8 +140,8 @@ const allSettings: SettingItem[] = [
     description: 'استلام تنبيه عند تسجيل الدخول من موقع جديد',
     icon: Globe,
     category: 'security',
-    color: 'text-primary',
-    iconBgSolid: 'bg-primary/12',
+    color: 'text-emerald-600 dark:text-emerald-400',
+    iconBgSolid: 'bg-emerald-500/12',
     badge: 'جديد'
   },
   // Integration Settings
@@ -148,8 +151,8 @@ const allSettings: SettingItem[] = [
     description: 'جميع التكاملات المتاحة',
     icon: Zap,
     category: 'integrations',
-    color: 'text-primary',
-    iconBgSolid: 'bg-primary/12'
+    color: 'text-violet-600 dark:text-violet-400',
+    iconBgSolid: 'bg-violet-500/12'
   },
   {
     id: 'social',
@@ -157,8 +160,8 @@ const allSettings: SettingItem[] = [
     description: 'ربط حسابات التواصل الاجتماعي',
     icon: Share2,
     category: 'integrations',
-    color: 'text-primary',
-    iconBgSolid: 'bg-primary/12'
+    color: 'text-violet-600 dark:text-violet-400',
+    iconBgSolid: 'bg-violet-500/12'
   },
   {
     id: 'analytics',
@@ -166,8 +169,8 @@ const allSettings: SettingItem[] = [
     description: 'تتبع الأداء والإحصائيات',
     icon: TrendingUp,
     category: 'integrations',
-    color: 'text-primary',
-    iconBgSolid: 'bg-primary/12'
+    color: 'text-violet-600 dark:text-violet-400',
+    iconBgSolid: 'bg-violet-500/12'
   },
   {
     id: 'notifications',
@@ -175,8 +178,8 @@ const allSettings: SettingItem[] = [
     description: 'إدارة التنبيهات والإشعارات',
     icon: Bell,
     category: 'integrations',
-    color: 'text-primary',
-    iconBgSolid: 'bg-primary/12'
+    color: 'text-violet-600 dark:text-violet-400',
+    iconBgSolid: 'bg-violet-500/12'
   },
   {
     id: 'storage',
@@ -184,8 +187,8 @@ const allSettings: SettingItem[] = [
     description: 'ربط خدمات التخزين الخارجية',
     icon: Cloud,
     category: 'integrations',
-    color: 'text-primary',
-    iconBgSolid: 'bg-primary/12'
+    color: 'text-violet-600 dark:text-violet-400',
+    iconBgSolid: 'bg-violet-500/12'
   },
   // Store Settings
   {
@@ -194,8 +197,8 @@ const allSettings: SettingItem[] = [
     description: 'الإعدادات العامة للمتجر',
     icon: Store,
     category: 'store',
-    color: 'text-primary',
-    iconBgSolid: 'bg-primary/12'
+    color: 'text-amber-600 dark:text-amber-400',
+    iconBgSolid: 'bg-amber-500/12'
   },
   {
     id: 'products',
@@ -203,8 +206,8 @@ const allSettings: SettingItem[] = [
     description: 'إدارة المنتجات والفئات',
     icon: Package,
     category: 'store',
-    color: 'text-primary',
-    iconBgSolid: 'bg-primary/12'
+    color: 'text-amber-600 dark:text-amber-400',
+    iconBgSolid: 'bg-amber-500/12'
   },
   {
     id: 'orders',
@@ -212,8 +215,8 @@ const allSettings: SettingItem[] = [
     description: 'إدارة الطلبات والمبيعات',
     icon: ScrollText,
     category: 'store',
-    color: 'text-primary',
-    iconBgSolid: 'bg-primary/12'
+    color: 'text-amber-600 dark:text-amber-400',
+    iconBgSolid: 'bg-amber-500/12'
   },
   // Forms Settings
   {
@@ -222,8 +225,8 @@ const allSettings: SettingItem[] = [
     description: 'الإعدادات العامة للنماذج',
     icon: FileText,
     category: 'forms',
-    color: 'text-primary',
-    iconBgSolid: 'bg-primary/12'
+    color: 'text-rose-600 dark:text-rose-400',
+    iconBgSolid: 'bg-rose-500/12'
   },
   {
     id: 'templates',
@@ -231,8 +234,8 @@ const allSettings: SettingItem[] = [
     description: 'إنشاء وإدارة قوالب النماذج',
     icon: FormInput,
     category: 'forms',
-    color: 'text-primary',
-    iconBgSolid: 'bg-primary/12'
+    color: 'text-rose-600 dark:text-rose-400',
+    iconBgSolid: 'bg-rose-500/12'
   },
   {
     id: 'submissions',
@@ -240,8 +243,8 @@ const allSettings: SettingItem[] = [
     description: 'عرض وإدارة البيانات المرسلة',
     icon: ScrollText,
     category: 'forms',
-    color: 'text-primary',
-    iconBgSolid: 'bg-primary/12'
+    color: 'text-rose-600 dark:text-rose-400',
+    iconBgSolid: 'bg-rose-500/12'
   },
   // Events Settings
   {
@@ -250,8 +253,8 @@ const allSettings: SettingItem[] = [
     description: 'الإعدادات العامة للأحداث',
     icon: Calendar,
     category: 'events',
-    color: 'text-primary',
-    iconBgSolid: 'bg-primary/12'
+    color: 'text-sky-600 dark:text-sky-400',
+    iconBgSolid: 'bg-sky-500/12'
   },
   {
     id: 'tickets',
@@ -259,8 +262,8 @@ const allSettings: SettingItem[] = [
     description: 'إدارة التذاكر والحجوزات',
     icon: Ticket,
     category: 'events',
-    color: 'text-primary',
-    iconBgSolid: 'bg-primary/12'
+    color: 'text-sky-600 dark:text-sky-400',
+    iconBgSolid: 'bg-sky-500/12'
   },
   {
     id: 'calendar',
@@ -268,8 +271,8 @@ const allSettings: SettingItem[] = [
     description: 'جدولة الأحداث والمواعيد',
     icon: Calendar,
     category: 'events',
-    color: 'text-primary',
-    iconBgSolid: 'bg-primary/12'
+    color: 'text-sky-600 dark:text-sky-400',
+    iconBgSolid: 'bg-sky-500/12'
   }
 ];
 
@@ -279,50 +282,50 @@ const categoryInfo = {
     title: 'الأمان والخصوصية',
     description: 'حافظ على أمان حسابك وبياناتك الشخصية',
     icon: Shield,
-    iconBg: 'bg-primary/10',
-    iconColor: 'text-primary',
-    accentBg: 'bg-primary/5',
-    accentBorder: 'border-border/50',
+    iconBg: 'bg-emerald-500/12',
+    iconColor: 'text-emerald-600 dark:text-emerald-400',
+    accentBg: 'bg-emerald-500/5',
+    accentBorder: 'border-emerald-500/20',
     textColor: 'text-foreground'
   },
   integrations: {
     title: 'التكاملات',
     description: 'اربط تطبيقاتك وخدماتك المفضلة',
     icon: Link2,
-    iconBg: 'bg-primary/10',
-    iconColor: 'text-primary',
-    accentBg: 'bg-primary/5',
-    accentBorder: 'border-border/50',
+    iconBg: 'bg-violet-500/12',
+    iconColor: 'text-violet-600 dark:text-violet-400',
+    accentBg: 'bg-violet-500/5',
+    accentBorder: 'border-violet-500/20',
     textColor: 'text-foreground'
   },
   store: {
     title: 'المتجر',
     description: 'أدر متجرك ومنتجاتك بسهولة',
     icon: Store,
-    iconBg: 'bg-primary/10',
-    iconColor: 'text-primary',
-    accentBg: 'bg-primary/5',
-    accentBorder: 'border-border/50',
+    iconBg: 'bg-amber-500/12',
+    iconColor: 'text-amber-600 dark:text-amber-400',
+    accentBg: 'bg-amber-500/5',
+    accentBorder: 'border-amber-500/20',
     textColor: 'text-foreground'
   },
   forms: {
     title: 'النماذج',
     description: 'أنشئ وأدر نماذجك الإلكترونية',
     icon: FileText,
-    iconBg: 'bg-primary/10',
-    iconColor: 'text-primary',
-    accentBg: 'bg-primary/5',
-    accentBorder: 'border-border/50',
+    iconBg: 'bg-rose-500/12',
+    iconColor: 'text-rose-600 dark:text-rose-400',
+    accentBg: 'bg-rose-500/5',
+    accentBorder: 'border-rose-500/20',
     textColor: 'text-foreground'
   },
   events: {
     title: 'الأحداث',
     description: 'نظم فعالياتك وتذاكرك',
     icon: Calendar,
-    iconBg: 'bg-primary/10',
-    iconColor: 'text-primary',
-    accentBg: 'bg-primary/5',
-    accentBorder: 'border-border/50',
+    iconBg: 'bg-sky-500/12',
+    iconColor: 'text-sky-600 dark:text-sky-400',
+    accentBg: 'bg-sky-500/5',
+    accentBorder: 'border-sky-500/20',
     textColor: 'text-foreground'
   }
 };
@@ -359,7 +362,7 @@ const MobileSettingsList = ({
   };
 
   return (
-    <div className="space-y-3 pb-8">
+    <div className="space-y-4 pb-10">
       {/* Profile Card */}
       {user && (
         <motion.section
@@ -368,25 +371,25 @@ const MobileSettingsList = ({
           transition={{ duration: 0.25 }}
         >
           <Link href="/app/settings/profile">
-            <div className="rounded-4xl border border-border/50 bg-card overflow-hidden">
-              <div className="flex items-center gap-3.5 px-4 py-4 group transition-colors duration-150 hover:bg-muted/30 active:bg-muted/50">
-                <Avatar className="h-12 w-12 shrink-0 ring-2 ring-primary/10">
+            <div className="rounded-3xl border border-border/50 bg-card overflow-hidden shadow-sm">
+              <div className="flex items-center gap-4 px-5 py-5 group transition-colors duration-150 hover:bg-muted/30 active:bg-muted/50">
+                <Avatar className="h-14 w-14 shrink-0 ring-2 ring-primary/15">
                   {user.avatar ? (
                     <AvatarImage src={user.avatar} alt={user.name || user.username || undefined} />
                   ) : null}
-                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-                    {user.name?.charAt(0) || user.username?.charAt(0) || <UserIcon className="w-5 h-5" />}
+                  <AvatarFallback className="bg-primary/10 text-primary text-base font-semibold">
+                    {user.name?.charAt(0) || user.username?.charAt(0) || <UserIcon className="w-6 h-6" />}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[14px] font-semibold text-foreground truncate">
+                  <p className="text-[15px] font-semibold text-foreground truncate">
                     {user.name || user.username}
                   </p>
-                  <p className="text-[12px] text-muted-foreground truncate mt-0.5">
+                  <p className="text-[13px] text-muted-foreground truncate mt-0.5">
                     {user.email}
                   </p>
                 </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/40 rtl:rotate-180" aria-hidden />
+                <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground/40 rtl:rotate-180" aria-hidden />
               </div>
             </div>
           </Link>
@@ -403,16 +406,22 @@ const MobileSettingsList = ({
             transition={{ delay: groupIndex * 0.04, duration: 0.25 }}
           >
             {/* Unified card: header + items */}
-            <div className="rounded-4xl border border-border/50 bg-card overflow-hidden">
+            <div className="rounded-3xl border border-border/50 bg-card overflow-hidden shadow-sm">
               {/* Category header inside card */}
-              <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border/30 bg-muted/20">
+              <div className={cn(
+                'flex items-center gap-3 px-5 py-3.5 border-b border-border/30',
+                info.accentBg
+              )}>
                 <div className={cn(
-                  'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg',
+                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
                   info.iconBg
                 )}>
-                  <CatIcon className={cn('h-3.5 w-3.5', info.iconColor)} />
+                  <CatIcon className={cn('h-4.5 w-4.5', info.iconColor)} />
                 </div>
-                <h2 className="text-[13px] font-semibold text-foreground">{info.title}</h2>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-[14px] font-bold text-foreground">{info.title}</h2>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{info.description}</p>
+                </div>
               </div>
 
               {/* Items */}
@@ -424,36 +433,36 @@ const MobileSettingsList = ({
                     type="button"
                     onClick={() => onSelect(item.id)}
                     className={cn(
-                      'w-full flex items-center gap-3 px-4 py-3 text-right',
+                      'w-full flex items-center gap-3.5 px-5 py-4 text-right',
                       'transition-colors duration-150 hover:bg-muted/30 active:bg-muted/50',
                       idx < items.length - 1 && 'border-b border-border/30'
                     )}
                   >
                     <div
                       className={cn(
-                        'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform duration-150 group-hover:scale-105',
+                        'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-transform duration-150 group-hover:scale-105',
                         item.iconBgSolid
                       )}
                     >
-                      <Icon className={cn('h-4 w-4', item.color)} />
+                      <Icon className={cn('h-5 w-5', item.color)} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <p className="truncate text-[13px] font-medium text-foreground">{item.label}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-[14px] font-medium text-foreground">{item.label}</p>
                         {item.badge && (
                           <span className={cn(
-                            'shrink-0 inline-flex items-center px-1.5 py-px rounded-md text-[10px] font-semibold',
+                            'shrink-0 inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-semibold',
                             item.badge === 'موصى به' 
-                              ? 'bg-primary/10 text-primary' 
-                              : 'bg-primary/10 text-primary'
+                              ? 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400' 
+                              : 'bg-sky-500/12 text-sky-600 dark:text-sky-400'
                           )}>
                             {item.badge}
                           </span>
                         )}
                       </div>
-                      <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">{item.description}</p>
+                      <p className="mt-0.5 line-clamp-1 text-[12px] text-muted-foreground">{item.description}</p>
                     </div>
-                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/30 rtl:rotate-180" aria-hidden />
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/30 rtl:rotate-180" aria-hidden />
                   </button>
                 );
               })}
@@ -468,20 +477,20 @@ const MobileSettingsList = ({
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: grouped.length * 0.04, duration: 0.25 }}
       >
-        <div className="rounded-4xl border border-border/50 bg-card overflow-hidden">
+        <div className="rounded-3xl border border-destructive/20 bg-card overflow-hidden shadow-sm">
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 text-right group transition-colors duration-150 hover:bg-destructive/5 active:bg-destructive/10"
+            className="w-full flex items-center gap-3.5 px-5 py-4 text-right group transition-colors duration-150 hover:bg-destructive/5 active:bg-destructive/10"
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-destructive/10 transition-transform duration-150 group-hover:scale-105">
-              <LogOut className="h-4 w-4 text-destructive" />
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-destructive/10 transition-transform duration-150 group-hover:scale-105">
+              <LogOut className="h-5 w-5 text-destructive" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-medium text-destructive">تسجيل الخروج</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">الخروج من حسابك الحالي</p>
+              <p className="text-[14px] font-medium text-destructive">تسجيل الخروج</p>
+              <p className="mt-0.5 text-[12px] text-muted-foreground">الخروج من حسابك الحالي</p>
             </div>
-            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-destructive/30 rtl:rotate-180" aria-hidden />
+            <ChevronRight className="h-4 w-4 shrink-0 text-destructive/30 rtl:rotate-180" aria-hidden />
           </button>
         </div>
       </motion.section>
@@ -641,9 +650,9 @@ function SettingsContent() {
       {/* Mobile: List view when no tab */}
       {isListMode && (
         <div className="lg:hidden animate-in fade-in duration-200">
-          <div className="mb-3">
-            <h1 className="text-lg font-semibold text-foreground">الإعدادات</h1>
-            <p className="mt-0.5 text-xs text-muted-foreground">إدارة حسابك وتفضيلاتك</p>
+          <div className="mb-4">
+            <h1 className="text-xl font-bold text-foreground">الإعدادات</h1>
+            <p className="mt-1 text-sm text-muted-foreground">إدارة حسابك وتفضيلاتك</p>
           </div>
           <MobileSettingsList settings={allSettings} onSelect={navigateToTab} />
         </div>
