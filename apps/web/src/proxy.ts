@@ -1,62 +1,184 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { protectedRoutes, authRoutes } from '@/lib/config';
 
 /**
- * @deprecated This file is no longer used. Route protection and subdomain routing
- * are handled by src/middleware.ts instead.
+ * 🌐 Subdomain Routing & Route Protection Proxy
  * 
- * 🛡️ Next.js Proxy - Route Protection (LEGACY)
+ * Production: Routes based on subdomains
+ *   - app.rukny.io/app/*       → Dashboard (keeps /app prefix for compatibility)
+ *   - accounts.rukny.io/*      → Auth pages (/login, /complete-profile, etc.)
+ *   - rukny.io                 → Public pages (landing, /[username], /f/[slug])
+ * 
+ * Development (localhost): Path-based routing as usual (no changes)
+ * 
+ * Strategy: Redirects only, no rewrites — all internal path checks remain intact.
  */
+
+// Auth-related paths (map to accounts.rukny.io in production)
+const AUTH_PATHS = [
+  '/login',
+  '/check-email',
+  '/quicksign',
+  '/auth/callback',
+  '/auth/verify',
+  '/auth/verify-2fa',
+  '/welcome',
+  '/complete-profile',
+];
+
+// App dashboard paths (map to app.rukny.io in production)
+const APP_PATH_PREFIX = '/app';
+
+// Paths that should be skipped
+const SKIP_PATHS = [
+  '/api/',
+  '/uploads/',
+  '/_next/',
+  '/favicon.ico',
+  '/manifest.json',
+  '/sw.js',
+  '/icons/',
+  '/logos/',
+];
+
+/**
+ * Extract subdomain from hostname
+ * e.g., "app.rukny.io" → "app", "rukny.io" → null
+ */
+function getSubdomain(hostname: string): string | null {
+  const host = hostname.split(':')[0];
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'rukny.io';
+  
+  if (host === rootDomain || host === `www.${rootDomain}`) {
+    return null;
+  }
+  
+  if (host.endsWith(`.${rootDomain}`)) {
+    return host.replace(`.${rootDomain}`, '');
+  }
+  
+  return null;
+}
+
+function isAuthPath(pathname: string): boolean {
+  return AUTH_PATHS.some(path => pathname === path || pathname.startsWith(path + '/'));
+}
+
+function isAppPath(pathname: string): boolean {
+  return pathname === APP_PATH_PREFIX || pathname.startsWith(APP_PATH_PREFIX + '/');
+}
+
+function shouldSkip(pathname: string): boolean {
+  return SKIP_PATHS.some(path => pathname.startsWith(path));
+}
+
+function isLocalhost(hostname: string): boolean {
+  const host = hostname.split(':')[0];
+  return host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0';
+}
+
+function buildSubdomainUrl(
+  subdomain: string | null,
+  pathname: string,
+  search: string,
+  rootDomain: string,
+  protocol: string
+): string {
+  const domain = subdomain ? `${subdomain}.${rootDomain}` : rootDomain;
+  return `${protocol}://${domain}${pathname}${search}`;
+}
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const hostname = request.headers.get('host') || 'localhost:3000';
 
-  // Check if route is protected
-  const isProtectedRoute = protectedRoutes.some((route: string) => 
-    pathname.startsWith(route)
-  );
-
-  // Check if route is an auth route
-  const isAuthRoute = authRoutes.some((route: string) => 
-    pathname.startsWith(route)
-  );
-
-  // Get access token from cookie or check localStorage marker
-  // Note: We can't access localStorage in proxy, so we check for a cookie
-  // In production, cookies have __Secure- prefix
-  const accessToken = request.cookies.get('__Secure-access_token')?.value || 
-                      request.cookies.get('access_token')?.value;
-  // Backend uses 'refresh_token' in dev, '__Secure-refresh_token' in prod
-  const hasSession = request.cookies.get('__Secure-refresh_token')?.value ||
-                     request.cookies.get('refresh_token')?.value;
-
-  // If trying to access protected route without auth
-  if (isProtectedRoute && !accessToken && !hasSession) {
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('callbackUrl', pathname);
-    return NextResponse.redirect(loginUrl);
+  // Skip for static assets, API routes, etc.
+  if (shouldSkip(pathname)) {
+    return NextResponse.next();
   }
 
-  // If authenticated user tries to access auth routes
-  if (isAuthRoute && (accessToken || hasSession)) {
-    return NextResponse.redirect(new URL('/app', request.url));
+  // In development (localhost), don't apply subdomain routing
+  if (isLocalhost(hostname)) {
+    return NextResponse.next();
   }
 
+  const subdomain = getSubdomain(hostname);
+  const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'rukny.io';
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+  const search = request.nextUrl.search;
+
+  // ========================================
+  // 📱 app.rukny.io — Dashboard Subdomain
+  // ========================================
+  if (subdomain === 'app') {
+    if (pathname === '/') {
+      return NextResponse.redirect(
+        new URL(buildSubdomainUrl('app', '/app', search, rootDomain, protocol))
+      );
+    }
+
+    if (isAuthPath(pathname)) {
+      return NextResponse.redirect(
+        new URL(buildSubdomainUrl('accounts', pathname, search, rootDomain, protocol))
+      );
+    }
+
+    if (isAppPath(pathname)) {
+      return NextResponse.next();
+    }
+
+    return NextResponse.redirect(
+      new URL(buildSubdomainUrl(null, pathname, search, rootDomain, protocol))
+    );
+  }
+
+  // ========================================
+  // 🔐 accounts.rukny.io — Auth Subdomain
+  // ========================================
+  if (subdomain === 'accounts') {
+    if (pathname === '/') {
+      return NextResponse.redirect(
+        new URL(buildSubdomainUrl('accounts', '/login', search, rootDomain, protocol))
+      );
+    }
+
+    if (isAppPath(pathname)) {
+      return NextResponse.redirect(
+        new URL(buildSubdomainUrl('app', pathname, search, rootDomain, protocol))
+      );
+    }
+
+    if (isAuthPath(pathname)) {
+      return NextResponse.next();
+    }
+
+    return NextResponse.redirect(
+      new URL(buildSubdomainUrl(null, pathname, search, rootDomain, protocol))
+    );
+  }
+
+  // ========================================
+  // 🌐 rukny.io — Main Domain (Public Only)
+  // ========================================
+  
+  if (isAppPath(pathname)) {
+    return NextResponse.redirect(
+      new URL(buildSubdomainUrl('app', pathname, search, rootDomain, protocol))
+    );
+  }
+
+  if (isAuthPath(pathname)) {
+    return NextResponse.redirect(
+      new URL(buildSubdomainUrl('accounts', pathname, search, rootDomain, protocol))
+    );
+  }
+
+  // Public routes pass through
   return NextResponse.next();
 }
 
-// Configure which paths the proxy runs on
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*|_next).*)',
+    '/((?!_next/static|_next/image).*)',
   ],
 };
