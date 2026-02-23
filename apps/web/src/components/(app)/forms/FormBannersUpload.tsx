@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, memo, useCallback } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/components/toast-provider';
 import { Upload, ImagePlus, Trash2, X, Check, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';

@@ -45,8 +45,9 @@ export class StoresService {
     }
 
     // Check if user already has a store
-    const existingStore = await this.prisma.store.findFirst({
+    const existingStore = await this.prisma.store.findUnique({
       where: { userId },
+      select: { id: true },
     });
 
     if (existingStore) {
@@ -101,7 +102,7 @@ export class StoresService {
     const cacheKey = CacheKeys.storeByUserId(userId);
 
     return this.cacheManager.wrap(cacheKey, CACHE_TTL.STORE, async () => {
-      const store = await this.prisma.store.findFirst({
+      const store = await this.prisma.store.findUnique({
         where: { userId },
         include: {
           store_categories: true,
@@ -299,8 +300,9 @@ export class StoresService {
    * Get store statistics
    */
   async getStoreStats(userId: string) {
-    const store = await this.prisma.store.findFirst({
+    const store = await this.prisma.store.findUnique({
       where: { userId },
+      select: { id: true, name: true, status: true },
     });
 
     if (!store) {
@@ -419,7 +421,7 @@ export class StoresService {
     }
 
     // البحث عن متجر المستخدم
-    const store = await this.prisma.store.findFirst({
+    const store = await this.prisma.store.findUnique({
       where: { userId: user.id },
       select: { id: true },
     });
@@ -534,7 +536,7 @@ export class StoresService {
     }
 
     // البحث عن متجر المستخدم
-    const store = await this.prisma.store.findFirst({
+    const store = await this.prisma.store.findUnique({
       where: { userId: user.id },
       select: { id: true },
     });

@@ -4,7 +4,7 @@ import React, { Suspense, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, FileText, Trash2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { CreateFormWizard, type FormDraftRestore } from '@/components/(app)/forms';
 import { isValidFormSlug } from '@/lib/utils/generateFormSlug';
 
@@ -15,7 +15,6 @@ const FORM_DRAFT_KEY = 'rukny_form_draft';
 function CreateFormContent() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const router = useRouter();
   const slug = params.slug as string;
 
   const [showDraftDialog, setShowDraftDialog] = useState(false);

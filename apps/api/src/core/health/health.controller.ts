@@ -5,6 +5,7 @@ import {
   Headers,
   ForbiddenException,
 } from '@nestjs/common';
+import { timingSafeEqual } from 'crypto';
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { PrismaService } from '../database/prisma/prisma.service';
@@ -34,7 +35,17 @@ export class HealthController {
       return; // Allow in development without secret
     }
 
-    if (providedSecret !== expectedSecret) {
+    if (!providedSecret) {
+      throw new ForbiddenException('Invalid health secret');
+    }
+
+    const providedBuf = Buffer.from(providedSecret);
+    const expectedBuf = Buffer.from(expectedSecret);
+    const match =
+      providedBuf.length === expectedBuf.length &&
+      timingSafeEqual(providedBuf, expectedBuf);
+
+    if (!match) {
       throw new ForbiddenException('Invalid health secret');
     }
   }

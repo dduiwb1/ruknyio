@@ -28,6 +28,16 @@ export interface TokenPair {
   refreshToken: string;
 }
 
+/**
+ * Result of calling refreshTokens().
+ * During the grace period (concurrent refresh requests), we may return only an access token
+ * to avoid overwriting the newer refresh cookie.
+ */
+export interface RefreshTokensResult {
+  accessToken: string;
+  refreshToken?: string;
+}
+
 export interface TokenPayload {
   sub: string; // User ID
   sid: string; // Session ID (للربط بالجلسة)
@@ -89,7 +99,7 @@ export class TokenService {
       orderBy: { lastActivity: 'asc' },
       select: { id: true },
     });
-    const toRevoke = active.length - this.MAX_ACTIVE_SESSIONS + 1;
+    const toRevoke = active.length - this.MAX_ACTIVE_SESSIONS;
     if (toRevoke <= 0) return;
     const ids = active.slice(0, toRevoke).map((s) => s.id);
     await this.prisma.session.updateMany({
@@ -181,7 +191,7 @@ export class TokenService {
     refreshToken: string,
     ipAddress?: string,
     userAgent?: string,
-  ): Promise<TokenPair> {
+  ): Promise<RefreshTokensResult> {
     const startTime = Date.now();
     const timings: Record<string, number> = {};
     
@@ -237,53 +247,40 @@ export class TokenService {
             '[TokenService] ✅ Grace period hit - fetching current session tokens',
           );
         }
-        const gracePeriodSession = tokenTheftCheck.session;
+        const gracePeriodSession = tokenTheftCheck.session as {
+          id: string;
+          userId: string;
+          user: { email: string };
+        };
 
-        // 🔒 نحتاج جلب الـ session الحالي مع الـ refresh token hash الجديد
-        // ثم نعيد access token جديد فقط (الـ refresh token الحالي صالح)
-        const currentSession = await this.prisma.session.findUnique({
-          where: { id: gracePeriodSession.id },
-          select: {
-            id: true,
-            userId: true,
-            refreshTokenHash: true,
-            user: { select: { email: true } },
-          },
-        });
-
-        if (!currentSession) {
-          throw new UnauthorizedException('Session not found during grace period');
-        }
-
-        // نُنشئ access token جديد فقط
+        // نُنشئ access token جديد فقط.
+        // ⚠️ مهم: لا نُدوّر refresh token مرة أخرى هنا، ولا نُعيد refresh token.
+        // السبب: في حالة طلبين متزامنين، الطلب “الأساسي” سيُرجع refresh token جديد ويضبط الكوكي.
+        // الطلب الثاني (grace) يجب ألا يكتب Refresh Cookie حتى لا يُعيد الكوكي للـ token القديم.
         const newAccessPayload: TokenPayload = {
-          sub: currentSession.userId,
-          sid: currentSession.id,
-          email: currentSession.user.email,
+          sub: gracePeriodSession.userId,
+          sid: gracePeriodSession.id,
+          email: gracePeriodSession.user.email,
           type: 'access',
         };
         const newAccessToken = this.jwtService.sign(newAccessPayload, {
           expiresIn: this.ACCESS_TOKEN_EXPIRY,
         });
 
-        // 🔒 نُعيد الـ refresh token الحالي (الذي تم تدويره مؤخراً)
-        // نحتاج لإرجاع الـ token الأصلي، لكننا لا نخزنه - فقط الـ hash
-        // لذا نُنشئ refresh token جديد ونُحدّث الـ hash
-        const newRefreshToken = this.generateSecureRefreshToken();
-
-        // تحديث الـ hash - بدون تغيير previousRefreshTokenHash لتجنب الـ cascade
+        // ⚡ تحديث نشاط/انتهاء الجلسة ليتماشى مع access token الجديد (بدون تدوير refresh)
+        const nowDate = new Date();
+        const newSessionExpiresAt = new Date(nowDate.getTime() + 30 * 60 * 1000);
         await this.prisma.session.update({
-          where: { id: currentSession.id },
+          where: { id: gracePeriodSession.id },
           data: {
-            refreshTokenHash: this.hashToken(newRefreshToken),
-            lastActivity: new Date(),
-            // 🔒 لا نُحدّث lastRotatedAt لتجنب تمديد grace period
+            expiresAt: newSessionExpiresAt,
+            lastActivity: nowDate,
           },
         });
 
         return {
           accessToken: newAccessToken,
-          refreshToken: newRefreshToken,
+          // refreshToken intentionally omitted during grace period
         };
       }
 
@@ -428,6 +425,26 @@ export class TokenService {
       accessToken: newAccessToken,
       refreshToken: newRefreshToken,
     };
+  }
+
+  /**
+   * 🔒 إبطال جلسة لمستخدم محدد فقط
+   * يمنع إنهاء جلسات مستخدمين آخرين عبر sessionId (حتى لو كان غير قابل للتخمين).
+   */
+  async revokeSessionForUser(
+    userId: string,
+    sessionId: string,
+    reason?: string,
+  ): Promise<boolean> {
+    const result = await this.prisma.session.updateMany({
+      where: { id: sessionId, userId },
+      data: {
+        isRevoked: true,
+        revokedAt: new Date(),
+        revokedReason: reason,
+      },
+    });
+    return result.count > 0;
   }
 
   /**

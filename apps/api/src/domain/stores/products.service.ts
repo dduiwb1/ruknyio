@@ -34,7 +34,7 @@ export class ProductsService {
    */
   async create(userId: string, createProductDto: CreateProductDto) {
     // Get user's store
-    const store = await this.prisma.store.findFirst({
+    const store = await this.prisma.store.findUnique({
       where: { userId },
       include: { store_categories: true },
     });
@@ -177,7 +177,7 @@ export class ProductsService {
       isFeatured?: boolean;
     },
   ) {
-    const store = await this.prisma.store.findFirst({
+    const store = await this.prisma.store.findUnique({
       where: { userId },
     });
 
@@ -524,7 +524,7 @@ export class ProductsService {
    * Get product statistics
    */
   async getProductStats(userId: string) {
-    const store = await this.prisma.store.findFirst({
+    const store = await this.prisma.store.findUnique({
       where: { userId },
     });
 
@@ -571,7 +571,7 @@ export class ProductsService {
    * Get top products for store dashboard (sorted by order count)
    */
   async getTopProducts(userId: string, limit: number = 5) {
-    const store = await this.prisma.store.findFirst({
+    const store = await this.prisma.store.findUnique({
       where: { userId },
     });
 

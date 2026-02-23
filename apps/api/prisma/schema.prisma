@@ -63,7 +63,7 @@ model User {
   securityLogs           SecurityLog[]
   security_preferences   security_preferences?
   sessions               Session[]
-  stores                 Store[]
+  store                  Store?
   telegramSession        TelegramSession?
   telegramLogs           TelegramWebhookLog[]
   trusted_devices        trusted_devices[]
@@ -214,7 +214,7 @@ model SecurityLog {
 
 model Store {
   id                 String               @id @default(uuid())
-  userId             String
+  userId             String               @unique
   name               String
   slug               String               @unique
   description        String?

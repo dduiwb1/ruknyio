@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, Fragment } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from '@/components/toast-provider';
 import {
   FileText,
   Mail,
@@ -9,29 +10,19 @@ import {
   Hash,
   Calendar,
   Clock,
-  ChevronDown,
-  ChevronUp,
-  ToggleLeft,
-  CheckSquare,
-  Circle,
   Upload,
   Star,
-  Image as ImageIcon,
-  Type,
-  AlignLeft,
-  Link2,
-  Calculator,
-  EyeOff,
-  Split,
-  Grid3X3,
   PenTool,
   Send,
   Check,
   ChevronLeft,
   ChevronRight,
+  AlertCircle,
+  X,
+  Share2,
   Copy,
-  Monitor,
-  Smartphone,
+  Info,
+  User,
   ArrowRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -39,6 +30,8 @@ import { FieldType } from '@/lib/hooks/useForms';
 import { type FormFieldInput } from './FieldEditor';
 import { type FormStepInput } from './StepEditor';
 import { type FormTheme, DEFAULT_THEME } from './FormThemeCustomizer';
+import { Label } from '@/components/ui/label';
+import { useAuth } from '@/providers/auth-provider';
 
 // ============================================
 // Types
@@ -91,6 +84,12 @@ const getThemeStyles = (theme: FormTheme): React.CSSProperties => {
     full: '9999px',
   };
 
+  const spacingMap: Record<string, string> = {
+    compact: '12px',
+    normal: '20px',
+    relaxed: '28px',
+  };
+
   return {
     '--form-primary': theme.primaryColor,
     '--form-bg': theme.backgroundColor,
@@ -100,60 +99,17 @@ const getThemeStyles = (theme: FormTheme): React.CSSProperties => {
     '--form-font': fontFamilyMap[theme.fontFamily] || 'inherit',
     '--form-font-size': fontSizeMap[theme.fontSize] || '16px',
     '--form-radius': borderRadiusMap[theme.borderRadius] || '16px',
+    '--form-spacing': spacingMap[(theme as any).spacing] || '20px',
     fontFamily: fontFamilyMap[theme.fontFamily] || 'inherit',
     fontSize: fontSizeMap[theme.fontSize] || '16px',
   } as React.CSSProperties;
 };
 
 // ============================================
-// Field Icon Helper
+// Main Component — matches /f/[slug] design
 // ============================================
 
-const getFieldIcon = (type: FieldType) => {
-  const icons: Partial<Record<FieldType, typeof FileText>> = {
-    [FieldType.TEXT]: Type,
-    [FieldType.TEXTAREA]: AlignLeft,
-    [FieldType.EMAIL]: Mail,
-    [FieldType.PHONE]: Phone,
-    [FieldType.NUMBER]: Hash,
-    [FieldType.DATE]: Calendar,
-    [FieldType.TIME]: Clock,
-    [FieldType.DATETIME]: Calendar,
-    [FieldType.SELECT]: ChevronDown,
-    [FieldType.MULTISELECT]: ChevronDown,
-    [FieldType.RADIO]: Circle,
-    [FieldType.CHECKBOX]: CheckSquare,
-    [FieldType.TOGGLE]: ToggleLeft,
-    [FieldType.FILE]: Upload,
-    [FieldType.RATING]: Star,
-    [FieldType.SCALE]: Star,
-    [FieldType.IMAGE]: ImageIcon,
-    [FieldType.URL]: Link2,
-    [FieldType.CALCULATED]: Calculator,
-    [FieldType.HIDDEN]: EyeOff,
-    [FieldType.CONDITIONAL_LOGIC]: Split,
-    [FieldType.MATRIX]: Grid3X3,
-    [FieldType.SIGNATURE]: PenTool,
-    [FieldType.RECAPTCHA]: FileText,
-    [FieldType.HEADING]: Type,
-    [FieldType.PARAGRAPH]: AlignLeft,
-    [FieldType.DIVIDER]: FileText,
-    [FieldType.TITLE]: Type,
-    [FieldType.LABEL]: Type,
-    [FieldType.VIDEO]: FileText,
-    [FieldType.AUDIO]: FileText,
-    [FieldType.EMBED]: Link2,
-    [FieldType.RANKING]: Star,
-  };
-  const Icon = icons[type] || FileText;
-  return <Icon className="w-4 h-4" />;
-};
-
-// ============================================
-// Main Component
-// ============================================
-
-export function FormFullPreview({ data, onClose, formUrl, formSlug }: FormFullPreviewProps) {
+export function FormFullPreview({ data, onClose, formUrl }: FormFullPreviewProps) {
   const {
     title,
     description,
@@ -166,633 +122,1044 @@ export function FormFullPreview({ data, onClose, formUrl, formSlug }: FormFullPr
     showQuestionNumbers,
   } = data;
 
+  const { user } = useAuth();
   const themeStyles = useMemo(() => getThemeStyles(theme), [theme]);
   const [currentStep, setCurrentStep] = useState(0);
-  const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [formValues, setFormValues] = useState<Record<string, any>>({});
-  const [expandedSelect, setExpandedSelect] = useState<string | null>(null);
-  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [showInfoSheet, setShowInfoSheet] = useState(false);
+  const [showModal, setShowModal] = useState<'share' | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  // Copy form URL to clipboard
-  const handleCopyUrl = async () => {
-    if (!formUrl) return;
-    try {
-      await navigator.clipboard.writeText(formUrl);
-      setCopiedUrl(true);
-      setTimeout(() => setCopiedUrl(false), 2000);
-    } catch (err) {
-      // Failed to copy URL
-    }
-  };
+  const ownerName = user?.name || user?.email?.split('@')[0] || 'مستخدم';
 
   // Get current fields
-  const displayFields = useMemo(() => {
+  const currentFields = useMemo(() => {
     if (isMultiStep && steps.length > 0) {
       return steps[currentStep]?.fields || [];
     }
     return fields;
   }, [isMultiStep, steps, fields, currentStep]);
 
-  // Field style based on theme
-  const fieldStyleClasses = {
-    outlined: 'border bg-transparent',
-    filled: 'border-0 bg-gray-100 dark:bg-gray-800',
-    underlined: 'border-0 border-b-2 rounded-none bg-transparent',
-  };
+  const totalSteps = isMultiStep ? steps.length : 1;
 
   // Handle field value change
-  const handleValueChange = (fieldId: string, value: any) => {
+  const handleFieldChange = (fieldId: string, value: any) => {
     setFormValues(prev => ({ ...prev, [fieldId]: value }));
+    setValidationErrors(prev => {
+      if (prev[fieldId]) {
+        const next = { ...prev };
+        delete next[fieldId];
+        return next;
+      }
+      return prev;
+    });
   };
 
-  // Render individual field
+  // Copy link
+  const handleCopyLink = () => {
+    if (!formUrl) return;
+    navigator.clipboard.writeText(formUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Validate
+  const validateCurrentFields = (): boolean => {
+    const errors: Record<string, string> = {};
+    currentFields.forEach((field) => {
+      if (field.required) {
+        const value = formValues[field.id];
+        if (value === undefined || value === '' || value === null) {
+          errors[field.id] = 'هذا الحقل مطلوب';
+        } else if (field.type === FieldType.CHECKBOX && Array.isArray(value) && value.length === 0) {
+          errors[field.id] = 'اختر خياراً واحداً على الأقل';
+        }
+      }
+    });
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleNext = () => {
+    if (validateCurrentFields() && currentStep < totalSteps - 1) {
+      setCurrentStep(prev => prev + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 0) {
+      setCurrentStep(prev => prev - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // ============================================
+  // Field renderer — same design as /f/[slug]
+  // ============================================
   const renderField = (field: FormFieldInput, index: number) => {
+    const hasError = !!validationErrors[field.id];
     const value = formValues[field.id];
-    
-    const baseInputClass = cn(
-      'w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base transition-all outline-none focus:ring-2 focus:ring-offset-0',
+    const fieldId = `field-${field.id}`;
+    const descId = `${fieldId}-desc`;
+    const errorId = `${fieldId}-error`;
+    const ariaDescribedBy = [field.description ? descId : null, hasError ? errorId : null].filter(Boolean).join(' ') || undefined;
+
+    const fieldStyleClasses = {
+      outlined: "border bg-transparent",
+      filled: "border-0 bg-muted/50",
+      underlined: "border-0 border-b-2 rounded-none bg-transparent",
+    };
+
+    const inputClass = cn(
+      "w-full min-h-[48px] h-12 px-4 transition-all duration-200 text-sm outline-none",
+      "placeholder:text-muted-foreground/60",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0 focus-visible:scale-[1.01]",
       fieldStyleClasses[theme.fieldStyle] || fieldStyleClasses.outlined,
-      theme.fieldStyle !== 'underlined' && 'rounded-lg sm:rounded-xl'
+      theme.fieldStyle !== 'underlined' && 'rounded-2xl',
+      hasError
+        ? "border-destructive/50 focus-visible:border-destructive focus-visible:ring-destructive/20"
+        : "border-border hover:border-primary/40 focus-visible:ring-primary/20 focus-visible:border-primary/50"
     );
 
     const inputStyle: React.CSSProperties = {
-      borderColor: theme.borderColor,
-      backgroundColor: theme.fieldStyle === 'filled' ? `${theme.borderColor}20` : 'transparent',
-      borderRadius: theme.fieldStyle !== 'underlined' ? `var(--form-radius, 16px)` : undefined,
-      color: theme.textColor,
+      borderColor: hasError ? undefined : theme.borderColor,
+      borderRadius: theme.fieldStyle !== 'underlined' ? 'var(--form-radius, 16px)' : undefined,
     };
 
-    const focusRingColor = `${theme.primaryColor}40`;
-
-    return (
-      <motion.div 
-        key={field.id} 
-        className="space-y-1.5 sm:space-y-2"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.05 }}
-      >
-        {/* Label */}
-        <label 
-          className="text-xs sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2"
-          style={{ color: theme.textColor }}
+    const fieldLabel = (
+      <div className="space-y-1.5 mb-2">
+        <Label
+          htmlFor={field.type !== FieldType.RADIO && field.type !== FieldType.CHECKBOX && field.type !== FieldType.TOGGLE ? fieldId : undefined}
+          className={cn("text-sm font-semibold", hasError ? "text-destructive" : "text-foreground")}
         >
           {showQuestionNumbers && (
-            <span 
-              className="w-5 h-5 sm:w-6 sm:h-6 rounded-md sm:rounded-lg flex items-center justify-center text-[10px] sm:text-xs font-bold shrink-0"
-              style={{ backgroundColor: `${theme.primaryColor}15`, color: theme.primaryColor }}
-            >
+            <span className="inline-flex items-center justify-center w-5 h-5 rounded-md text-[10px] font-bold mr-1.5 bg-primary/10 text-primary">
               {index + 1}
             </span>
           )}
-          <span className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-            <span 
-              className="w-5 h-5 sm:w-6 sm:h-6 rounded-md sm:rounded-lg flex items-center justify-center shrink-0"
-              style={{ backgroundColor: `${theme.primaryColor}10`, color: theme.primaryColor }}
-            >
-              {getFieldIcon(field.type)}
-            </span>
-            <span className="truncate">{field.label}</span>
-          </span>
-          {field.required && <span className="shrink-0" style={{ color: theme.accentColor }}>*</span>}
-        </label>
-
-        {/* Field Description */}
+          {field.label}
+          {field.required && <span className="text-destructive mr-1">*</span>}
+        </Label>
         {field.description && (
-          <p className="text-[10px] sm:text-xs opacity-60" style={{ color: theme.textColor }}>
+          <p id={descId} className="text-xs text-muted-foreground leading-relaxed">
             {field.description}
           </p>
         )}
+      </div>
+    );
 
-        {/* Field Input */}
-        {field.type === FieldType.TEXTAREA ? (
-          <textarea
-            value={value || ''}
-            onChange={(e) => handleValueChange(field.id, e.target.value)}
-            placeholder={field.placeholder || 'أدخل النص...'}
-            rows={3}
-            className={cn(baseInputClass, 'resize-none')}
-            style={{ ...inputStyle, '--tw-ring-color': focusRingColor } as React.CSSProperties}
-          />
-        ) : field.type === FieldType.SELECT ? (
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setExpandedSelect(expandedSelect === field.id ? null : field.id)}
-              className={cn(baseInputClass, 'flex items-center justify-between text-right')}
-              style={inputStyle}
-            >
-              <span className={cn('truncate', value ? '' : 'opacity-50')}>
-                {value || field.placeholder || 'اختر...'}
-              </span>
-              <ChevronDown className={cn('w-4 h-4 sm:w-5 sm:h-5 transition-transform shrink-0', expandedSelect === field.id && 'rotate-180')} />
-            </button>
-            <AnimatePresence>
-              {expandedSelect === field.id && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="absolute z-10 w-full mt-1.5 sm:mt-2 rounded-lg sm:rounded-xl border shadow-lg overflow-hidden max-h-48 overflow-y-auto"
-                  style={{ backgroundColor: theme.backgroundColor, borderColor: theme.borderColor }}
-                >
-                  {((field.options as (string | { label: string; value: string })[]) || []).map((opt, i) => {
-                    const optLabel = typeof opt === 'string' ? opt : opt.label;
-                    const optValue = typeof opt === 'string' ? opt : opt.value;
-                    return (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => {
-                          handleValueChange(field.id, optLabel);
-                          setExpandedSelect(null);
-                        }}
-                        className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-right hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center justify-between text-sm sm:text-base"
-                        style={{ color: theme.textColor }}
-                      >
-                        <span className="truncate">{optLabel}</span>
-                        {value === optLabel && <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" style={{ color: theme.primaryColor }} />}
-                      </button>
-                    );
-                  })}
-                </motion.div>
-              )}
-            </AnimatePresence>
+    const errorMessage = hasError && (
+      <p id={errorId} className="text-xs text-destructive flex items-center gap-1.5 mt-2" role="alert">
+        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+        {validationErrors[field.id]}
+      </p>
+    );
+
+    switch (field.type) {
+      case FieldType.TEXT:
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <input id={fieldId} type="text" value={value || ''} onChange={(e) => handleFieldChange(field.id, e.target.value)} placeholder={field.placeholder || 'أدخل النص...'} className={inputClass} style={inputStyle} aria-invalid={hasError} aria-required={field.required} aria-describedby={ariaDescribedBy} />
+            {errorMessage}
           </div>
-        ) : field.type === FieldType.RADIO ? (
-          <div className="space-y-1.5 sm:space-y-2">
-            {((field.options as (string | { label: string; value: string })[]) || []).map((opt, i) => {
-              const optLabel = typeof opt === 'string' ? opt : opt.label;
-              return (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => handleValueChange(field.id, optLabel)}
-                  className="w-full flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg sm:rounded-xl border text-right transition-all text-sm sm:text-base"
-                  style={{ 
-                    borderColor: value === optLabel ? theme.primaryColor : theme.borderColor,
-                    backgroundColor: value === optLabel ? `${theme.primaryColor}10` : 'transparent',
-                    color: theme.textColor,
-                  }}
-                >
-                  <div
-                    className="w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center"
-                    style={{ borderColor: value === optLabel ? theme.primaryColor : theme.borderColor }}
-                  >
-                    {value === optLabel && (
-                      <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full" style={{ backgroundColor: theme.primaryColor }} />
-                    )}
-                  </div>
-                  <span className="truncate">{optLabel}</span>
-                </button>
-              );
-            })}
+        );
+
+      case FieldType.TEXTAREA:
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <textarea id={fieldId} value={value || ''} onChange={(e) => handleFieldChange(field.id, e.target.value)} placeholder={field.placeholder || 'أدخل النص...'} rows={4} className={cn(inputClass, "h-auto min-h-[120px] max-h-48 py-3.5 resize-y leading-relaxed")} style={inputStyle} aria-invalid={hasError} aria-required={field.required} aria-describedby={ariaDescribedBy} />
+            {errorMessage}
           </div>
-        ) : field.type === FieldType.CHECKBOX ? (
-          <div className="space-y-1.5 sm:space-y-2">
-            {((field.options as (string | { label: string; value: string })[]) || []).map((opt, i) => {
-              const optLabel = typeof opt === 'string' ? opt : opt.label;
-              const isChecked = Array.isArray(value) && value.includes(optLabel);
-              return (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => {
-                    const current = Array.isArray(value) ? value : [];
-                    const newValue = isChecked
-                      ? current.filter((v: string) => v !== optLabel)
-                      : [...current, optLabel];
-                    handleValueChange(field.id, newValue);
-                  }}
-                  className="w-full flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg sm:rounded-xl border text-right transition-all text-sm sm:text-base"
-                  style={{ 
-                    borderColor: isChecked ? theme.primaryColor : theme.borderColor,
-                    backgroundColor: isChecked ? `${theme.primaryColor}10` : 'transparent',
-                    color: theme.textColor,
-                  }}
-                >
-                  <div
-                    className="w-4 h-4 sm:w-5 sm:h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center"
-                    style={{ 
-                      borderColor: isChecked ? theme.primaryColor : theme.borderColor,
-                      backgroundColor: isChecked ? theme.primaryColor : 'transparent',
-                    }}
-                  >
-                    {isChecked && <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />}
-                  </div>
-                  <span className="truncate">{optLabel}</span>
-                </button>
-              );
-            })}
-          </div>
-        ) : field.type === FieldType.TOGGLE ? (
-          <button
-            type="button"
-            onClick={() => handleValueChange(field.id, !value)}
-            className="flex items-center gap-2 sm:gap-3"
-          >
-            <div
-              className="w-10 h-6 sm:w-12 sm:h-7 rounded-full relative transition-colors"
-              style={{ backgroundColor: value ? theme.primaryColor : `${theme.borderColor}50` }}
-            >
-              <motion.div
-                className="absolute top-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white shadow-md"
-                animate={{ right: value ? 6 : 'auto', left: value ? 'auto' : 6 }}
-                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-              />
+        );
+
+      case FieldType.EMAIL:
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <div className="relative">
+              <Mail className={cn("absolute right-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 transition-colors", hasError ? "text-destructive/60" : "text-muted-foreground/50")} aria-hidden />
+              <input id={fieldId} type="email" value={value || ''} onChange={(e) => handleFieldChange(field.id, e.target.value)} placeholder={field.placeholder || 'example@email.com'} className={cn(inputClass, "pr-12")} style={inputStyle} dir="ltr" aria-invalid={hasError} aria-required={field.required} aria-describedby={ariaDescribedBy} />
             </div>
-            <span className="text-sm sm:text-base" style={{ color: theme.textColor }}>{field.label}</span>
-          </button>
-        ) : field.type === FieldType.RATING ? (() => {
-          const minR = field.minValue ?? 1;
-          const maxR = field.maxValue ?? 5;
-          const count = Math.max(1, maxR - minR + 1);
-          return (
-            <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-              {Array.from({ length: count }, (_, i) => {
-                const star = minR + i;
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.PHONE:
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <div className="relative">
+              <Phone className={cn("absolute right-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 transition-colors", hasError ? "text-destructive/60" : "text-muted-foreground/50")} aria-hidden />
+              <input id={fieldId} type="tel" value={value || ''} onChange={(e) => handleFieldChange(field.id, e.target.value)} placeholder={field.placeholder || '+964 XXX XXX XXXX'} className={cn(inputClass, "pr-12")} style={inputStyle} dir="ltr" aria-invalid={hasError} aria-required={field.required} aria-describedby={ariaDescribedBy} />
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.NUMBER:
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <div className="relative">
+              <Hash className={cn("absolute right-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 transition-colors", hasError ? "text-destructive/60" : "text-muted-foreground/50")} aria-hidden />
+              <input id={fieldId} type="number" value={value || ''} onChange={(e) => handleFieldChange(field.id, e.target.value)} placeholder={field.placeholder || '0'} min={field.minValue} max={field.maxValue} className={cn(inputClass, "pr-12")} style={inputStyle} dir="ltr" aria-invalid={hasError} aria-required={field.required} aria-describedby={ariaDescribedBy} />
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.DATE:
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <div className="relative">
+              <Calendar className={cn("absolute right-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 transition-colors", hasError ? "text-destructive/60" : "text-muted-foreground/50")} aria-hidden />
+              <input id={fieldId} type="date" value={value || ''} onChange={(e) => handleFieldChange(field.id, e.target.value)} className={cn(inputClass, "pr-12")} style={inputStyle} dir="ltr" aria-invalid={hasError} aria-required={field.required} aria-describedby={ariaDescribedBy} />
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.TIME:
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <div className="relative">
+              <Clock className={cn("absolute right-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 transition-colors", hasError ? "text-destructive/60" : "text-muted-foreground/50")} aria-hidden />
+              <input id={fieldId} type="time" value={value || ''} onChange={(e) => handleFieldChange(field.id, e.target.value)} className={cn(inputClass, "pr-12")} style={inputStyle} dir="ltr" aria-invalid={hasError} aria-required={field.required} aria-describedby={ariaDescribedBy} />
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.DATETIME:
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <input id={fieldId} type="datetime-local" value={value || ''} onChange={(e) => handleFieldChange(field.id, e.target.value)} className={inputClass} style={inputStyle} dir="ltr" aria-invalid={hasError} aria-required={field.required} aria-describedby={ariaDescribedBy} />
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.SELECT:
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <select
+              id={fieldId}
+              value={value || ''}
+              onChange={(e) => handleFieldChange(field.id, e.target.value)}
+              className={cn(inputClass, "appearance-none cursor-pointer")}
+              style={inputStyle}
+              aria-invalid={hasError}
+              aria-required={field.required}
+              aria-describedby={ariaDescribedBy}
+            >
+              <option value="">{field.placeholder || 'اختر...'}</option>
+              {(field.options || []).map((opt, i) => (
+                <option key={i} value={opt}>{opt}</option>
+              ))}
+            </select>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.RADIO:
+        return (
+          <div className="space-y-1" role="group" aria-labelledby={`${fieldId}-label`} aria-describedby={ariaDescribedBy} aria-invalid={hasError} aria-required={field.required}>
+            <div id={`${fieldId}-label`}>{fieldLabel}</div>
+            <div className="space-y-2.5 mt-2">
+              {(field.options || []).map((opt, i) => {
+                const isSelected = value === opt;
+                const optId = `${fieldId}-opt-${i}`;
                 return (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => handleValueChange(field.id, star)}
-                    className="transition-transform hover:scale-110"
+                  <label
+                    key={i}
+                    htmlFor={optId}
+                    className={cn(
+                      "flex items-center gap-3.5 p-4 rounded-2xl border cursor-pointer transition-all min-h-[52px]",
+                      isSelected
+                        ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                        : "border-border hover:border-primary/30 hover:bg-muted/30"
+                    )}
                   >
-                    <Star
-                      className={cn('w-6 h-6 sm:w-8 sm:h-8', (value || 0) >= star ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300')}
+                    <input id={optId} type="radio" name={fieldId} className="sr-only" checked={isSelected} onChange={() => handleFieldChange(field.id, opt)} />
+                    <div className={cn("w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors", isSelected ? "border-primary bg-primary" : "border-muted-foreground/40")}>
+                      {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+                    </div>
+                    <span className="text-sm font-medium text-foreground">{opt}</span>
+                  </label>
+                );
+              })}
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.CHECKBOX: {
+        const selectedValues = Array.isArray(value) ? value : [];
+        return (
+          <div className="space-y-1" role="group" aria-labelledby={`${fieldId}-label`} aria-describedby={ariaDescribedBy} aria-invalid={hasError} aria-required={field.required}>
+            <div id={`${fieldId}-label`}>{fieldLabel}</div>
+            <div className="space-y-2.5 mt-2">
+              {(field.options || []).map((opt, i) => {
+                const isSelected = selectedValues.includes(opt);
+                const optId = `${fieldId}-opt-${i}`;
+                return (
+                  <label
+                    key={i}
+                    htmlFor={optId}
+                    className={cn(
+                      "flex items-center gap-3.5 p-4 rounded-2xl border cursor-pointer transition-all min-h-[52px]",
+                      isSelected
+                        ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                        : "border-border hover:border-primary/30 hover:bg-muted/30"
+                    )}
+                  >
+                    <input
+                      id={optId}
+                      type="checkbox"
+                      className="sr-only"
+                      checked={isSelected}
+                      onChange={(e) => {
+                        if (e.target.checked) handleFieldChange(field.id, [...selectedValues, opt]);
+                        else handleFieldChange(field.id, selectedValues.filter((v: string) => v !== opt));
+                      }}
                     />
+                    <div className={cn("w-5 h-5 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition-colors", isSelected ? "border-primary bg-primary" : "border-muted-foreground/40")}>
+                      {isSelected && <Check className="w-3 h-3 text-white" />}
+                    </div>
+                    <span className="text-sm font-medium text-foreground">{opt}</span>
+                  </label>
+                );
+              })}
+            </div>
+            {errorMessage}
+          </div>
+        );
+      }
+
+      case FieldType.TOGGLE:
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <div className="flex gap-3" role="radiogroup" aria-label={field.label}>
+              <button type="button" onClick={() => handleFieldChange(field.id, true)} className={cn("flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 transition-all font-medium text-sm", value === true ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 ring-2 ring-emerald-500/20" : "border-border bg-muted/30 text-muted-foreground hover:border-emerald-300")} role="radio" aria-checked={value === true}>
+                <Check className={cn("w-5 h-5", value === true ? "text-emerald-600" : "text-muted-foreground/50")} />
+                <span>{field.toggleLabelOn || 'نعم'}</span>
+              </button>
+              <button type="button" onClick={() => handleFieldChange(field.id, false)} className={cn("flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 transition-all font-medium text-sm", value === false ? "border-red-500 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 ring-2 ring-red-500/20" : "border-border bg-muted/30 text-muted-foreground hover:border-red-300")} role="radio" aria-checked={value === false}>
+                <X className={cn("w-5 h-5", value === false ? "text-red-600" : "text-muted-foreground/50")} />
+                <span>{field.toggleLabelOff || 'لا'}</span>
+              </button>
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.RATING: {
+        const minR = Math.min(field.minValue ?? 1, field.maxValue ?? 5);
+        const maxR = Math.max(field.maxValue ?? 5, field.minValue ?? 1);
+        const count = Math.max(1, maxR - minR + 1);
+        const currentRating = value !== undefined && value !== '' && value !== null ? Number(value) : 0;
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <div className="flex items-center gap-1.5 mt-2 p-3 bg-muted/30 rounded-2xl border border-border" role="group" aria-label={field.label}>
+              {Array.from({ length: count }).map((_, i) => {
+                const starValue = minR + i;
+                return (
+                  <button key={i} type="button" onClick={() => handleFieldChange(field.id, starValue)} className="p-1.5 rounded-xl hover:bg-muted transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label={`${starValue}`} aria-pressed={currentRating === starValue}>
+                    <Star className={cn("w-7 h-7 transition-colors", currentRating >= starValue ? "fill-warning text-warning" : "text-muted-foreground/30")} />
                   </button>
                 );
               })}
+              {currentRating >= minR && currentRating <= maxR && (
+                <span className="text-sm font-medium text-muted-foreground mr-2">{currentRating}/{maxR}</span>
+              )}
+            </div>
+            {errorMessage}
+          </div>
+        );
+      }
+
+      case FieldType.SCALE: {
+        const min = field.minValue || 0;
+        const max = field.maxValue || 10;
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <div className="space-y-3 mt-2" role="group" aria-label={field.label}>
+              <div className="flex justify-between text-xs font-medium text-muted-foreground px-1">
+                <span>{min}</span>
+                <span>{max}</span>
+              </div>
+              <div className="flex gap-1.5">
+                {Array.from({ length: max - min + 1 }).map((_, i) => {
+                  const num = min + i;
+                  return (
+                    <button key={num} type="button" onClick={() => handleFieldChange(field.id, num)} className={cn("flex-1 py-3 rounded-xl text-sm font-semibold transition-all min-h-[48px]", value === num ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/50 hover:bg-muted text-foreground border border-border")} aria-pressed={value === num}>
+                      {num}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {errorMessage}
+          </div>
+        );
+      }
+
+      case FieldType.FILE:
+      case FieldType.IMAGE:
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <div className="border-2 border-dashed border-border rounded-2xl p-8 text-center hover:border-primary/50 hover:bg-muted/30 transition-colors min-h-[140px] flex flex-col items-center justify-center cursor-pointer" role="button" tabIndex={0} aria-label="رفع الملفات">
+              <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" aria-hidden />
+              <p className="text-sm font-medium text-foreground mb-1">اضغط لرفع الملفات</p>
+              <p className="text-xs text-muted-foreground">هذه معاينة فقط</p>
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.SIGNATURE:
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-2xl cursor-pointer hover:bg-muted/30 transition-colors" style={{ borderColor: theme.borderColor }}>
+              <PenTool className="w-8 h-8 mb-2 text-muted-foreground/50" />
+              <span className="text-sm font-medium text-muted-foreground">اضغط للتوقيع (معاينة)</span>
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.URL:
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <div className="relative">
+              <input
+                id={fieldId}
+                type="url"
+                inputMode="url"
+                value={value || ''}
+                onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                placeholder={field.placeholder || 'https://example.com'}
+                className={cn(inputClass, "pl-10")}
+                style={inputStyle}
+                dir="ltr"
+                aria-invalid={hasError}
+                aria-required={field.required}
+                aria-describedby={ariaDescribedBy}
+              />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                🔗
+              </span>
+            </div>
+            {errorMessage}
+          </div>
+        );
+
+      case FieldType.MULTISELECT: {
+        const selectedValues = Array.isArray(value) ? value : [];
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <div className="space-y-2" role="group" aria-label={field.label} aria-describedby={ariaDescribedBy}>
+              {(field.options || []).map((opt, i) => {
+                const isChecked = selectedValues.includes(opt);
+                return (
+                  <label
+                    key={i}
+                    className={cn(
+                      "flex items-center gap-3 p-4 rounded-2xl border cursor-pointer transition-all min-h-[52px]",
+                      isChecked
+                        ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                        : "border-border hover:bg-muted/30"
+                    )}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => {
+                        const newValue = isChecked
+                          ? selectedValues.filter((v: string) => v !== opt)
+                          : [...selectedValues, opt];
+                        handleFieldChange(field.id, newValue);
+                      }}
+                      className="w-5 h-5 rounded-md accent-primary"
+                    />
+                    <span className="text-sm font-medium text-foreground">{opt}</span>
+                  </label>
+                );
+              })}
+            </div>
+            {errorMessage}
+          </div>
+        );
+      }
+
+      case FieldType.RANKING: {
+        const rankingOptions = field.options || [];
+        const rankedItems = Array.isArray(value) ? value : rankingOptions;
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <div className="space-y-2" role="list" aria-label={field.label} aria-describedby={ariaDescribedBy}>
+              {rankedItems.map((item: string, i: number) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 p-4 bg-muted/30 border border-border rounded-2xl min-h-[52px] cursor-move"
+                  role="listitem"
+                >
+                  <span className="w-8 h-8 bg-primary/10 text-primary rounded-lg flex items-center justify-center text-sm font-bold">
+                    {i + 1}
+                  </span>
+                  <span className="text-sm font-medium text-foreground flex-1">{item}</span>
+                  <span className="text-muted-foreground/50">⋮⋮</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">اسحب العناصر لترتيبها حسب الأفضلية</p>
+            {errorMessage}
+          </div>
+        );
+      }
+
+      case FieldType.MATRIX: {
+        const matrixRows = field.matrixRows || [];
+        const matrixColumns = field.matrixColumns || [];
+        const matrixValue = (value || {}) as Record<string, string>;
+        if (matrixRows.length === 0 || matrixColumns.length === 0) {
+          return (
+            <div className="space-y-1">
+              {fieldLabel}
+              <div className="text-sm text-muted-foreground p-4 border border-dashed rounded-xl text-center">
+                لم يتم إعداد الجدول بعد
+              </div>
             </div>
           );
-        })() : field.type === FieldType.SCALE ? (
-          <div className="space-y-1.5 sm:space-y-2">
-            <div className="flex items-center justify-between text-[10px] sm:text-xs opacity-60" style={{ color: theme.textColor }}>
-              <span>{field.minValue || 0}</span>
-              <span>{field.maxValue || 10}</span>
+        }
+        return (
+          <div className="space-y-2">
+            {fieldLabel}
+            <div className="overflow-x-auto -mx-4 px-4">
+              <table className="w-full border-collapse min-w-[400px]">
+                <thead>
+                  <tr>
+                    <th className="p-2 text-right text-xs font-medium text-muted-foreground bg-muted/30 rounded-tr-lg"></th>
+                    {matrixColumns.map((col, i) => (
+                      <th key={i} className="p-2 text-center text-xs font-medium text-muted-foreground bg-muted/30 last:rounded-tl-lg">{col}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {matrixRows.map((row, rowIndex) => (
+                    <tr key={rowIndex} className="border-b border-border/50 last:border-0">
+                      <td className="p-3 text-sm font-medium text-foreground bg-muted/10">{row}</td>
+                      {matrixColumns.map((col, colIndex) => (
+                        <td key={colIndex} className="p-2 text-center">
+                          <label className="cursor-pointer flex items-center justify-center">
+                            <input
+                              type="radio"
+                              name={`matrix-${field.id}-${rowIndex}`}
+                              checked={matrixValue[row] === col}
+                              onChange={() => handleFieldChange(field.id, { ...matrixValue, [row]: col })}
+                              className="w-4 h-4 accent-primary cursor-pointer"
+                            />
+                          </label>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div className="flex gap-0.5 sm:gap-1 overflow-x-auto">
-              {Array.from({ length: (field.maxValue || 10) - (field.minValue || 0) + 1 }, (_, i) => {
-                const num = (field.minValue || 0) + i;
-                return (
-                  <button
-                    key={num}
-                    type="button"
-                    onClick={() => handleValueChange(field.id, num)}
-                    className="flex-1 min-w-[28px] sm:min-w-[32px] py-1.5 sm:py-2 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium transition-all"
-                    style={{ 
-                      backgroundColor: value === num ? theme.primaryColor : `${theme.borderColor}30`,
-                      color: value === num ? '#fff' : theme.textColor,
-                    }}
-                  >
-                    {num}
-                  </button>
-                );
-              })}
-            </div>
+            {errorMessage}
           </div>
-        ) : field.type === FieldType.FILE || field.type === FieldType.IMAGE ? (
-          <div
-            className="flex flex-col items-center justify-center py-6 sm:py-8 border-2 border-dashed rounded-lg sm:rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-            style={{ borderColor: theme.borderColor, color: `${theme.textColor}70` }}
-          >
-            <Upload className="w-6 h-6 sm:w-8 sm:h-8 mb-1.5 sm:mb-2" />
-            <span className="text-xs sm:text-sm font-medium">اضغط لرفع ملف</span>
-            <span className="text-[10px] sm:text-xs mt-0.5 sm:mt-1 opacity-60">أو اسحب الملف هنا</span>
+        );
+      }
+
+      // Layout blocks
+      case FieldType.HEADING:
+        return (
+          <div className="py-2">
+            <h2 className="text-xl font-bold text-foreground">{field.label}</h2>
+            {field.description && <p className="text-sm text-muted-foreground mt-1">{field.description}</p>}
           </div>
-        ) : field.type === FieldType.SIGNATURE ? (
-          <div
-            className="flex flex-col items-center justify-center py-8 sm:py-12 border-2 border-dashed rounded-lg sm:rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-            style={{ borderColor: theme.borderColor, color: `${theme.textColor}70` }}
-          >
-            <PenTool className="w-6 h-6 sm:w-8 sm:h-8 mb-1.5 sm:mb-2" />
-            <span className="text-xs sm:text-sm font-medium">اضغط للتوقيع</span>
+        );
+
+      case FieldType.TITLE:
+        return (
+          <div className="py-3">
+            <h3 className="text-lg font-semibold text-foreground">{field.label}</h3>
+            {field.description && <p className="text-sm text-muted-foreground mt-1">{field.description}</p>}
           </div>
-        ) : field.type === FieldType.HEADING ? (
-          <h2 className="text-lg sm:text-xl font-bold" style={{ color: theme.textColor }}>{field.label}</h2>
-        ) : field.type === FieldType.PARAGRAPH ? (
-          <p className="text-sm sm:text-base opacity-80" style={{ color: theme.textColor }}>{field.label}</p>
-        ) : field.type === FieldType.DIVIDER ? (
-          <hr style={{ borderColor: theme.borderColor }} />
-        ) : (
-          <input
-            type={
-              field.type === FieldType.EMAIL ? 'email' :
-              field.type === FieldType.NUMBER ? 'number' :
-              field.type === FieldType.PHONE ? 'tel' :
-              field.type === FieldType.URL ? 'url' :
-              field.type === FieldType.DATE ? 'date' :
-              field.type === FieldType.TIME ? 'time' :
-              field.type === FieldType.DATETIME ? 'datetime-local' :
-              'text'
-            }
-            value={value || ''}
-            onChange={(e) => handleValueChange(field.id, e.target.value)}
-            placeholder={field.placeholder || 
-              (field.type === FieldType.EMAIL ? 'example@email.com' :
-               field.type === FieldType.PHONE ? '+964 XXX XXX XXXX' :
-               field.type === FieldType.URL ? 'https://...' :
-               'أدخل البيانات...')}
-            className={baseInputClass}
-            style={{ ...inputStyle, '--tw-ring-color': focusRingColor } as React.CSSProperties}
-          />
-        )}
-      </motion.div>
-    );
+        );
+
+      case FieldType.PARAGRAPH:
+        return (
+          <div className="py-2">
+            <p className="text-sm text-muted-foreground leading-relaxed">{field.label}</p>
+          </div>
+        );
+
+      case FieldType.LABEL:
+        return (
+          <div className="py-1">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{field.label}</span>
+          </div>
+        );
+
+      case FieldType.DIVIDER:
+        return (
+          <div className="py-4">
+            <hr className="border-border" />
+          </div>
+        );
+
+      case FieldType.HIDDEN:
+        return null;
+
+      default:
+        return (
+          <div className="space-y-1">
+            {fieldLabel}
+            <input id={fieldId} type="text" value={value || ''} onChange={(e) => handleFieldChange(field.id, e.target.value)} placeholder={field.placeholder || 'أدخل البيانات...'} className={inputClass} style={inputStyle} aria-invalid={hasError} aria-required={field.required} aria-describedby={ariaDescribedBy} />
+            {errorMessage}
+          </div>
+        );
+    }
   };
 
+  // ============================================
+  // Render — same layout as /f/[slug]
+  // ============================================
+
   return (
-    <div className="h-screen overflow-y-auto" style={{ backgroundColor: `${theme.primaryColor}08` }} dir="rtl">
-      {/* Preview Banner - Like Google Forms */}
-      <div className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-        {/* Top accent line */}
-        <div className="h-1 w-full" style={{ backgroundColor: theme.primaryColor }} />
-        
-        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-3">
-          {/* Right: Back + Info */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <button
-              type="button"
-              onClick={onClose || (() => window.close())}
-              className="flex items-center gap-1 sm:gap-1.5 text-sm font-medium transition-colors shrink-0 hover:opacity-80"
-              style={{ color: theme.primaryColor }}
-            >
-              <ArrowRight className="w-4 h-4" />
-              <span className="hidden sm:inline">رجوع</span>
-            </button>
-            
-            <div className="hidden sm:block h-5 w-px bg-gray-200 dark:bg-gray-700 shrink-0" />
-            
-            <span className="hidden sm:inline text-sm text-gray-500 dark:text-gray-400 shrink-0">
-              هذه معاينة للنموذج
-            </span>
-            <span className="sm:hidden text-xs text-gray-500 dark:text-gray-400 shrink-0">
-              معاينة
-            </span>
-          </div>
-
-          {/* Center: URL Bar - hidden on mobile */}
-          <div className="hidden sm:block flex-1 max-w-xl">
-            <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-full px-4 py-1.5">
-              <Link2 className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-              {formUrl ? (
-                <span className="text-sm text-gray-600 dark:text-gray-300 truncate font-mono select-all" dir="ltr">
-                  {formUrl}
-                </span>
-              ) : (
-                <span className="text-sm text-gray-400 dark:text-gray-500 truncate" dir="ltr">
-                  rukny.io/f/...
-                </span>
-              )}
-              {formUrl && (
-                <button
-                  type="button"
-                  onClick={handleCopyUrl}
-                  className="shrink-0 p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors mr-auto"
-                  title="نسخ الرابط"
-                >
-                  {copiedUrl ? (
-                    <Check className="w-3.5 h-3.5 text-green-500" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5 text-gray-400" />
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Left: View Toggle */}
-          <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
-            <button
-              type="button"
-              onClick={() => setViewMode('desktop')}
-              className={cn(
-                'p-1.5 sm:p-2 rounded-lg text-sm transition-all',
-                viewMode === 'desktop' 
-                  ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800' 
-                  : 'text-gray-400 hover:text-gray-600'
-              )}
-              title="سطح المكتب"
-            >
-              <Monitor className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('mobile')}
-              className={cn(
-                'p-1.5 sm:p-2 rounded-lg text-sm transition-all',
-                viewMode === 'mobile' 
-                  ? 'text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-800' 
-                  : 'text-gray-400 hover:text-gray-600'
-              )}
-              title="موبايل"
-            >
-              <Smartphone className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+    <div
+      className={cn("h-full overflow-y-auto transition-colors relative bg-background")}
+      dir="rtl"
+      style={themeStyles}
+    >
+      {/* Preview Banner - subtle fixed indicator at bottom */}
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2">
+        {/* Preview indicator pill */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="flex items-center gap-3 px-5 py-2.5 bg-card/95 backdrop-blur-xl rounded-full border border-border/60 shadow-lg"
+        >
+          <span className="text-xs text-muted-foreground">هذه معاينة فقط</span>
+          <div className="w-px h-4 bg-border" />
+          <button
+            type="button"
+            onClick={onClose || (() => window.close())}
+            className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+          >
+            إغلاق
+          </button>
+        </motion.div>
       </div>
 
-      {/* Main Content */}
-      <main className="py-4 sm:py-6 pb-12 sm:pb-16 px-2 sm:px-4">
-        <div className="flex justify-center">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={viewMode}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
+      {/* Sticky Header — same as /f/[slug] */}
+      <header className="sticky top-2 z-40 mx-4 sm:mx-auto max-w-2xl relative">
+        <div className="bg-card/95 backdrop-blur-xl rounded-4xl border border-border/60 px-4 py-3 flex items-center justify-between gap-3 transition-all duration-300">
+          {/* Form Title */}
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <h1 className="text-sm font-semibold text-foreground truncate">ركني</h1>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <button
+              onClick={() => setShowInfoSheet(!showInfoSheet)}
               className={cn(
-                'w-full transition-all duration-300',
-                viewMode === 'mobile' ? 'max-w-sm sm:max-w-md' : 'max-w-2xl'
+                "w-9 h-9 flex items-center justify-center rounded-xl transition-all duration-200",
+                showInfoSheet
+                  ? "bg-primary/15 text-primary scale-95"
+                  : "hover:bg-muted text-muted-foreground hover:scale-105 active:scale-95"
               )}
+              aria-label="معلومات"
+              aria-expanded={showInfoSheet}
             >
-              {/* Form Container */}
-              <div
-                className={cn(
-                  'rounded-2xl sm:rounded-3xl shadow-xl overflow-hidden',
-                  viewMode === 'mobile' && 'mx-2 sm:mx-4'
-                )}
-                style={{ 
-                  backgroundColor: theme.backgroundColor,
-                  ...themeStyles 
-                }}
+              <Info className="w-4 h-4" />
+            </button>
+            {formUrl && (
+              <button
+                onClick={() => setShowModal('share')}
+                className="w-9 h-9 flex items-center justify-center hover:bg-muted rounded-xl transition-all duration-200 text-muted-foreground hover:text-foreground hover:scale-105 active:scale-95"
+                aria-label="مشاركة"
               >
-                {/* Banner */}
+                <Share2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Info Sheet — same as /f/[slug] */}
+        <AnimatePresence>
+          {showInfoSheet && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="fixed inset-0 z-40 bg-transparent"
+                onClick={() => setShowInfoSheet(false)}
+                aria-hidden
+              />
+              <motion.div
+                initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+                className="absolute top-full left-0 right-0 sm:left-auto sm:right-0 sm:w-[340px] mt-2 z-50 rounded-4xl overflow-hidden bg-card border border-border/60 backdrop-blur-xl"
+              >
+                {/* Top bar */}
+                <div className="flex items-center gap-3 px-4 pt-4 pb-3">
+                  <button
+                    onClick={() => setShowInfoSheet(false)}
+                    className="w-9 h-9 rounded-full flex items-center justify-center bg-card border border-border text-muted-foreground hover:bg-muted transition-all duration-200 flex-shrink-0"
+                    aria-label="إغلاق"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                  <span className="px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-sm font-medium">
+                    معاينة النموذج
+                  </span>
+                </div>
+
+                {/* Banner in info sheet */}
                 {bannerUrl && (
-                  <div className="relative h-36 sm:h-48 overflow-hidden">
-                    <img 
-                      src={bannerUrl} 
-                      alt="Banner"
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                  <div className="mx-4 mb-3 relative">
+                    <div className="rounded-4xl overflow-hidden aspect-video bg-muted relative">
+                      <img src={bannerUrl} alt={title} className="w-full h-full object-cover" />
+                    </div>
                   </div>
                 )}
 
-                {/* Form Content */}
-                <div className="p-4 sm:p-6 md:p-8">
-                  {/* Header */}
-                  <div className="mb-4 sm:mb-6">
-                    <h1 
-                      className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2"
-                      style={{ color: theme.textColor }}
-                    >
-                      {title || 'عنوان النموذج'}
-                    </h1>
+                {/* Content — bg-primary like /f/[slug] */}
+                <div className="mx-4 mb-4 rounded-4xl overflow-hidden bg-primary">
+                  <div className="p-4 space-y-4">
                     {description && (
-                      <p 
-                        className="text-sm sm:text-base opacity-70"
-                        style={{ color: theme.textColor }}
-                      >
+                      <p className="text-primary-foreground text-base leading-relaxed line-clamp-3">
                         {description}
                       </p>
                     )}
-                  </div>
+                    <p className="text-primary-foreground/70 text-sm">
+                      {title || 'نموذج بدون عنوان'} — ركني
+                    </p>
 
-                  {/* Multi-step Progress */}
-                  {isMultiStep && steps.length > 0 && showProgressBar && (
-                    <div className="mb-6 sm:mb-8">
-                      {/* Progress Bar */}
-                      <div className="flex gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-                        {steps.map((step, idx) => (
-                          <div
-                            key={idx}
-                            className="flex-1 h-1.5 sm:h-2 rounded-full cursor-pointer transition-colors"
-                            style={{ 
-                              backgroundColor: idx <= currentStep ? theme.primaryColor : `${theme.borderColor}40`
-                            }}
-                            onClick={() => setCurrentStep(idx)}
-                          />
-                        ))}
-                      </div>
-                      
-                      {/* Step Info */}
-                      <div className="flex items-center justify-between">
-                        <button
-                          type="button"
-                          onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-                          disabled={currentStep === 0}
-                          className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl disabled:opacity-30 transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
-                          style={{ color: theme.primaryColor }}
-                        >
-                          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
-                        </button>
-                        
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <div 
-                            className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold text-white"
-                            style={{ backgroundColor: theme.primaryColor }}
-                          >
-                            {currentStep + 1}
-                          </div>
-                          <div className="min-w-0">
-                            <span className="text-xs sm:text-sm font-medium block truncate" style={{ color: theme.textColor }}>
-                              {steps[currentStep]?.title || `الخطوة ${currentStep + 1}`}
-                            </span>
-                            <p className="text-[10px] sm:text-xs opacity-50 truncate" style={{ color: theme.textColor }}>
-                              {steps[currentStep]?.description}
-                            </p>
-                          </div>
+                    {/* Owner */}
+                    <div className="flex items-center gap-3">
+                      <div className="relative flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-primary-foreground/20 flex items-center justify-center text-primary-foreground text-sm font-medium">
+                          {ownerName.charAt(0)}
                         </div>
-                        
-                        <button
-                          type="button"
-                          onClick={() => setCurrentStep(Math.min(steps.length - 1, currentStep + 1))}
-                          disabled={currentStep === steps.length - 1}
-                          className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl disabled:opacity-30 transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
-                          style={{ color: theme.primaryColor }}
-                        >
-                          <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-                        </button>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-primary-foreground font-medium truncate">{ownerName}</p>
+                        <span className="text-primary-foreground/70 text-xs">المنشئ</span>
                       </div>
                     </div>
-                  )}
 
-                  {/* Form Fields */}
-                  <div className="space-y-4 sm:space-y-6">
-                    <AnimatePresence mode="wait">
-                      {displayFields.length > 0 ? (
-                        <motion.div
-                          key={`fields-${currentStep}`}
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -20 }}
-                          className="space-y-4 sm:space-y-6"
-                        >
-                          {displayFields.map((field, index) => renderField(field, index))}
-                        </motion.div>
-                      ) : (
-                        <motion.div 
-                          key="empty"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="text-center py-10 sm:py-16"
-                          style={{ color: `${theme.textColor}40` }}
-                        >
-                          <div 
-                            className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl mx-auto mb-3 sm:mb-4 flex items-center justify-center"
-                            style={{ backgroundColor: `${theme.primaryColor}10` }}
-                          >
-                            <FileText className="w-8 h-8 sm:w-10 sm:h-10" style={{ color: theme.primaryColor }} />
-                          </div>
-                          <p className="text-base sm:text-lg font-medium" style={{ color: theme.textColor }}>
-                            لا توجد حقول
-                          </p>
-                          <p className="text-xs sm:text-sm mt-1 opacity-60">
-                            أضف حقولاً للنموذج
-                          </p>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    {/* Submit Button */}
-                    {displayFields.length > 0 && (
-                      <motion.div 
-                        className="pt-4 sm:pt-6"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.3 }}
-                      >
-                        <button
-                          type="button"
-                          className="w-full flex items-center justify-center gap-2 py-3 sm:py-4 text-white text-sm sm:text-base font-semibold rounded-xl sm:rounded-2xl transition-all hover:opacity-90 active:scale-[0.99]"
-                          style={{ 
-                            backgroundColor: theme.primaryColor,
-                            boxShadow: `0 8px 24px ${theme.primaryColor}40`
-                          }}
-                          onClick={() => {
-                            if (isMultiStep && currentStep < steps.length - 1) {
-                              setCurrentStep(currentStep + 1);
-                            } else {
-                              alert('هذه معاينة فقط - لا يمكن إرسال البيانات');
-                            }
-                          }}
-                        >
-                          <Send className="w-4 h-4 sm:w-5 sm:h-5" />
-                          {isMultiStep && currentStep < steps.length - 1 ? 'التالي' : 'إرسال'}
-                        </button>
-                      </motion.div>
+                    {/* URL */}
+                    {formUrl && (
+                      <p className="text-primary-foreground/70 text-sm truncate">{formUrl}</p>
                     )}
                   </div>
                 </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </header>
 
-                {/* Footer */}
-                <div 
-                  className="px-4 sm:px-6 py-3 sm:py-4 border-t text-center"
-                  style={{ borderColor: `${theme.borderColor}30` }}
-                >
-                  <p className="text-[10px] sm:text-xs opacity-50" style={{ color: theme.textColor }}>
-                    هذه معاينة فقط • لم يتم حفظ أي بيانات
-                  </p>
+      {/* Main Content */}
+      <main className="max-w-2xl mx-auto px-4 py-6 pb-20 relative z-10">
+        {/* Cover Image */}
+        {bannerUrl && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mb-6 relative"
+          >
+            <div className="rounded-4xl border border-border/60 overflow-hidden relative">
+              <img src={bannerUrl} alt={title} className="w-full h-48 sm:h-56 object-cover" />
+            </div>
+          </motion.div>
+        )}
+
+        {/* Form Info Card — same as /f/[slug] */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-card rounded-4xl border border-border p-5 mb-6"
+        >
+          {/* Owner */}
+          <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
+            <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium flex-shrink-0">
+              {ownerName.charAt(0)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">{ownerName}</p>
+              <p className="text-xs text-muted-foreground">منشئ النموذج</p>
+            </div>
+          </div>
+
+          {/* Title & Description */}
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center flex-shrink-0">
+              <FileText className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold text-foreground">{title || 'نموذج بدون عنوان'}</h1>
+              {description && (
+                <p className="text-sm text-muted-foreground mt-1">{description}</p>
+              )}
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Multi-step indicator — same as /f/[slug] */}
+        {isMultiStep && steps.length > 1 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+            className="mb-6"
+          >
+            {showProgressBar && (
+              <div className="flex gap-1.5 mb-3">
+                {steps.map((_, index) => (
+                  <div
+                    key={index}
+                    className={cn(
+                      "flex-1 h-1.5 rounded-full transition-all duration-300",
+                      index <= currentStep ? "bg-primary" : "bg-muted"
+                    )}
+                  />
+                ))}
+              </div>
+            )}
+            <div className="bg-card rounded-2xl border border-border/60 p-4 transition-all duration-300">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-primary text-primary-foreground rounded-lg flex items-center justify-center text-sm font-semibold">
+                  {currentStep + 1}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-foreground">{steps[currentStep]?.title || `الخطوة ${currentStep + 1}`}</p>
+                  {steps[currentStep]?.description && (
+                    <p className="text-xs text-muted-foreground">{steps[currentStep].description}</p>
+                  )}
                 </div>
               </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Form Fields — same container as /f/[slug] */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.3 }}
+          className="rounded-4xl border transition-all duration-300"
+          style={{
+            backgroundColor: theme.backgroundColor,
+            borderColor: theme.borderColor,
+            borderRadius: 'var(--form-radius, 24px)',
+          }}
+        >
+          <div className="p-5" style={{ gap: 'var(--form-spacing, 20px)', display: 'flex', flexDirection: 'column' }}>
+            {currentFields.length > 0 ? (
+              currentFields.map((field, index) => (
+                <Fragment key={field.id}>{renderField(field, index)}</Fragment>
+              ))
+            ) : (
+              <div className="text-center py-16">
+                <div className="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-primary/10">
+                  <FileText className="w-10 h-10 text-primary" />
+                </div>
+                <p className="text-lg font-medium text-foreground">لا توجد حقول</p>
+                <p className="text-sm mt-1 text-muted-foreground">أضف حقولاً للنموذج</p>
+              </div>
+            )}
+          </div>
+
+          {/* Actions — same as /f/[slug] */}
+          {currentFields.length > 0 && (
+            <div className="p-5 border-t border-border flex items-center justify-between gap-3">
+              {isMultiStep && currentStep > 0 ? (
+                <button
+                  onClick={handlePrevious}
+                  className="flex items-center gap-2 px-4 py-2.5 border border-border rounded-xl text-sm font-medium text-foreground hover:bg-muted transition-all duration-200 hover:scale-105 active:scale-95"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                  السابق
+                </button>
+              ) : (
+                <div />
+              )}
+
+              {isMultiStep && currentStep < totalSteps - 1 ? (
+                <button
+                  onClick={handleNext}
+                  className="flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-medium transition-all duration-200 hover:scale-105 active:scale-95"
+                  style={{
+                    backgroundColor: theme.primaryColor,
+                    borderRadius: 'var(--form-radius, 12px)',
+                  }}
+                >
+                  التالي
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    toast.warning('هذه معاينة فقط — لا يمكن إرسال البيانات');
+                  }}
+                  className="flex items-center gap-2 px-6 py-2.5 text-white rounded-xl text-sm font-medium transition-all duration-200 hover:scale-105 active:scale-95 min-h-[44px]"
+                  style={{
+                    backgroundColor: theme.primaryColor,
+                    borderRadius: 'var(--form-radius, 12px)',
+                  }}
+                >
+                  <Send className="w-4 h-4" />
+                  إرسال
+                </button>
+              )}
+            </div>
+          )}
+        </motion.div>
+
+        {/* Footer — same as /f/[slug] */}
+        <footer className="mt-8 pt-6 border-t border-border">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 text-center">
+            <span className="text-xs text-muted-foreground">مدعوم من</span>
+            <a
+              href="/"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary transition-colors hover:underline underline-offset-2"
+            >
+              ركني
+            </a>
+          </div>
+          <p className="text-center text-xs text-muted-foreground/70 mt-2">
+            © {new Date().getFullYear()} Rukny
+          </p>
+        </footer>
       </main>
+
+      {/* Share Modal — same as /f/[slug] */}
+      <AnimatePresence>
+        {showModal === 'share' && formUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowModal(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-card rounded-3xl p-6 max-w-sm w-full border border-border/60"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-foreground text-lg">مشاركة النموذج</h3>
+                <button onClick={() => setShowModal(null)} className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-all duration-200">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-xl mb-4">
+                <input type="text" value={formUrl} readOnly className="flex-1 bg-transparent text-sm text-foreground outline-none truncate" dir="ltr" />
+                <button
+                  onClick={handleCopyLink}
+                  className={cn("p-2 rounded-lg transition-all duration-200", copied ? "bg-green-100 text-green-600" : "bg-background hover:bg-muted/80 text-muted-foreground")}
+                >
+                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                </button>
+              </div>
+
+              {/* Share Buttons — same as /f/[slug] */}
+              <div className="grid grid-cols-4 gap-3 mt-6">
+                {/* WhatsApp */}
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(title + ' ' + formUrl)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted transition-all duration-200 hover:scale-105 active:scale-95 group"
+                >
+                  <div className="w-12 h-12 bg-[#25D366] rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-110">
+                    <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                    </svg>
+                  </div>
+                  <span className="text-xs text-muted-foreground">واتساب</span>
+                </a>
+
+                {/* X (Twitter) */}
+                <a
+                  href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(formUrl)}&text=${encodeURIComponent(title)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted transition-all duration-200 hover:scale-105 active:scale-95 group"
+                >
+                  <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-110">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                  </div>
+                  <span className="text-xs text-muted-foreground">X</span>
+                </a>
+
+                {/* Telegram */}
+                <a
+                  href={`https://t.me/share/url?url=${encodeURIComponent(formUrl)}&text=${encodeURIComponent(title)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted transition-all duration-200 hover:scale-105 active:scale-95 group"
+                >
+                  <div className="w-12 h-12 bg-[#0088cc] rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-110">
+                    <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                    </svg>
+                  </div>
+                  <span className="text-xs text-muted-foreground">تيليجرام</span>
+                </a>
+
+                {/* Email */}
+                <a
+                  href={`mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(formUrl)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted transition-all duration-200 hover:scale-105 active:scale-95 group"
+                >
+                  <div className="w-12 h-12 bg-muted-foreground rounded-full flex items-center justify-center transition-all duration-200 group-hover:scale-110">
+                    <Mail className="w-5 h-5 text-background" />
+                  </div>
+                  <span className="text-xs text-muted-foreground">بريد</span>
+                </a>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

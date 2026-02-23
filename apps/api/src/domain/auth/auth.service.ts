@@ -448,12 +448,32 @@ export class AuthService {
    * 🔒 تسجيل الخروج - إبطال الجلسة بدلاً من حذفها
    * يقبل توكن منتهي الصلاحية لاستخراج sessionId وإبطال الجلسة
    */
-  async logout(token: string, userId?: string) {
+  async logout(token: string | null | undefined, userId?: string) {
     try {
+      if (!token) {
+        return { message: 'Logged out successfully' };
+      }
+
       let sessionId: string | undefined;
+      let tokenUserId: string | undefined;
       try {
-        const decoded = this.jwtService.decode(token) as { sid?: string } | null;
-        sessionId = decoded?.sid;
+        // 🔒 تحقق من توقيع JWT حتى لو كان منتهي الصلاحية
+        // هذا يمنع مهاجم من إرسال JWT مزيف يحتوي على sid لإبطال جلسات عشوائية.
+        const verified = this.jwtService.verify(token, {
+          ignoreExpiration: true,
+        }) as { sid?: string; sub?: string; type?: string };
+
+        if (verified?.type !== 'access') {
+          return { message: 'Logged out successfully' };
+        }
+
+        sessionId = verified?.sid;
+        tokenUserId = verified?.sub;
+
+        // إن وُجد userId مُمرر (مثلاً من guard)، نُطبّق تطابقه كتحقق إضافي
+        if (userId && verified?.sub && userId !== verified.sub) {
+          return { message: 'Logged out successfully' };
+        }
       } catch {
         // ignore
       }
@@ -465,6 +485,11 @@ export class AuthService {
       const session = await this.prisma.session.findUnique({
         where: { id: sessionId },
       });
+
+      // 🔒 تأكد أن الجلسة تخص نفس المستخدم في التوكن
+      if (session && tokenUserId && session.userId !== tokenUserId) {
+        return { message: 'Logged out successfully' };
+      }
 
       if (session && !session.isRevoked) {
         await this.prisma.session.update({

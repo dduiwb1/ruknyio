@@ -735,7 +735,7 @@ export class QuickSignController {
             });
 
             // Get user's store
-            const store = await this.prisma.store.findFirst({
+            const store = await this.prisma.store.findUnique({
               where: { userId: existingUser.id },
               select: { id: true, name: true, slug: true },
             });
@@ -821,23 +821,34 @@ export class QuickSignController {
     await this.quickSignService.markQuickSignAsUsed(dto.quickSignToken);
 
     // 🏪 إنشاء Store تلقائياً للمستخدم
-    const storeSlug = dto.username.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    // المتطلبات: لكل مستخدم متجر واحد، واسم المتجر = username
+    // slug: نحاول استخدام username مباشرة (أكثر اتساقاً)، وإذا كان محجوزاً نضيف suffix قصير.
+    const baseSlug = dto.username;
+    let storeSlug = baseSlug;
+    const existingSlug = await this.prisma.store.findUnique({
+      where: { slug: storeSlug },
+      select: { id: true },
+    });
+    if (existingSlug) {
+      storeSlug = `${baseSlug}_${crypto.randomBytes(3).toString('hex')}`;
+    }
+
     const store = await this.prisma.store.create({
       data: {
         id: crypto.randomUUID(),
         userId: user.id,
-        name: dto.name, // نفس اسم المستخدم
-        slug: storeSlug, // نفس username
+        name: dto.username,
+        slug: storeSlug,
         description: dto.storeDescription || null,
         category: dto.storeCategory || null,
         employeesCount: dto.employeesCount || null,
         status: 'ACTIVE',
-        country: dto.storeCountry || dto.country || 'العراق',
+        country: dto.storeCountry || dto.country || 'Iraq',
         city: dto.storeCity || null,
         address: dto.storeAddress || null,
         latitude: dto.storeLatitude || null,
         longitude: dto.storeLongitude || null,
-        contactEmail: user.email, // استخدام email المستخدم
+        contactEmail: user.email,
       },
     });
 

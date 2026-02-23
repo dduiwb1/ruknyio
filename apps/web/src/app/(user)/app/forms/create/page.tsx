@@ -3,7 +3,7 @@
 import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { generateFormSlug } from '@/lib/utils/generateFormSlug';
+import { generateFormSlug, isValidFormSlug } from '@/lib/utils/generateFormSlug';
 
 // LocalStorage key for form draft persistence (must match CreateFormWizard)
 const FORM_DRAFT_KEY = 'rukny_form_draft';
@@ -32,7 +32,7 @@ function CreateFormRedirect() {
     if (savedDraft) {
       try {
         const draft = JSON.parse(savedDraft);
-        if (draft.slug) {
+        if (draft.slug && isValidFormSlug(draft.slug)) {
           // Redirect to the draft's slug URL
           router.replace(`/app/forms/create/${draft.slug}`);
           return;

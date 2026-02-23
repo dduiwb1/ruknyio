@@ -52,10 +52,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       // 🔒 استخراج من Authorization header فقط
       jwtFromRequest: bearerExtractor,
-      // ✅ قبول JWT منتهي الصلاحية ثم التحقق من الجلسة في validate()
-      // عند انتهاء expiresAt (30 دقيقة) نمدد الجلسة إذا refreshExpiresAt ما زال صالحاً
-      // بدلاً من إرجاع 401 وتسجيل الخروج مباشرة
-      ignoreExpiration: true,
+      // 🔒 لا نقبل Access Token منتهي الصلاحية.
+      // تمديد الجلسة يتم عبر /auth/refresh وليس عبر قبول JWT منتهي.
+      ignoreExpiration: false,
       secretOrKey: configService.get<string>('JWT_SECRET'),
       passReqToCallback: true, // Enable request in validate
     });
@@ -72,10 +71,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!sessionId) {
       throw new UnauthorizedException('Invalid token: missing session ID');
     }
-
-    // 🔒 التحقق من انتهاء صلاحية JWT (exp claim)
-    const now = Math.floor(Date.now() / 1000);
-    const jwtExpired = payload.exp && payload.exp < now;
 
     // 🔒 البحث عن الجلسة باستخدام sessionId من JWT
     const session = await this.prisma.session.findUnique({
@@ -120,29 +115,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const nowDate = new Date();
 
-    // 🔒 التحقق من انتهاء JWT و Session
-    // إذا انتهى JWT (exp) أو Session (expiresAt)، نتحقق من refresh token
+    // 🔒 التحقق من انتهاء Session (server-side expiry). JWT expiry يُطبق تلقائياً عبر passport-jwt.
     const sessionExpired = session.expiresAt && session.expiresAt < nowDate;
-    
-    if (jwtExpired || sessionExpired) {
-      const refreshStillValid =
-        session.refreshExpiresAt && session.refreshExpiresAt > nowDate;
-      if (refreshStillValid) {
-        // تمديد الجلسة بدلاً من تسجيل الخروج (await لضمان حفظ التمديد قبل متابعة الطلب)
-        const newExpiresAt = new Date(nowDate.getTime() + 30 * 60 * 1000);
-        await this.prisma.session.update({
-          where: { id: session.id },
-          data: {
-            expiresAt: newExpiresAt,
-            lastActivity: nowDate,
-          },
-        });
-        // متابعة التحقق دون رمي 401
-      } else {
-        throw new UnauthorizedException(
-          'Session has expired. Please login again.',
-        );
-      }
+    if (sessionExpired) {
+      throw new UnauthorizedException('Session has expired. Please login again.');
     }
 
     // 🔒 التحقق من Idle Timeout (24 ساعة من عدم النشاط)

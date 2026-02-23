@@ -54,7 +54,16 @@ export class FormsUploadController {
     FilesInterceptor('files', 10, {
       storage: diskStorage({
         destination: (req, file, cb) => {
-          const formId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+          const formId = Array.isArray(req.params.id)
+            ? req.params.id[0]
+            : req.params.id;
+
+          // Prevent path traversal / arbitrary directory creation.
+          // Multer runs destination BEFORE handler logic, so validate here.
+          if (typeof formId !== 'string' || !/^[0-9a-fA-F-]{36}$/.test(formId)) {
+            return cb(new BadRequestException('Invalid form id'), undefined as any);
+          }
+
           const uploadPath = join(process.cwd(), 'uploads', 'forms', formId);
 
           // Create directory if it doesn't exist
@@ -84,7 +93,6 @@ export class FormsUploadController {
           'image/gif',
           'image/webp',
           'image/bmp',
-          'image/svg+xml',
           'image/tiff',
           'application/pdf',
           'application/msword',
@@ -95,9 +103,8 @@ export class FormsUploadController {
           'text/csv',
         ];
 
-        // Check for image types more flexibly
-        const isImage = file.mimetype.startsWith('image/');
-        if (allowedMimes.includes(file.mimetype) || isImage) {
+        // Only allow the explicit allowlist (avoid SVG and unknown image/* types).
+        if (allowedMimes.includes(file.mimetype)) {
           cb(null, true);
         } else {
           cb(
@@ -373,7 +380,15 @@ export class FormsUploadController {
     FilesInterceptor('files', 10, {
       storage: diskStorage({
         destination: async (req, file, cb) => {
-          const slug = Array.isArray(req.params.slug) ? req.params.slug[0] : req.params.slug;
+          const slug = Array.isArray(req.params.slug)
+            ? req.params.slug[0]
+            : req.params.slug;
+
+          // Prevent path traversal / arbitrary directory creation.
+          // This runs before handler logic, so validate here.
+          if (typeof slug !== 'string' || !/^[a-zA-Z0-9-]{1,80}$/.test(slug)) {
+            return cb(new BadRequestException('Invalid form slug'), undefined as any);
+          }
 
           // We need to get formId from slug, but we can't use await here
           // So we'll use a temporary folder based on slug
@@ -410,16 +425,14 @@ export class FormsUploadController {
           'image/gif',
           'image/webp',
           'image/bmp',
-          'image/svg+xml',
           'application/pdf',
           'application/msword',
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
           'text/plain',
         ];
 
-        // Check for image types more flexibly
-        const isImage = file.mimetype.startsWith('image/');
-        if (allowedMimes.includes(file.mimetype) || isImage) {
+        // Only allow the explicit allowlist (avoid SVG and unknown image/* types).
+        if (allowedMimes.includes(file.mimetype)) {
           cb(null, true);
         } else {
           cb(

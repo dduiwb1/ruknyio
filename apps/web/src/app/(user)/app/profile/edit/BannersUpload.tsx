@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback, memo } from 'react';
 import Image from 'next/image';
-import { toast } from 'sonner';
+import { toast } from '@/components/toast-provider';
 import { Upload, ImagePlus, Trash2, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

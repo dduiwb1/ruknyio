@@ -3,12 +3,10 @@ import type { NextRequest } from 'next/server';
 import { protectedRoutes, authRoutes } from '@/lib/config';
 
 /**
- * 🛡️ Next.js Proxy - Route Protection
+ * @deprecated This file is no longer used. Route protection and subdomain routing
+ * are handled by src/middleware.ts instead.
  * 
- * Handles:
- * - Protected route access control
- * - Redirect unauthenticated users to login
- * - Redirect authenticated users away from auth pages
+ * 🛡️ Next.js Proxy - Route Protection (LEGACY)
  */
 
 export function proxy(request: NextRequest) {

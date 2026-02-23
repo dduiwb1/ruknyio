@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { toast } from '@/components/toast-provider';
 import type { UserData, ProfileData } from '@/lib/types/profile';
 import { getAvatarUrl, getInitials, getCoverUrl } from '@/lib/utils/avatar';
 import { cn } from '@/lib/utils';

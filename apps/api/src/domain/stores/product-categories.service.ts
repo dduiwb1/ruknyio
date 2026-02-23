@@ -22,7 +22,7 @@ export class ProductCategoriesService {
    * الحصول على متجر المستخدم
    */
   private async getUserStore(userId: string) {
-    const store = await this.prisma.store.findFirst({
+    const store = await this.prisma.store.findUnique({
       where: { userId },
       select: { id: true, userId: true },
     });

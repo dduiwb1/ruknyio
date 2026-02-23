@@ -6,9 +6,14 @@
  * API URL Strategy:
  * - API_URL: Relative path (/api/v1) for fetch requests (uses Next.js rewrites/proxy)
  * - API_EXTERNAL_URL: Full URL for browser redirects (OAuth, magic links)
+ * 
+ * Subdomain Strategy:
+ * - Production: app.rukny.io (dashboard), auth.rukny.io (login/register), rukny.io (public)
+ * - Development: path-based routing on localhost (no subdomains)
  */
 
 import { z } from 'zod';
+import { getAppUrl, getAuthUrl, getPublicUrl, getLoginUrl } from '@/lib/url';
 
 // ============ Environment Schema ============
 
@@ -109,10 +114,19 @@ export const config = {
     auth: authRoutes,
     public: publicRoutes,
   },
+  urls: {
+    app: getAppUrl,
+    auth: getAuthUrl,
+    public: getPublicUrl,
+    login: getLoginUrl,
+  },
   app: {
     name: 'ركني',
     description: 'مركزك الرقمي للأعمال',
   },
 } as const;
+
+// Re-export URL helpers for convenience
+export { getAppUrl, getAuthUrl, getPublicUrl, getLoginUrl } from '@/lib/url';
 
 export default config;

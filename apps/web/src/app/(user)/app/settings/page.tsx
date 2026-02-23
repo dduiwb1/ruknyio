@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense, useCallback, useMemo, startTransition, lazy } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { 
   Shield,
   Link2,
@@ -19,38 +20,43 @@ import {
   Package,
   FormInput,
   Ticket,
-  ChevronLeft,
-  Sparkles,
-  Settings2,
+  ChevronRight,
   Globe,
   Smartphone,
   LogOut,
+  Rocket,
+  Construction,
+  User as UserIcon,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useAuth } from '@/providers';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import Link from 'next/link';
 
 // Loading skeleton component
 const SettingsSkeleton = () => (
-  <div className="animate-pulse">
-    <div className="bg-card border border-border/50 rounded-2xl p-4 sm:p-6">
-      <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-        <div className="w-10 h-10 sm:w-11 sm:h-11 bg-muted rounded-2xl" />
-        <div className="flex-1 space-y-2">
-          <div className="h-4 bg-muted rounded-xl w-32" />
-          <div className="h-3 bg-muted/60 rounded-xl w-48" />
+  <div className="animate-pulse space-y-3">
+    {[1, 2].map(g => (
+      <div key={g} className="rounded-xl border border-border/50 bg-card overflow-hidden">
+        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border/30 bg-muted/20">
+          <div className="w-7 h-7 bg-muted rounded-lg" />
+          <div className="h-3 bg-muted rounded-lg w-24" />
         </div>
-      </div>
-      <div className="space-y-3 sm:space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-muted/50 rounded-2xl">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-muted rounded-xl" />
-            <div className="flex-1 space-y-2">
+          <div key={i} className={cn(
+            "flex items-center gap-3 px-4 py-3",
+            i < 3 && "border-b border-border/30"
+          )}>
+            <div className="w-9 h-9 bg-muted/60 rounded-lg" />
+            <div className="flex-1 space-y-1.5">
               <div className="h-3 bg-muted rounded-lg w-24" />
-              <div className="h-2 bg-muted/60 rounded-lg w-40" />
+              <div className="h-2.5 bg-muted/40 rounded-lg w-36" />
             </div>
+            <div className="w-3.5 h-3.5 bg-muted/30 rounded" />
           </div>
         ))}
       </div>
-    </div>
+    ))}
   </div>
 );
 
@@ -95,7 +101,7 @@ const allSettings: SettingItem[] = [
     icon: Shield,
     category: 'security',
     color: 'text-primary',
-    iconBgSolid: 'bg-primary',
+    iconBgSolid: 'bg-primary/12',
     badge: 'موصى به'
   },
   {
@@ -105,7 +111,7 @@ const allSettings: SettingItem[] = [
     icon: MonitorSmartphone,
     category: 'security',
     color: 'text-primary',
-    iconBgSolid: 'bg-primary'
+    iconBgSolid: 'bg-primary/12'
   },
   {
     id: 'devices',
@@ -114,7 +120,7 @@ const allSettings: SettingItem[] = [
     icon: Smartphone,
     category: 'security',
     color: 'text-primary',
-    iconBgSolid: 'bg-primary'
+    iconBgSolid: 'bg-primary/12'
   },
   {
     id: 'logs',
@@ -123,7 +129,7 @@ const allSettings: SettingItem[] = [
     icon: ScrollText,
     category: 'security',
     color: 'text-primary',
-    iconBgSolid: 'bg-primary'
+    iconBgSolid: 'bg-primary/12'
   },
   {
     id: 'ip-protection',
@@ -131,8 +137,8 @@ const allSettings: SettingItem[] = [
     description: 'استلام تنبيه عند تسجيل الدخول من موقع جديد',
     icon: Globe,
     category: 'security',
-    color: 'text-success',
-    iconBgSolid: 'bg-success',
+    color: 'text-primary',
+    iconBgSolid: 'bg-primary/12',
     badge: 'جديد'
   },
   // Integration Settings
@@ -142,8 +148,8 @@ const allSettings: SettingItem[] = [
     description: 'جميع التكاملات المتاحة',
     icon: Zap,
     category: 'integrations',
-    color: 'text-info',
-    iconBgSolid: 'bg-info'
+    color: 'text-primary',
+    iconBgSolid: 'bg-primary/12'
   },
   {
     id: 'social',
@@ -151,8 +157,8 @@ const allSettings: SettingItem[] = [
     description: 'ربط حسابات التواصل الاجتماعي',
     icon: Share2,
     category: 'integrations',
-    color: 'text-destructive',
-    iconBgSolid: 'bg-destructive'
+    color: 'text-primary',
+    iconBgSolid: 'bg-primary/12'
   },
   {
     id: 'analytics',
@@ -161,7 +167,7 @@ const allSettings: SettingItem[] = [
     icon: TrendingUp,
     category: 'integrations',
     color: 'text-primary',
-    iconBgSolid: 'bg-primary'
+    iconBgSolid: 'bg-primary/12'
   },
   {
     id: 'notifications',
@@ -169,8 +175,8 @@ const allSettings: SettingItem[] = [
     description: 'إدارة التنبيهات والإشعارات',
     icon: Bell,
     category: 'integrations',
-    color: 'text-info',
-    iconBgSolid: 'bg-info'
+    color: 'text-primary',
+    iconBgSolid: 'bg-primary/12'
   },
   {
     id: 'storage',
@@ -178,8 +184,8 @@ const allSettings: SettingItem[] = [
     description: 'ربط خدمات التخزين الخارجية',
     icon: Cloud,
     category: 'integrations',
-    color: 'text-warning',
-    iconBgSolid: 'bg-warning'
+    color: 'text-primary',
+    iconBgSolid: 'bg-primary/12'
   },
   // Store Settings
   {
@@ -188,8 +194,8 @@ const allSettings: SettingItem[] = [
     description: 'الإعدادات العامة للمتجر',
     icon: Store,
     category: 'store',
-    color: 'text-info',
-    iconBgSolid: 'bg-info'
+    color: 'text-primary',
+    iconBgSolid: 'bg-primary/12'
   },
   {
     id: 'products',
@@ -197,8 +203,8 @@ const allSettings: SettingItem[] = [
     description: 'إدارة المنتجات والفئات',
     icon: Package,
     category: 'store',
-    color: 'text-info',
-    iconBgSolid: 'bg-info'
+    color: 'text-primary',
+    iconBgSolid: 'bg-primary/12'
   },
   {
     id: 'orders',
@@ -206,8 +212,8 @@ const allSettings: SettingItem[] = [
     description: 'إدارة الطلبات والمبيعات',
     icon: ScrollText,
     category: 'store',
-    color: 'text-info',
-    iconBgSolid: 'bg-info'
+    color: 'text-primary',
+    iconBgSolid: 'bg-primary/12'
   },
   // Forms Settings
   {
@@ -216,8 +222,8 @@ const allSettings: SettingItem[] = [
     description: 'الإعدادات العامة للنماذج',
     icon: FileText,
     category: 'forms',
-    color: 'text-destructive',
-    iconBgSolid: 'bg-destructive'
+    color: 'text-primary',
+    iconBgSolid: 'bg-primary/12'
   },
   {
     id: 'templates',
@@ -225,8 +231,8 @@ const allSettings: SettingItem[] = [
     description: 'إنشاء وإدارة قوالب النماذج',
     icon: FormInput,
     category: 'forms',
-    color: 'text-destructive',
-    iconBgSolid: 'bg-destructive'
+    color: 'text-primary',
+    iconBgSolid: 'bg-primary/12'
   },
   {
     id: 'submissions',
@@ -234,8 +240,8 @@ const allSettings: SettingItem[] = [
     description: 'عرض وإدارة البيانات المرسلة',
     icon: ScrollText,
     category: 'forms',
-    color: 'text-destructive',
-    iconBgSolid: 'bg-destructive'
+    color: 'text-primary',
+    iconBgSolid: 'bg-primary/12'
   },
   // Events Settings
   {
@@ -244,8 +250,8 @@ const allSettings: SettingItem[] = [
     description: 'الإعدادات العامة للأحداث',
     icon: Calendar,
     category: 'events',
-    color: 'text-warning',
-    iconBgSolid: 'bg-warning'
+    color: 'text-primary',
+    iconBgSolid: 'bg-primary/12'
   },
   {
     id: 'tickets',
@@ -253,8 +259,8 @@ const allSettings: SettingItem[] = [
     description: 'إدارة التذاكر والحجوزات',
     icon: Ticket,
     category: 'events',
-    color: 'text-warning',
-    iconBgSolid: 'bg-warning'
+    color: 'text-primary',
+    iconBgSolid: 'bg-primary/12'
   },
   {
     id: 'calendar',
@@ -262,57 +268,62 @@ const allSettings: SettingItem[] = [
     description: 'جدولة الأحداث والمواعيد',
     icon: Calendar,
     category: 'events',
-    color: 'text-warning',
-    iconBgSolid: 'bg-warning'
+    color: 'text-primary',
+    iconBgSolid: 'bg-primary/12'
   }
 ];
 
-// Category info for headers - using brand colors
+// Category info for headers - unified subtle primary-based colors
 const categoryInfo = {
   security: {
     title: 'الأمان والخصوصية',
     description: 'حافظ على أمان حسابك وبياناتك الشخصية',
     icon: Shield,
-    iconBg: 'bg-primary',
-    iconColor: 'text-white',
-    lightBg: 'bg-muted',
-    textColor: 'text-primary'
+    iconBg: 'bg-primary/10',
+    iconColor: 'text-primary',
+    accentBg: 'bg-primary/5',
+    accentBorder: 'border-border/50',
+    textColor: 'text-foreground'
   },
   integrations: {
     title: 'التكاملات',
     description: 'اربط تطبيقاتك وخدماتك المفضلة',
     icon: Link2,
-    iconBg: 'bg-info',
-    iconColor: 'text-white',
-    lightBg: 'bg-muted',
-    textColor: 'text-info'
+    iconBg: 'bg-primary/10',
+    iconColor: 'text-primary',
+    accentBg: 'bg-primary/5',
+    accentBorder: 'border-border/50',
+    textColor: 'text-foreground'
   },
   store: {
     title: 'المتجر',
     description: 'أدر متجرك ومنتجاتك بسهولة',
     icon: Store,
-    iconBg: 'bg-warning',
-    iconColor: 'text-white',
-    lightBg: 'bg-muted',
-    textColor: 'text-warning'
+    iconBg: 'bg-primary/10',
+    iconColor: 'text-primary',
+    accentBg: 'bg-primary/5',
+    accentBorder: 'border-border/50',
+    textColor: 'text-foreground'
   },
   forms: {
     title: 'النماذج',
     description: 'أنشئ وأدر نماذجك الإلكترونية',
     icon: FileText,
-    iconBg: 'bg-destructive',
-    iconColor: 'text-white',
-    lightBg: 'bg-muted',
-    textColor: 'text-destructive'
+    iconBg: 'bg-primary/10',
+    iconColor: 'text-primary',
+    accentBg: 'bg-primary/5',
+    accentBorder: 'border-border/50',
+    textColor: 'text-foreground'
   },
   events: {
     title: 'الأحداث',
     description: 'نظم فعالياتك وتذاكرك',
     icon: Calendar,
-    iconBg: 'bg-success',
-    iconColor: 'text-white',
-    lightBg: 'bg-muted',
-    textColor: 'text-success'
+    iconBg: 'bg-primary/10',
+    iconColor: 'text-primary',
+    accentBg: 'bg-primary/5',
+    accentBorder: 'border-border/50',
+    textColor: 'text-foreground'
   }
 };
 
@@ -327,7 +338,7 @@ const MobileSettingsList = ({
   settings: SettingItem[];
   onSelect: (id: SettingTab) => void;
 }) => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const router = useRouter();
   
   const grouped = useMemo(() => {
@@ -348,24 +359,63 @@ const MobileSettingsList = ({
   };
 
   return (
-    <div className="space-y-6 pb-6">
-      {grouped.map(({ category, info, items }) => {
-        const CatIcon = info.icon;
-        return (
-          <section key={category}>
-            {/* Category header */}
-            <div className="flex items-center gap-3 mb-3 px-1">
-              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${info.iconBg}`}>
-                <CatIcon className={`h-4 w-4 ${info.iconColor}`} />
-              </div>
-              <div>
-                <h2 className={`text-sm font-bold ${info.textColor}`}>{info.title}</h2>
-                <p className="text-[11px] text-muted-foreground">{info.description}</p>
+    <div className="space-y-3 pb-8">
+      {/* Profile Card */}
+      {user && (
+        <motion.section
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+        >
+          <Link href="/app/settings/profile">
+            <div className="rounded-4xl border border-border/50 bg-card overflow-hidden">
+              <div className="flex items-center gap-3.5 px-4 py-4 group transition-colors duration-150 hover:bg-muted/30 active:bg-muted/50">
+                <Avatar className="h-12 w-12 shrink-0 ring-2 ring-primary/10">
+                  {user.avatar ? (
+                    <AvatarImage src={user.avatar} alt={user.name || user.username || undefined} />
+                  ) : null}
+                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                    {user.name?.charAt(0) || user.username?.charAt(0) || <UserIcon className="w-5 h-5" />}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[14px] font-semibold text-foreground truncate">
+                    {user.name || user.username}
+                  </p>
+                  <p className="text-[12px] text-muted-foreground truncate mt-0.5">
+                    {user.email}
+                  </p>
+                </div>
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/40 rtl:rotate-180" aria-hidden />
               </div>
             </div>
+          </Link>
+        </motion.section>
+      )}
 
-            {/* Items container */}
-            <div className="rounded-2xl border border-border/50 bg-card overflow-hidden">
+      {grouped.map(({ category, info, items }, groupIndex) => {
+        const CatIcon = info.icon;
+        return (
+          <motion.section
+            key={category}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: groupIndex * 0.04, duration: 0.25 }}
+          >
+            {/* Unified card: header + items */}
+            <div className="rounded-4xl border border-border/50 bg-card overflow-hidden">
+              {/* Category header inside card */}
+              <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border/30 bg-muted/20">
+                <div className={cn(
+                  'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg',
+                  info.iconBg
+                )}>
+                  <CatIcon className={cn('h-3.5 w-3.5', info.iconColor)} />
+                </div>
+                <h2 className="text-[13px] font-semibold text-foreground">{info.title}</h2>
+              </div>
+
+              {/* Items */}
               {items.map((item, idx) => {
                 const Icon = item.icon;
                 return (
@@ -373,58 +423,68 @@ const MobileSettingsList = ({
                     key={item.id}
                     type="button"
                     onClick={() => onSelect(item.id)}
-                    className={`w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3.5 sm:py-4 text-right transition-colors hover:bg-muted/40 active:bg-muted/60 ${
-                      idx < items.length - 1 ? 'border-b border-border/50' : ''
-                    }`}
+                    className={cn(
+                      'w-full flex items-center gap-3 px-4 py-3 text-right',
+                      'transition-colors duration-150 hover:bg-muted/30 active:bg-muted/50',
+                      idx < items.length - 1 && 'border-b border-border/30'
+                    )}
                   >
                     <div
-                      className={`flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl ${item.iconBgSolid} text-white`}
+                      className={cn(
+                        'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform duration-150 group-hover:scale-105',
+                        item.iconBgSolid
+                      )}
                     >
-                      <Icon className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
+                      <Icon className={cn('h-4 w-4', item.color)} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate text-sm sm:text-[15px] font-bold text-foreground">{item.label}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="truncate text-[13px] font-medium text-foreground">{item.label}</p>
                         {item.badge && (
-                          <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          <span className={cn(
+                            'shrink-0 inline-flex items-center px-1.5 py-px rounded-md text-[10px] font-semibold',
                             item.badge === 'موصى به' 
-                              ? 'bg-primary/15 text-primary' 
-                              : 'bg-info/15 text-info'
-                          }`}>
+                              ? 'bg-primary/10 text-primary' 
+                              : 'bg-primary/10 text-primary'
+                          )}>
                             {item.badge}
                           </span>
                         )}
                       </div>
-                      <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{item.description}</p>
+                      <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">{item.description}</p>
                     </div>
-                    <ChevronLeft className="h-4 w-4 shrink-0 rotate-180 text-muted-foreground/60" aria-hidden />
+                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/30 rtl:rotate-180" aria-hidden />
                   </button>
                 );
               })}
             </div>
-          </section>
+          </motion.section>
         );
       })}
       
       {/* Logout Button */}
-      <section>
-        <div className="rounded-2xl border border-destructive/20 bg-card overflow-hidden">
+      <motion.section
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: grouped.length * 0.04, duration: 0.25 }}
+      >
+        <div className="rounded-4xl border border-border/50 bg-card overflow-hidden">
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4 sm:py-5 text-right transition-colors hover:bg-destructive/5 active:bg-destructive/10"
+            className="w-full flex items-center gap-3 px-4 py-3 text-right group transition-colors duration-150 hover:bg-destructive/5 active:bg-destructive/10"
           >
-            <div className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl bg-destructive text-destructive-foreground">
-              <LogOut className="h-5 w-5 sm:h-5.5 sm:w-5.5" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-destructive/10 transition-transform duration-150 group-hover:scale-105">
+              <LogOut className="h-4 w-4 text-destructive" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm sm:text-[15px] font-bold text-destructive">تسجيل الخروج</p>
-              <p className="mt-1 text-xs text-muted-foreground">الخروج من حسابك الحالي</p>
+              <p className="text-[13px] font-medium text-destructive">تسجيل الخروج</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">الخروج من حسابك الحالي</p>
             </div>
-            <ChevronLeft className="h-5 w-5 shrink-0 rotate-180 text-destructive/40" aria-hidden />
+            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-destructive/30 rtl:rotate-180" aria-hidden />
           </button>
         </div>
-      </section>
+      </motion.section>
     </div>
   );
 };
@@ -518,55 +578,34 @@ function SettingsContent() {
 
   const renderStoreContent = useCallback(() => {
     return (
-      <div className="bg-card border border-border/50 rounded-2xl p-6 sm:p-8">
-        <div className="text-center py-12 sm:py-16">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-5 sm:mb-6 rounded-2xl bg-muted flex items-center justify-center">
-            <Store className="w-10 h-10 sm:w-12 sm:h-12 text-info" />
-          </div>
-          <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-2 sm:mb-3">إعدادات المتجر</h3>
-          <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 max-w-sm mx-auto">نعمل على تطوير أدوات متقدمة لإدارة متجرك</p>
-          <div className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-info/10 text-info rounded-xl text-xs sm:text-sm font-bold">
-            <Sparkles className="w-4 h-4" />
-            قريباً
-          </div>
-        </div>
-      </div>
+      <ComingSoonSection
+        icon={Store}
+        title="إعدادات المتجر"
+        description="نعمل على تطوير أدوات متقدمة لإدارة متجرك الإلكتروني — إدارة المنتجات، الطلبات، والمزيد"
+        accentColor="warning"
+      />
     );
   }, []);
 
   const renderFormsContent = useCallback(() => {
     return (
-      <div className="bg-card border border-border/50 rounded-2xl p-6 sm:p-8">
-        <div className="text-center py-12 sm:py-16">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-5 sm:mb-6 rounded-2xl bg-muted flex items-center justify-center">
-            <FileText className="w-10 h-10 sm:w-12 sm:h-12 text-destructive" />
-          </div>
-          <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-2 sm:mb-3">إعدادات النماذج</h3>
-          <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 max-w-sm mx-auto">نعمل على تطوير أدوات متقدمة لإدارة نماذجك</p>
-          <div className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-destructive/10 text-destructive rounded-xl text-xs sm:text-sm font-bold">
-            <Sparkles className="w-4 h-4" />
-            قريباً
-          </div>
-        </div>
-      </div>
+      <ComingSoonSection
+        icon={FileText}
+        title="إعدادات النماذج"
+        description="نعمل على تطوير أدوات متقدمة لإدارة نماذجك — قوالب جاهزة، تحليلات الردود، والمزيد"
+        accentColor="destructive"
+      />
     );
   }, []);
 
   const renderEventsContent = useCallback(() => {
     return (
-      <div className="bg-card border border-border/50 rounded-2xl p-6 sm:p-8">
-        <div className="text-center py-12 sm:py-16">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-5 sm:mb-6 rounded-2xl bg-muted flex items-center justify-center">
-            <Calendar className="w-10 h-10 sm:w-12 sm:h-12 text-warning" />
-          </div>
-          <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-2 sm:mb-3">إعدادات الأحداث</h3>
-          <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 max-w-sm mx-auto">نعمل على تطوير أدوات متقدمة لإدارة فعالياتك</p>
-          <div className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-warning/10 text-warning rounded-xl text-xs sm:text-sm font-bold">
-            <Sparkles className="w-4 h-4" />
-            قريباً
-          </div>
-        </div>
-      </div>
+      <ComingSoonSection
+        icon={Calendar}
+        title="إعدادات الأحداث"
+        description="نعمل على تطوير أدوات متقدمة لإدارة فعالياتك — التذاكر، الجدولة، والمزيد"
+        accentColor="success"
+      />
     );
   }, []);
 
@@ -591,24 +630,20 @@ function SettingsContent() {
   // Show skeleton while determining screen size
   if (isLoading) {
     return (
-      <div className="min-h-full">
-        <main className="pb-8">
-          <div className="mx-auto max-w-[1080px] px-4 pt-4 sm:px-6 lg:px-8">
-            <SettingsSkeleton />
-          </div>
-        </main>
+      <div className="p-4 sm:p-6">
+        <SettingsSkeleton />
       </div>
     );
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-5">
-      {/* Mobile: List view (like reference image) when no tab */}
+    <div className="p-4 sm:p-5 space-y-4">
+      {/* Mobile: List view when no tab */}
       {isListMode && (
         <div className="lg:hidden animate-in fade-in duration-200">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-foreground">الإعدادات</h1>
-            <p className="mt-2 text-sm text-muted-foreground">إدارة حسابك وتفضيلاتك</p>
+          <div className="mb-3">
+            <h1 className="text-lg font-semibold text-foreground">الإعدادات</h1>
+            <p className="mt-0.5 text-xs text-muted-foreground">إدارة حسابك وتفضيلاتك</p>
           </div>
           <MobileSettingsList settings={allSettings} onSelect={navigateToTab} />
         </div>
@@ -616,12 +651,66 @@ function SettingsContent() {
 
       {/* Content (detail view): hide on mobile list mode */}
       {!isListMode && (
-        <div key={activeTab} className="min-w-0 flex-1 animate-in fade-in duration-150">
+        <motion.div 
+          key={activeTab} 
+          className="min-w-0 flex-1"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+        >
           <Suspense fallback={<SettingsSkeleton />}>
             {renderContent()}
           </Suspense>
-        </div>
+        </motion.div>
       )}
+    </div>
+  );
+}
+
+/** Reusable "Coming Soon" placeholder for unreleased sections */
+function ComingSoonSection({
+  icon: Icon,
+  title,
+  description,
+  accentColor,
+}: {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  accentColor: 'warning' | 'destructive' | 'success' | 'info' | 'primary';
+}) {
+  return (
+    <div className="rounded-xl border border-border/50 bg-card overflow-hidden">
+      <div className="flex flex-col items-center justify-center text-center px-6 py-14 sm:py-18">
+        {/* Animated icon */}
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', damping: 20, stiffness: 200 }}
+          className="relative mb-5"
+        >
+          <div className="w-16 h-16 rounded-xl bg-primary/8 flex items-center justify-center">
+            <Icon className="w-7 h-7 text-primary" />
+          </div>
+          <motion.div
+            animate={{ y: [0, -3, 0] }}
+            transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
+            className="absolute -top-1.5 -left-1.5"
+          >
+            <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
+              <Construction className="w-3 h-3 text-primary" />
+            </div>
+          </motion.div>
+        </motion.div>
+
+        <h3 className="text-base font-semibold text-foreground mb-1.5">{title}</h3>
+        <p className="text-[13px] text-muted-foreground max-w-xs leading-relaxed mb-5">{description}</p>
+
+        <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary/8 text-primary text-xs font-semibold">
+          <Rocket className="w-3 h-3" />
+          قريباً
+        </div>
+      </div>
     </div>
   );
 }
@@ -630,18 +719,13 @@ function SettingsContent() {
 export default function SettingsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center p-6">
         <div className="text-center">
-          <div className="relative">
-            <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-5">
-              <Settings2 className="w-10 h-10 text-primary" />
-            </div>
-            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 translate-y-2">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            </div>
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
+            <Loader2 className="w-5 h-5 animate-spin text-primary" />
           </div>
-          <p className="text-base font-bold text-foreground mb-1 mt-4">جاري تحميل الإعدادات</p>
-          <p className="text-sm text-muted-foreground">يرجى الانتظار...</p>
+          <p className="text-[13px] font-medium text-foreground">جاري تحميل الإعدادات</p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">يرجى الانتظار...</p>
         </div>
       </div>
     }>

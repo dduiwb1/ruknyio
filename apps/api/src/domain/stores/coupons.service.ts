@@ -24,7 +24,7 @@ export class CouponsService {
    */
   async createCoupon(userId: string, createCouponDto: CreateCouponDto) {
     // Get user's store
-    const store = await this.prisma.store.findFirst({
+    const store = await this.prisma.store.findUnique({
       where: { userId },
     });
 
@@ -181,7 +181,7 @@ export class CouponsService {
    * Get store coupons (store owner)
    */
   async getStoreCoupons(userId: string, filters?: CouponFiltersDto) {
-    const store = await this.prisma.store.findFirst({
+    const store = await this.prisma.store.findUnique({
       where: { userId },
     });
 
@@ -413,7 +413,7 @@ export class CouponsService {
    * Get coupon statistics (store owner)
    */
   async getCouponStats(userId: string) {
-    const store = await this.prisma.store.findFirst({
+    const store = await this.prisma.store.findUnique({
       where: { userId },
     });
 

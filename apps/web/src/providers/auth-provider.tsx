@@ -35,6 +35,7 @@ import {
   type QuickSignResponse,
 } from '@/lib/api';
 import { clearCsrfToken, setCsrfToken, getCsrfToken, updateLastRefreshTime, setLoggingOut, resetRefreshState } from '@/lib/api/client';
+import { getAuthUrl } from '@/lib/url';
 
 // ============ Types ============
 
@@ -322,7 +323,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
 
       if (typeof window !== 'undefined') {
-        window.location.replace('/login');
+        window.location.replace(getAuthUrl('/login'));
       }
     }
   }, []);

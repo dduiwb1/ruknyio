@@ -445,7 +445,7 @@ export class OrdersService {
    */
   async getStoreOrders(userId: string, filters?: OrderFiltersDto) {
     // Get user's store
-    const store = await this.prisma.store.findFirst({
+    const store = await this.prisma.store.findUnique({
       where: { userId },
     });
 
@@ -680,7 +680,7 @@ export class OrdersService {
    * Get order statistics for store
    */
   async getStoreOrderStats(userId: string) {
-    const store = await this.prisma.store.findFirst({
+    const store = await this.prisma.store.findUnique({
       where: { userId },
     });
 

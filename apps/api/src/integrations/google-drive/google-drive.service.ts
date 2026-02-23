@@ -598,7 +598,10 @@ export class GoogleDriveService {
     const expiresTimestamp = expiresAt.getTime();
 
     // Create signature using secret + formId + fileId + expiry
-    const secret = this.config.get('JWT_SECRET') || 'default-secret';
+    const secret = this.config.get('JWT_SECRET');
+    if (!secret) {
+      throw new Error('JWT_SECRET is required to generate signed URLs');
+    }
     const crypto = require('crypto');
     const signature = crypto
       .createHmac('sha256', secret)
@@ -627,13 +630,22 @@ export class GoogleDriveService {
     }
 
     // Verify signature
-    const secret = this.config.get('JWT_SECRET') || 'default-secret';
+    const secret = this.config.get('JWT_SECRET');
+    if (!secret) {
+      return false;
+    }
     const crypto = require('crypto');
     const expectedSignature = crypto
       .createHmac('sha256', secret)
       .update(`${formId}:${fileId}:${expiresTimestamp}`)
       .digest('hex');
 
-    return signature === expectedSignature;
+    try {
+      const a = Buffer.from(signature);
+      const b = Buffer.from(expectedSignature);
+      return a.length === b.length && crypto.timingSafeEqual(a, b);
+    } catch {
+      return false;
+    }
   }
 }

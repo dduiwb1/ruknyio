@@ -4,6 +4,7 @@ import { useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
+import { isValidFormSlug } from '@/lib/utils/generateFormSlug';
 
 // LocalStorage key for preview data
 const FORM_PREVIEW_KEY = 'rukny_form_preview';
@@ -27,7 +28,7 @@ function FormPreviewRedirect() {
 
       const parsed = JSON.parse(storedData);
       
-      if (parsed.slug) {
+      if (parsed.slug && isValidFormSlug(parsed.slug)) {
         // Redirect to slug-based preview URL
         router.replace(`/app/forms/preview/${parsed.slug}`);
         return;
@@ -42,7 +43,7 @@ function FormPreviewRedirect() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950">
         <div className="text-center px-4 max-w-md">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-amber-100 dark:bg-amber-900/30">
             <AlertTriangle className="w-8 h-8 text-amber-500" />
@@ -65,7 +66,7 @@ function FormPreviewRedirect() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+    <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950">
       <Loader2 className="w-8 h-8 animate-spin text-primary" />
     </div>
   );
@@ -74,7 +75,7 @@ function FormPreviewRedirect() {
 export default function FormPreviewPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     }>

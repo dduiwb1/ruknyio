@@ -32,7 +32,7 @@ import {
   FORM_STATUS_CONFIG,
   FORM_TYPE_LABELS
 } from '@/lib/hooks/useForms';
-import { toast } from 'sonner';
+import { toast } from '@/components/toast-provider';
 import {
   DropdownMenu,
   DropdownMenuContent,

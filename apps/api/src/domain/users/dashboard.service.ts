@@ -66,7 +66,7 @@ export class DashboardService {
             },
           }),
           // Store (for products + orders)
-          this.prisma.store.findFirst({
+          this.prisma.store.findUnique({
             where: { userId },
             select: { id: true },
           }),
@@ -183,7 +183,7 @@ export class DashboardService {
     previousStartDate.setDate(previousStartDate.getDate() - days);
 
     // Get user's store
-    const userStore = await this.prisma.store.findFirst({
+    const userStore = await this.prisma.store.findUnique({
       where: { userId },
       select: { id: true },
     });
@@ -346,7 +346,7 @@ export class DashboardService {
       }
 
       // 2. جلب إحصائيات المتجر
-      const userStore = await this.prisma.store.findFirst({
+      const userStore = await this.prisma.store.findUnique({
         where: { userId },
         select: { id: true },
       });
@@ -507,7 +507,7 @@ export class DashboardService {
 
     // Get user's store and recent products
     try {
-      const userStore = await this.prisma.store.findFirst({
+      const userStore = await this.prisma.store.findUnique({
         where: { userId },
         select: { id: true, name: true, createdAt: true, updatedAt: true },
       });

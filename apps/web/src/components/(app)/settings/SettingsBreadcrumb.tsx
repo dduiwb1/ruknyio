@@ -94,7 +94,7 @@ export function SettingsBreadcrumb({ items, className }: BreadcrumbProps) {
     <nav 
       aria-label="مسار التنقل"
       className={cn(
-        "flex items-center gap-1 text-sm text-muted-foreground",
+        "flex items-center gap-1 text-[13px]",
         className
       )}
     >
@@ -105,25 +105,30 @@ export function SettingsBreadcrumb({ items, className }: BreadcrumbProps) {
         return (
           <Fragment key={index}>
             {index > 0 && (
-              <ChevronLeft className="w-4 h-4 text-muted-foreground/50 mx-1" />
+              <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground/40 mx-0.5" />
             )}
-            <div className="flex items-center gap-1.5">
+            <div className={cn(
+              "flex items-center gap-1.5 px-2 py-1 rounded-lg transition-colors",
+              isLast 
+                ? "bg-muted/50 text-foreground" 
+                : "text-muted-foreground hover:text-foreground"
+            )}>
               {Icon && (
                 <Icon className={cn(
-                  "w-4 h-4",
-                  isLast ? "text-foreground" : "text-muted-foreground"
+                  "w-3.5 h-3.5",
+                  isLast ? "text-foreground" : "text-muted-foreground/70"
                 )} />
               )}
               {item.href && !isLast ? (
                 <Link
                   href={item.href}
-                  className="hover:text-foreground transition-colors font-medium"
+                  className="hover:text-foreground transition-colors font-medium text-[13px]"
                 >
                   {item.label}
                 </Link>
               ) : (
                 <span className={cn(
-                  "font-medium",
+                  "font-medium text-[13px]",
                   isLast ? "text-foreground" : "text-muted-foreground"
                 )}>
                   {item.label}

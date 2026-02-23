@@ -266,7 +266,7 @@ export class DatabaseHealthService implements OnModuleInit {
           query,
           state
         FROM pg_stat_activity
-        WHERE (now() - pg_stat_activity.query_start) > interval '${thresholdSeconds} seconds'
+        WHERE (now() - pg_stat_activity.query_start) > make_interval(secs => ${thresholdSeconds})
           AND state != 'idle'
         ORDER BY duration DESC
       `;

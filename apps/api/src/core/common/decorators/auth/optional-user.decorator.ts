@@ -15,9 +15,15 @@ export const OptionalUserId = createParamDecorator(
     }
 
     try {
+      const secret = process.env.JWT_SECRET;
+      // If JWT_SECRET is missing (misconfig), treat as unauthenticated.
+      // Never verify using a fallback secret.
+      if (!secret) {
+        return undefined;
+      }
       const token = authHeader.split(' ')[1];
       const jwtService = new JwtService({
-        secret: process.env.JWT_SECRET || 'your-secret-key-here',
+        secret,
       });
       const payload = jwtService.verify(token);
       return payload.sub || payload.id;

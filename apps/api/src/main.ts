@@ -15,6 +15,13 @@ import { randomUUID } from 'crypto';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  // When running behind a reverse proxy (Railway / Nginx / Cloudflare), trust X-Forwarded-* headers
+  // so req.ip / secure cookies / rate limiting work as expected.
+  app.set('trust proxy', 1);
+
+  // Reduce fingerprinting.
+  app.disable('x-powered-by');
+
   // 🔒 Request ID Middleware - Adds unique ID to each request for tracing
   app.use((req, res, next) => {
     req['requestId'] = req.headers['x-request-id'] || randomUUID();
@@ -146,6 +153,8 @@ async function bootstrap() {
     // Production domains
     'https://rukny.io',
     'https://www.rukny.io',
+    'https://app.rukny.io',
+    'https://accounts.rukny.io',
     'https://rukny.store',
     'https://www.rukny.store',
     'https://rukny.xyz',

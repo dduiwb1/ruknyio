@@ -416,7 +416,12 @@ export function generateCsrfToken(sessionId?: string): string {
   
   if (sessionId) {
     // 🔒 ربط CSRF بـ sessionId باستخدام HMAC
-    const secret = process.env.JWT_SECRET || 'csrf-secret-key';
+    const secret = process.env.JWT_SECRET;
+    // If JWT_SECRET is missing (misconfig), fall back to random-only token.
+    // Never use a hardcoded fallback secret.
+    if (!secret) {
+      return crypto.randomBytes(32).toString('hex');
+    }
     const hmac = crypto.createHmac('sha256', secret);
     hmac.update(`${sessionId}:${randomPart}`);
     const signature = hmac.digest('hex').substring(0, 16);

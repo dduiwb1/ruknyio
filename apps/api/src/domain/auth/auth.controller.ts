@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, Get, UseGuards, Req, Res, Delete, Param, Query, ForbiddenException, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, Get, UseGuards, Req, Res, Delete, Param, Query, ForbiddenException, UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { TokenService } from './token.service';
@@ -115,6 +115,37 @@ export class AuthController {
         profile: true,
       },
     });
+
+    // 🏪 Ensure the user has exactly one store (auto-create on profile completion)
+    // المتطلبات: اسم المتجر = username. لا نغيّر slug للمتاجر الموجودة لتجنب كسر الروابط.
+    if (updated.profile?.username) {
+      const baseSlug = updated.profile.username;
+      // Try to use username as slug for NEW stores only
+      const slugTaken = await this.prisma.store.findUnique({
+        where: { slug: baseSlug },
+        select: { userId: true },
+      });
+      const createSlug = slugTaken ? `${baseSlug}_${randomUUID().slice(0, 8)}` : baseSlug;
+
+      await this.prisma.store.upsert({
+        where: { userId: updated.id },
+        create: {
+          id: randomUUID(),
+          userId: updated.id,
+          name: updated.profile.username,
+          slug: createSlug,
+          status: 'ACTIVE' as any,
+          country: 'Iraq',
+          contactEmail: updated.email,
+        },
+        update: {
+          // Keep slug stable for existing stores; just sync the display name
+          name: updated.profile.username,
+          contactEmail: updated.email,
+        },
+        select: { id: true },
+      });
+    }
 
     // Log the update
     await this.securityLogService.createLog({
@@ -243,7 +274,10 @@ export class AuthController {
       setAccessTokenCookie(res, tokens.accessToken);
       
       // 🔒 Refresh Token الجديد في httpOnly Cookie
-      setRefreshTokenCookie(res, tokens.refreshToken);
+      // ملاحظة: في حالة الـ grace period (طلبات متزامنة)، قد لا نُعيد refreshToken لتجنب overwrite.
+      if (tokens.refreshToken) {
+        setRefreshTokenCookie(res, tokens.refreshToken);
+      }
 
       // 🔒 توليد CSRF Token جديد
       const csrfToken = generateCsrfToken();
@@ -336,7 +370,15 @@ export class AuthController {
     @CurrentUser() user: any,
     @Param('sessionId') sessionId: string,
   ) {
-    await this.tokenService.revokeSession(sessionId, 'User revoked session');
+    const ok = await this.tokenService.revokeSessionForUser(
+      user.id,
+      sessionId,
+      'User revoked session',
+    );
+    if (!ok) {
+      // لا نكشف إذا كانت الجلسة غير موجودة أو ليست للمستخدم
+      throw new NotFoundException('Session not found');
+    }
     return {
       success: true,
       message: 'تم إنهاء الجلسة بنجاح',
@@ -412,47 +454,63 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    // 🔒 Debug: Log incoming code exchange request
-    console.log('[OAuth Exchange] Code exchange started:', {
-      codeLength: body.code?.length,
-      codePreview: body.code?.substring(0, 20) + '...',
-    });
+    const isDev = process.env.NODE_ENV === 'development';
+    // 🔒 Debug logging (development only)
+    if (isDev) {
+      console.log('[OAuth Exchange] Code exchange started:', {
+        codeLength: body.code?.length,
+        codePreview: body.code?.substring(0, 20) + '...',
+      });
+    }
 
     try {
       const exchanged = await this.oauthCodeService.exchange(body.code);
-      console.log('[OAuth Exchange] Code exchanged successfully:', {
-        hasAccessToken: !!exchanged.access_token,
-        hasRefreshToken: !!exchanged.refresh_token,
-        userId: exchanged.user?.id,
-        needsProfileCompletion: exchanged.needsProfileCompletion,
-      });
+      if (isDev) {
+        console.log('[OAuth Exchange] Code exchanged successfully:', {
+          hasAccessToken: !!exchanged.access_token,
+          hasRefreshToken: !!exchanged.refresh_token,
+          userId: exchanged.user?.id,
+          needsProfileCompletion: exchanged.needsProfileCompletion,
+        });
+      }
 
       const { access_token, refresh_token, user, needsProfileCompletion } = exchanged;
     
       // 🔒 Access Token في httpOnly Cookie
       if (access_token) {
-        console.log('[OAuth Exchange] Setting access_token cookie...');
+        if (isDev) console.log('[OAuth Exchange] Setting access_token cookie...');
         setAccessTokenCookie(res, access_token);
-        console.log('[OAuth Exchange] ✅ Access token cookie appended');
+        if (isDev) console.log('[OAuth Exchange] ✅ Access token cookie appended');
       }
       
       // 🔒 Refresh Token في httpOnly Cookie
       if (refresh_token) {
-        console.log('[OAuth Exchange] Setting refresh_token cookie...');
+        if (isDev) console.log('[OAuth Exchange] Setting refresh_token cookie...');
         setRefreshTokenCookie(res, refresh_token);
-        console.log('[OAuth Exchange] ✅ Refresh token cookie appended');
+        if (isDev) console.log('[OAuth Exchange] ✅ Refresh token cookie appended');
       }
 
       // 🔒 توليد CSRF Token
       const csrfToken = generateCsrfToken();
-      console.log('[OAuth Exchange] Generated CSRF token:', csrfToken.substring(0, 20) + '...');
-      console.log('[OAuth Exchange] Setting CSRF token cookie...');
+      if (isDev) {
+        console.log(
+          '[OAuth Exchange] Generated CSRF token:',
+          csrfToken.substring(0, 20) + '...',
+        );
+        console.log('[OAuth Exchange] Setting CSRF token cookie...');
+      }
       setCsrfTokenCookie(res, csrfToken);
-      console.log('[OAuth Exchange] ✅ CSRF token cookie appended');
+      if (isDev) console.log('[OAuth Exchange] ✅ CSRF token cookie appended');
       
       // Log all Set-Cookie headers in response
-      console.log('[OAuth Exchange] Response headers before return:');
-      res.getHeaders()['set-cookie'] && console.log('  Set-Cookie count:', (res.getHeaders()['set-cookie'] as string[]).length);
+      if (isDev) {
+        console.log('[OAuth Exchange] Response headers before return:');
+        res.getHeaders()['set-cookie'] &&
+          console.log(
+            '  Set-Cookie count:',
+            (res.getHeaders()['set-cookie'] as string[]).length,
+          );
+      }
       
       // 🔒 Response - لا نُرسل التوكنات في الـ body
       const response = { 
@@ -464,12 +522,14 @@ export class AuthController {
         message: 'Tokens stored in httpOnly cookies',
       };
 
-      console.log('[OAuth Exchange] ✅ Response ready:', {
-        success: response.success,
-        hasCsrfToken: !!response.csrf_token,
-        userId: response.user?.id,
-        needsProfileCompletion: response.needsProfileCompletion,
-      });
+      if (isDev) {
+        console.log('[OAuth Exchange] ✅ Response ready:', {
+          success: response.success,
+          hasCsrfToken: !!response.csrf_token,
+          userId: response.user?.id,
+          needsProfileCompletion: response.needsProfileCompletion,
+        });
+      }
 
       return response;
     } catch (error) {

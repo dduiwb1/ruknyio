@@ -116,7 +116,7 @@ function FormPreviewContent() {
   // Loading state
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
           <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -131,7 +131,7 @@ function FormPreviewContent() {
   if (error || !previewData) {
     const isAuthError = errorType === 'auth';
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950">
         <div className="text-center px-4 max-w-md">
           <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 ${
             isAuthError 
@@ -180,7 +180,7 @@ function FormPreviewContent() {
 export default function FormPreviewWithSlugPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+      <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-950">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     }>

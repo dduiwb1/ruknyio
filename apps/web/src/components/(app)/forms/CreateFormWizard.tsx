@@ -71,15 +71,19 @@ import {
   FIELD_TYPE_LABELS,
 } from '@/lib/hooks/useForms';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { toast } from '@/components/toast-provider';
 import { cn } from '@/lib/utils';
 import { type FormFieldInput } from './FieldEditor';
 import { StepEditor, type FormStepInput } from './StepEditor';
 import FormBannersUpload, { type BannerDisplayMode } from './FormBannersUpload';
 import { FormTemplateSelector, type TemplateLanguage, getTemplateById } from './templates';
 import { type FormTheme, DEFAULT_THEME } from './FormThemeCustomizer';
-import { FormPhonePreview } from './FormPhonePreview';
 import { useGoogleSheets } from '@/lib/hooks/useGoogleSheets';
+import { useAuth } from '@/providers/auth-provider';
+import { isValidFormSlug } from '@/lib/utils/generateFormSlug';
+
+// LocalStorage key for preview data (must match /app/forms/preview pages)
+const FORM_PREVIEW_KEY = 'rukny_form_preview';
 
 // ============================================
 // Constants
@@ -273,6 +277,7 @@ export function CreateFormWizard({ initialDraft, initialSlug }: CreateFormWizard
   const router = useRouter();
   const { createForm, isLoading } = useForms();
   const { connect: connectGoogleSheets } = useGoogleSheets();
+  const { user, isAuthenticated } = useAuth();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -381,14 +386,6 @@ export function CreateFormWizard({ initialDraft, initialSlug }: CreateFormWizard
     setTemplateLanguage(language);
   };
 
-  // Compute phone preview banner URL
-  const previewBannerUrl = useMemo(() => {
-    if (banners.length === 0) return undefined;
-    const first = banners[0];
-    if (typeof first === 'string') return first;
-    return URL.createObjectURL(first);
-  }, [banners]);
-
   // Helper to convert File to base64
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -399,13 +396,67 @@ export function CreateFormWizard({ initialDraft, initialSlug }: CreateFormWizard
     });
   };
 
-  // Get preview URL for banner (first one for cover)
-  const getCoverPreview = (): string | null => {
-    if (banners.length === 0) return null;
-    const first = banners[0];
-    if (typeof first === 'string') return first;
-    return URL.createObjectURL(first);
-  };
+  const handleGoToPreview = useCallback(() => {
+    if (!slug || !isValidFormSlug(slug)) {
+      toast.error('الرجاء إدخال رابط صالح للمعاينة');
+      return;
+    }
+
+    // Prefer a stable banner URL. For File objects, use an object URL (works best with same-tab navigation).
+    let bannerUrl: string | undefined;
+    const firstBanner = banners[0];
+    if (typeof firstBanner === 'string') {
+      bannerUrl = firstBanner;
+    } else if (firstBanner instanceof File) {
+      try {
+        bannerUrl = URL.createObjectURL(firstBanner);
+      } catch {
+        bannerUrl = undefined;
+      }
+    }
+
+    const previewData = {
+      title: title || 'نموذج بدون عنوان',
+      description,
+      slug,
+      userId: user?.id,
+      fields: isMultiStep ? [] : fields,
+      isMultiStep,
+      steps: formSteps,
+      theme: formTheme,
+      bannerUrl,
+      allowMultipleSubmissions,
+      requiresAuthentication,
+      showProgressBar,
+      showQuestionNumbers,
+    };
+
+    // Light security: don't allow preview without auth for user-scoped pages.
+    if (!isAuthenticated || !user) {
+      toast.error('يجب تسجيل الدخول للمعاينة');
+      router.push('/login');
+      return;
+    }
+
+    localStorage.setItem(FORM_PREVIEW_KEY, JSON.stringify(previewData));
+    window.open(`/app/forms/preview/${slug}`, '_blank');
+  }, [
+    slug,
+    title,
+    description,
+    user,
+    isAuthenticated,
+    fields,
+    isMultiStep,
+    formSteps,
+    formTheme,
+    banners,
+    allowMultipleSubmissions,
+    requiresAuthentication,
+    showProgressBar,
+    showQuestionNumbers,
+    router,
+  ]);
 
   // Add new field (مع قيم افتراضية لكل نوع)
   const handleAddField = (type: FieldType) => {
@@ -540,8 +591,8 @@ export function CreateFormWizard({ initialDraft, initialSlug }: CreateFormWizard
         toast.error('الرجاء إدخال عنوان النموذج');
         return false;
       }
-      if (!slug || slug.length < 3) {
-        toast.error('الرجاء إدخال رابط صالح (3 أحرف على الأقل)');
+      if (!slug || !isValidFormSlug(slug)) {
+        toast.error('الرجاء إدخال رابط صالح');
         return false;
       }
     }
@@ -617,6 +668,7 @@ export function CreateFormWizard({ initialDraft, initialSlug }: CreateFormWizard
         showQuestionNumbers,
         notifyOnSubmission,
         notificationEmail: notifyOnSubmission ? notificationEmail : undefined,
+        theme: formTheme,
         coverImage: coverImageData,
         bannerImages: bannerImagesData.length > 0 ? bannerImagesData : undefined,
         bannerDisplayMode: bannerImagesData.length > 0 ? bannerDisplayMode : undefined,
@@ -695,7 +747,7 @@ export function CreateFormWizard({ initialDraft, initialSlug }: CreateFormWizard
           }
         }
         
-        router.push('/forms');
+        router.push('/app/forms');
       }
     } catch (error: any) {
       toast.error(error.message || 'فشل في إنشاء النموذج');
@@ -751,7 +803,7 @@ export function CreateFormWizard({ initialDraft, initialSlug }: CreateFormWizard
     >
       {/* Clean Header */}
       <p className="text-xs bg-primary/10 text-primary font-medium px-3 py-1 rounded-full mb-3">
-        الخطوة 2 من 5
+        الخطوة 2 من 6
       </p>
       <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-1">معلومات النموذج</h2>
       <p className="text-muted-foreground text-xs sm:text-sm mb-5">أدخل المعلومات الأساسية</p>
@@ -2017,6 +2069,19 @@ export function CreateFormWizard({ initialDraft, initialSlug }: CreateFormWizard
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-center gap-6 lg:gap-10 min-h-[520px]">
         {/* Form Content Section */}
         <div className="flex-1 order-1 max-w-xl w-full mx-auto lg:mx-0">
+          {/* Preview Button */}
+          <div className="flex items-center justify-end px-4 sm:px-8 pt-4 sm:pt-6">
+            <button
+              type="button"
+              onClick={handleGoToPreview}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted/40 hover:bg-muted/60 border border-border/60 text-foreground transition-colors text-sm font-medium"
+              aria-label="معاينة النموذج"
+            >
+              <Share2 className="w-4 h-4" />
+              <span>معاينة</span>
+            </button>
+          </div>
+
           {/* Step Progress Dots - Desktop */}
           <div className="hidden lg:flex items-center justify-center mb-6">
             <div className="flex items-center gap-1">
@@ -2072,26 +2137,6 @@ export function CreateFormWizard({ initialDraft, initialSlug }: CreateFormWizard
           </div>
         </div>
 
-        {/* Phone Preview Section - Desktop Only - Sticky */}
-        <div className="hidden lg:block order-2 flex-shrink-0 lg:sticky lg:top-8 h-fit">
-          <motion.div
-            initial={{ opacity: 0, x: -20, scale: 0.95 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            transition={{ delay: 0.2, duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-            style={{ willChange: 'transform, opacity' }}
-          >
-            <FormPhonePreview
-              title={title}
-              description={description}
-              fields={isMultiStep ? (formSteps[0]?.fields || []) : fields}
-              isMultiStep={isMultiStep}
-              steps={formSteps}
-              theme={formTheme}
-              bannerUrl={previewBannerUrl}
-              showLabel={true}
-            />
-          </motion.div>
-        </div>
       </div>
     </form>
   );

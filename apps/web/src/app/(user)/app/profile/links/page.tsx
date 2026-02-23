@@ -21,7 +21,7 @@ import {
   Image as ImageIcon,
   LayoutGrid
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/components/toast-provider';
 import { cn } from '@/lib/utils';
 
 // Components
