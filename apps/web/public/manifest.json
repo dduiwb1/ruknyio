@@ -1,7 +1,7 @@
 {
-  "name": "ركني - مركزك الرقمي للأعمال",
+  "name": "ركني | Rukny",
   "short_name": "ركني",
-  "description": "أنشئ حضورك الرقمي مع الملفات الشخصية والمتاجر والفعاليات",
+  "description": "صفحتك، متجرك، رابطك - كل شيء في مكان واحد",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

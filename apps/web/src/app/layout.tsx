@@ -28,9 +28,14 @@ const courgette = Courgette({
 });
 
 export const metadata: Metadata = {
-  title: "ركني - مركزك الرقمي للأعمال",
-  description: "أنشئ حضورك الرقمي مع الملفات الشخصية والمتاجر والفعاليات",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://rukny.io"),
+  title: {
+    default: "ركني | Rukny",
+    template: "%s | ركني",
+  },
+  description: "صفحتك، متجرك، رابطك - كل شيء في مكان واحد",
   manifest: "/manifest.json",
+  keywords: ["ركني", "متجر إلكتروني", "صفحة شخصية", "رابط حيوي", "bio link", "rukny"],
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -41,14 +46,24 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
+    locale: "ar_SA",
     siteName: "ركني",
-    title: "ركني - مركزك الرقمي للأعمال",
-    description: "أنشئ حضورك الرقمي مع الملفات الشخصية والمتاجر والفعاليات",
+    title: "ركني | Rukny",
+    description: "صفحتك، متجرك، رابطك - كل شيء في مكان واحد",
+    images: [
+      {
+        url: "/api/og",
+        width: 1200,
+        height: 630,
+        alt: "ركني - Rukny",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ركني - مركزك الرقمي للأعمال",
-    description: "أنشئ حضورك الرقمي مع الملفات الشخصية والمتاجر والفعاليات",
+    title: "ركني | Rukny",
+    description: "صفحتك، متجرك، رابطك - كل شيء في مكان واحد",
+    images: ["/api/og"],
   },
 };
 

@@ -193,10 +193,19 @@ export default function FormDetailsPage() {
   }, [formId, getFormById]);
 
   // Computed values
-  const formLink = form ? `${typeof window !== 'undefined' ? window.location.origin : ''}/f/${form.slug}` : '';
+  const origin = useMemo(() => (typeof window !== 'undefined' ? window.location.origin : ''), []);
+  const formLink = form ? `${origin || ''}/f/${form.slug}` : '';
   const gradient = form ? FORM_TYPE_GRADIENTS[form.type] : FORM_TYPE_GRADIENTS[FormType.OTHER];
   const lightGradient = form ? FORM_TYPE_LIGHT_GRADIENTS[form.type] : FORM_TYPE_LIGHT_GRADIENTS[FormType.OTHER];
   const statusConfig = form ? FORM_STATUS_CONFIG[form.status] : FORM_STATUS_CONFIG[FormStatus.DRAFT];
+
+  const statusDotClass = form?.status === FormStatus.PUBLISHED
+    ? 'bg-emerald-500'
+    : form?.status === FormStatus.DRAFT
+      ? 'bg-muted-foreground/60'
+      : form?.status === FormStatus.ARCHIVED
+        ? 'bg-amber-500'
+        : 'bg-destructive';
   
   const submissionsCount = form?._count?.submissions || form?.submissionCount || 0;
   const fieldsCount = form?._count?.fields || form?.fields?.length || 0;
@@ -262,7 +271,7 @@ export default function FormDetailsPage() {
     const success = await deleteForm(form.id);
     
     if (success) {
-      router.push('/forms');
+      router.push('/app/forms');
     }
     
     setIsDeleting(false);
@@ -336,7 +345,7 @@ export default function FormDetailsPage() {
             animate={{ opacity: 1, x: 0 }}
           >
             <Link 
-              href="/forms" 
+              href="/app/forms" 
               className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowRight className="w-4 h-4" />
@@ -374,12 +383,7 @@ export default function FormDetailsPage() {
                       statusConfig.bg,
                       statusConfig.color
                     )}>
-                      <span className="w-1.5 h-1.5 rounded-full" style={{
-                        backgroundColor: form.status === FormStatus.PUBLISHED ? '#10b981' 
-                          : form.status === FormStatus.DRAFT ? '#9ca3af'
-                          : form.status === FormStatus.ARCHIVED ? '#f59e0b'
-                          : '#ef4444'
-                      }} />
+                      <span className={cn("w-1.5 h-1.5 rounded-full", statusDotClass)} />
                       {FORM_STATUS_LABELS[form.status]}
                     </span>
                   </div>
@@ -532,7 +536,7 @@ export default function FormDetailsPage() {
               {/* Form Link */}
               <div className="mb-3">
                 <label className="block text-xs font-medium text-muted-foreground mb-2">رابط النموذج</label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <div className="flex-1 flex items-center gap-2 px-3 py-2.5 bg-muted rounded-xl text-sm text-foreground truncate border border-border/50 min-w-0">
                     <Link2 className="w-4 h-4 text-primary flex-shrink-0" />
                     <span className="truncate font-mono text-xs" dir="ltr">{formLink}</span>
@@ -540,7 +544,7 @@ export default function FormDetailsPage() {
                   <button
                     onClick={handleCopyLink}
                     className={cn(
-                      "px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-2 flex-shrink-0",
+                      "w-full sm:w-auto px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 flex-shrink-0",
                       copied 
                         ? "bg-emerald-500 text-white" 
                         : "bg-primary text-primary-foreground hover:opacity-90"
@@ -843,8 +847,8 @@ export default function FormDetailsPage() {
                         size={180}
                         level="H"
                         includeMargin={false}
-                        bgColor="#ffffff"
-                        fgColor="#111827"
+                        bgColor="hsl(var(--background))"
+                        fgColor="hsl(var(--foreground))"
                       />
                     </div>
                   </div>
@@ -907,8 +911,8 @@ export default function FormDetailsPage() {
                     size={512}
                     level="H"
                     includeMargin={true}
-                    bgColor="#ffffff"
-                    fgColor="#111827"
+                    bgColor="hsl(var(--background))"
+                    fgColor="hsl(var(--foreground))"
                   />
                 </div>
               </div>
