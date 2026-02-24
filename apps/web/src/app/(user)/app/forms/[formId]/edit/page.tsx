@@ -783,17 +783,17 @@ export default function EditFormPage() {
         </div>
 
         {/* Multi-step Toggle */}
-        <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-              <Layers className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+        <div className="flex items-center justify-between gap-3 p-3 sm:p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+              <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-gray-400" />
             </div>
-            <div>
-              <p className="font-medium text-sm text-gray-800 dark:text-gray-200">نموذج متعدد الخطوات</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">تقسيم النموذج إلى عدة مراحل</p>
+            <div className="min-w-0">
+              <p className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">نموذج متعدد الخطوات</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">تقسيم النموذج إلى عدة مراحل</p>
             </div>
           </div>
-          <div dir="ltr">
+          <div dir="ltr" className="flex-shrink-0">
             <Switch checked={isMultiStep} onCheckedChange={setIsMultiStep} />
           </div>
         </div>
@@ -958,81 +958,81 @@ export default function EditFormPage() {
       {/* Settings List */}
       <div className="w-full max-w-md px-4 space-y-3">
         {/* Multiple Submissions */}
-        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-              <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        <div className="flex items-center justify-between gap-3 p-3 sm:p-4 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
             </div>
-            <div>
-              <p className="font-medium text-sm text-gray-800 dark:text-gray-200">السماح بالإرسال المتعدد</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">السماح للمستخدم بإرسال أكثر من رد</p>
+            <div className="min-w-0">
+              <p className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">السماح بالإرسال المتعدد</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">السماح للمستخدم بإرسال أكثر من رد</p>
             </div>
           </div>
-          <div dir="ltr">
+          <div dir="ltr" className="flex-shrink-0">
             <Switch checked={allowMultipleSubmissions} onCheckedChange={setAllowMultipleSubmissions} />
           </div>
         </div>
 
         {/* Requires Authentication */}
-        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-              <Users className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+        <div className="flex items-center justify-between gap-3 p-3 sm:p-4 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
             </div>
-            <div>
-              <p className="font-medium text-sm text-gray-800 dark:text-gray-200">يتطلب تسجيل الدخول</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">يجب على المستخدم تسجيل الدخول قبل الإرسال</p>
+            <div className="min-w-0">
+              <p className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">يتطلب تسجيل الدخول</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">يجب على المستخدم تسجيل الدخول قبل الإرسال</p>
             </div>
           </div>
-          <div dir="ltr">
+          <div dir="ltr" className="flex-shrink-0">
             <Switch checked={requiresAuthentication} onCheckedChange={setRequiresAuthentication} />
           </div>
         </div>
 
         {/* Show Progress Bar */}
-        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-              <BarChart3 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+        <div className="flex items-center justify-between gap-3 p-3 sm:p-4 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
+              <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <div>
-              <p className="font-medium text-sm text-gray-800 dark:text-gray-200">إظهار شريط التقدم</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">عرض نسبة إكمال النموذج</p>
+            <div className="min-w-0">
+              <p className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">إظهار شريط التقدم</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">عرض نسبة إكمال النموذج</p>
             </div>
           </div>
-          <div dir="ltr">
+          <div dir="ltr" className="flex-shrink-0">
             <Switch checked={showProgressBar} onCheckedChange={setShowProgressBar} />
           </div>
         </div>
 
         {/* Show Question Numbers */}
-        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-              <Hash className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+        <div className="flex items-center justify-between gap-3 p-3 sm:p-4 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+              <Hash className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
             </div>
-            <div>
-              <p className="font-medium text-sm text-gray-800 dark:text-gray-200">ترقيم الأسئلة</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">عرض أرقام الأسئلة في النموذج</p>
+            <div className="min-w-0">
+              <p className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">ترقيم الأسئلة</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">عرض أرقام الأسئلة في النموذج</p>
             </div>
           </div>
-          <div dir="ltr">
+          <div dir="ltr" className="flex-shrink-0">
             <Switch checked={showQuestionNumbers} onCheckedChange={setShowQuestionNumbers} />
           </div>
         </div>
 
         {/* Notify on Submission */}
-        <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
-              <Bell className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+        <div className="flex items-center justify-between gap-3 p-3 sm:p-4 bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center flex-shrink-0">
+              <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600 dark:text-rose-400" />
             </div>
-            <div>
-              <p className="font-medium text-sm text-gray-800 dark:text-gray-200">إشعار عند الإرسال</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">استلام بريد إلكتروني عند كل رد جديد</p>
+            <div className="min-w-0">
+              <p className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">إشعار عند الإرسال</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">استلام بريد إلكتروني عند كل رد جديد</p>
             </div>
           </div>
-          <div dir="ltr">
+          <div dir="ltr" className="flex-shrink-0">
             <Switch checked={notifyOnSubmission} onCheckedChange={setNotifyOnSubmission} />
           </div>
         </div>

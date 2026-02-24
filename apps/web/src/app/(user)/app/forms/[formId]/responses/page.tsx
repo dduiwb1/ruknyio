@@ -137,13 +137,13 @@ const fadeInUp = {
 
 function Skeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("animate-pulse bg-gray-200 rounded", className)} />
+    <div className={cn("animate-pulse bg-muted rounded", className)} />
   );
 }
 
 function StatsCardSkeleton() {
   return (
-    <div className="rounded-2xl p-4 sm:p-5 bg-gray-100">
+    <div className="rounded-2xl p-4 sm:p-5 bg-muted">
       <Skeleton className="h-4 w-24 mb-2" />
       <Skeleton className="h-3 w-16 mb-3" />
       <div className="flex items-end justify-between">
@@ -174,7 +174,7 @@ function QuestionCardSkeleton() {
 
 function ResponseCardSkeleton() {
   return (
-    <div className="p-4 border-b border-gray-100">
+    <div className="p-4 border-b border-border/40">
       <div className="flex items-start gap-3">
         <Skeleton className="w-8 h-8 rounded-xl flex-shrink-0" />
         <div className="flex-1">
@@ -399,8 +399,8 @@ function InteractiveBarChart({ data }: { data: { value: any; count: number; perc
           <Tooltip 
             formatter={(value) => [`${value} إجابة`, '']}
             contentStyle={{ 
-              backgroundColor: 'white', 
-              border: '1px solid #e5e7eb',
+              backgroundColor: 'hsl(var(--card))', 
+              border: '1px solid hsl(var(--border))',
               borderRadius: '8px',
               fontSize: '12px',
               direction: 'rtl'
@@ -476,7 +476,7 @@ function ResponsesTimelineChart({ submissions }: { submissions: ExtendedFormSubm
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-2xl border border-gray-200/80 shadow-sm p-4"
+      className="bg-card rounded-2xl border border-border/50 p-4"
     >
       <div className="flex items-center justify-between mb-4">
         <div>
@@ -517,8 +517,8 @@ function ResponsesTimelineChart({ submissions }: { submissions: ExtendedFormSubm
               formatter={(value) => [`${value} رد`, '']}
               labelFormatter={(label) => `${label}`}
               contentStyle={{ 
-                backgroundColor: 'white', 
-                border: '1px solid #e5e7eb',
+                backgroundColor: 'hsl(var(--card))', 
+                border: '1px solid hsl(var(--border))',
                 borderRadius: '8px',
                 fontSize: '12px',
                 direction: 'rtl'
@@ -609,7 +609,7 @@ function SummaryQuestionCard({ question, qIndex, submissions, defaultExpanded = 
   const ITEMS_PER_PAGE = 6;
   
   const FieldIcon = getFieldIcon(question.type);
-  const barColor = 'bg-gray-700';
+  const barColor = 'bg-foreground';
 
   // For text questions, get all responses with user info
   const textResponses = useMemo(() => {
@@ -696,8 +696,8 @@ function SummaryQuestionCard({ question, qIndex, submissions, defaultExpanded = 
                   
                   {/* Fallback bar display */}
                   {question.responses.length > 8 && (
-                    <div className="pt-2 border-t border-gray-100">
-                      <p className="text-xs text-gray-400 text-center">
+                    <div className="pt-2 border-t border-border/40">
+                      <p className="text-xs text-muted-foreground/60 text-center">
                         +{question.responses.length - 8} خيار آخر
                       </p>
                     </div>
@@ -772,10 +772,10 @@ function SummaryQuestionCard({ question, qIndex, submissions, defaultExpanded = 
                                   {currentPage * ITEMS_PER_PAGE + idx + 1}
                                 </span>
                                 <div className="flex-1 min-w-0">
-                                  <div className="text-sm text-gray-800 font-medium break-words leading-relaxed">
+                                  <div className="text-sm text-foreground font-medium break-words leading-relaxed">
                                     <FieldValueRenderer value={resp.value} fieldType={question.type} compact />
                                   </div>
-                                  <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                                     <User className="w-3 h-3" />
                                     Response {resp.submissionIndex + 1}
                                   </p>
@@ -788,11 +788,11 @@ function SummaryQuestionCard({ question, qIndex, submissions, defaultExpanded = 
                       
                       {/* Pagination */}
                       {totalTextPages > 1 && (
-                        <div className="flex items-center justify-between pt-2 mt-2 border-t border-gray-100">
+                        <div className="flex items-center justify-between pt-2 mt-2 border-t border-border/40">
                           <button
                             onClick={(e) => { e.stopPropagation(); setCurrentPage(p => Math.max(0, p - 1)); }}
                             disabled={currentPage === 0}
-                            className="text-xs text-gray-500 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 transition-colors"
+                            className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 px-2 py-1 rounded hover:bg-muted transition-colors"
                           >
                             <ChevronRight className="w-3 h-3" /> السابق
                           </button>
@@ -803,7 +803,7 @@ function SummaryQuestionCard({ question, qIndex, submissions, defaultExpanded = 
                                 onClick={(e) => { e.stopPropagation(); setCurrentPage(i); }}
                                 className={cn(
                                   'w-5 h-5 rounded text-xs font-medium',
-                                  currentPage === i ? 'bg-gray-700 text-white' : 'text-gray-500 hover:bg-gray-200'
+                                  currentPage === i ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-muted'
                                 )}
                               >
                                 {i + 1}
@@ -813,7 +813,7 @@ function SummaryQuestionCard({ question, qIndex, submissions, defaultExpanded = 
                           <button
                             onClick={(e) => { e.stopPropagation(); setCurrentPage(p => Math.min(totalTextPages - 1, p + 1)); }}
                             disabled={currentPage >= totalTextPages - 1}
-                            className="text-xs text-gray-500 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-100 transition-colors"
+                            className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 px-2 py-1 rounded hover:bg-muted transition-colors"
                           >
                             التالي <ChevronLeft className="w-3 h-3" />
                           </button>
@@ -882,13 +882,13 @@ function SummaryTab({ form, submissions, questionSummaries }: {
       {questionSummaries.length === 0 && (
         <motion.div 
           variants={fadeInUp}
-          className="text-center py-16 bg-white rounded-xl border border-gray-200"
+          className="text-center py-16 bg-card rounded-xl border border-border/50"
         >
-          <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-gray-100 flex items-center justify-center">
-            <BarChart3 className="w-7 h-7 text-gray-400" />
+          <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-muted flex items-center justify-center">
+            <BarChart3 className="w-7 h-7 text-muted-foreground/60" />
           </div>
-          <p className="text-gray-600 font-medium">لا توجد بيانات للعرض</p>
-          <p className="text-gray-400 text-sm mt-1">أضف أسئلة للنموذج أولاً</p>
+          <p className="text-muted-foreground font-medium">لا توجد بيانات للعرض</p>
+          <p className="text-muted-foreground/60 text-sm mt-1">أضف أسئلة للنموذج أولاً</p>
         </motion.div>
       )}
     </motion.div>
@@ -1118,7 +1118,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
                 </option>
               ))}
             </select>
-            <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           </div>
         </div>
         
@@ -1178,8 +1178,8 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
             className={cn(
               'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all',
               filter === tab.id 
-                ? cn('bg-white shadow-sm', colors.text)
-                : 'text-gray-500 hover:text-gray-700'
+                ? cn('bg-card shadow-sm', colors.text)
+                : 'text-muted-foreground hover:text-foreground'
             )}
           >
             <span>{tab.label}</span>
@@ -1204,7 +1204,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
           className="bg-card rounded-2xl border border-border/50 overflow-hidden"
         >
           {/* Responses List */}
-          <div className="divide-y divide-gray-100 max-h-[400px] overflow-y-auto custom-scrollbar">
+          <div className="divide-y divide-border/40 max-h-[400px] overflow-y-auto custom-scrollbar">
             {filteredResponses.length === 0 ? (
               <div className="p-10 text-center">
                 <motion.div 
@@ -1215,15 +1215,15 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
                   {filter === 'answered' ? (
                     <CheckCircle2 className={cn('w-7 h-7', colors.text)} />
                   ) : filter === 'empty' ? (
-                    <XCircle className="w-7 h-7 text-gray-400" />
+                    <XCircle className="w-7 h-7 text-muted-foreground/60" />
                   ) : (
                     <MessageSquare className={cn('w-7 h-7', colors.text)} />
                   )}
                 </motion.div>
-                <p className="text-gray-600 font-medium">
+                <p className="text-muted-foreground font-medium">
                   {filter === 'answered' ? 'لا توجد إجابات' : filter === 'empty' ? 'لا توجد ردود فارغة' : 'لا توجد مشاركات'}
                 </p>
-                <p className="text-gray-400 text-sm mt-1">
+                <p className="text-muted-foreground/60 text-sm mt-1">
                   {filter !== 'all' && 'جرب تغيير الفلتر'}
                 </p>
               </div>
@@ -1270,7 +1270,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
                           onClick={handleClick}
                           className={cn(
                             "p-4 transition-all group",
-                            isEmpty ? "bg-gray-50/60" : cn(colors.hover, "cursor-pointer"),
+                            isEmpty ? "bg-muted/30" : cn(colors.hover, "cursor-pointer"),
                             !isEmpty && "hover:shadow-sm",
                             isExpanded && cn(colors.light, "border-r-2", colors.bg.replace('bg-', 'border-'))
                           )}
@@ -1280,7 +1280,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
                             <span 
                               className={cn(
                                 "flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold",
-                                isEmpty ? "bg-gray-100 text-gray-400" : cn(colors.light, colors.textDark)
+                                isEmpty ? "bg-muted text-muted-foreground/60" : cn(colors.light, colors.textDark)
                               )}
                             >
                               {responseNumber}
@@ -1289,13 +1289,13 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
                             {/* Response Content */}
                             <div className="flex-1 min-w-0">
                               {isEmpty ? (
-                                <p className="text-gray-400 text-sm italic flex items-center gap-1.5">
+                                <p className="text-muted-foreground/60 text-sm italic flex items-center gap-1.5">
                                   <XCircle className="w-3.5 h-3.5" />
                                   لم يتم الإجابة
                                 </p>
                               ) : (
                                 <div>
-                                  <div className="text-gray-800 text-sm leading-relaxed break-words group-hover:text-gray-900">
+                                  <div className="text-foreground text-sm leading-relaxed break-words group-hover:text-foreground">
                                     <FieldValueRenderer value={resp.value} fieldType={currentField?.type} compact />
                                   </div>
                                   {/* Duplicate indicator */}
@@ -1315,7 +1315,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
                               )}
                               
                               {/* User Info */}
-                              <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                              <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground/60">
                                 <span className="flex items-center gap-1">
                                   <User className="w-3 h-3" />
                                   Response {submissionIndex + 1}
@@ -1348,8 +1348,8 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
                               className="overflow-hidden"
                             >
                               <div className={cn("border-r-2 mr-4", colors.bg.replace('bg-', 'border-'))}>
-                                <div className="py-2 px-4 bg-gray-50/80">
-                                  <p className="text-xs text-gray-500 mb-2 font-medium">اختر المشارك للتفاصيل:</p>
+                                <div className="py-2 px-4 bg-muted/50">
+                                  <p className="text-xs text-muted-foreground mb-2 font-medium">اختر المشارك للتفاصيل:</p>
                                   <div className="space-y-1">
                                     {duplicateSubmissions.map((dup, dupIdx) => {
                                       const dupSubmissionIndex = findSubmissionIndex(dup.submission.id);
@@ -1365,7 +1365,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
                                           }}
                                           className={cn(
                                             "w-full flex items-center justify-between p-2.5 rounded-lg text-right transition-all",
-                                            "bg-white hover:shadow-sm border border-gray-100",
+                                            "bg-card hover:shadow-sm border border-border/40",
                                             colors.hover
                                           )}
                                         >
@@ -1373,7 +1373,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
                                             <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", colors.light)}>
                                               <User className={cn("w-3.5 h-3.5", colors.text)} />
                                             </div>
-                                            <span className="text-sm font-medium text-gray-700">
+                                            <span className="text-sm font-medium text-foreground">
                                               Response {dupSubmissionIndex + 1}
                                             </span>
                                           </div>
@@ -1397,7 +1397,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="p-3 border-t border-gray-100 bg-gray-50/80 flex items-center justify-between">
+            <div className="p-3 border-t border-border/40 bg-muted/30 flex items-center justify-between">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -1405,7 +1405,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
                 disabled={currentPage === 0}
                 className={cn(
                   "text-xs font-medium disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 px-3 py-2 rounded-lg transition-colors",
-                  "text-gray-600 hover:bg-white"
+                  "text-muted-foreground hover:bg-card"
                 )}
               >
                 <ChevronRight className="w-3.5 h-3.5" /> السابق
@@ -1429,7 +1429,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
                         "w-8 h-8 rounded-lg text-xs font-medium transition-all",
                         currentPage === pageNum 
                           ? cn(colors.bg, 'text-white shadow-sm')
-                          : "text-gray-500 hover:bg-white"
+                          : "text-muted-foreground hover:bg-card"
                       )}
                     >
                       {pageNum + 1}
@@ -1445,7 +1445,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
                 disabled={currentPage >= totalPages - 1}
                 className={cn(
                   "text-xs font-medium disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 px-3 py-2 rounded-lg transition-colors",
-                  "text-gray-600 hover:bg-white"
+                  "text-muted-foreground hover:bg-card"
                 )}
               >
                 التالي <ChevronLeft className="w-3.5 h-3.5" />
@@ -1478,10 +1478,10 @@ function IndividualTab({ form, submissions, currentIndex, onChangeIndex, onDelet
         variants={fadeInUp}
         initial="hidden"
         animate="visible"
-        className="text-center py-12 bg-white rounded-xl border border-gray-100"
+        className="text-center py-12 bg-card rounded-xl border border-border/40"
       >
-        <UserCircle className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-        <p className="text-gray-500">لا توجد إجابات</p>
+        <UserCircle className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+        <p className="text-muted-foreground">لا توجد إجابات</p>
       </motion.div>
     );
   }
@@ -1492,7 +1492,7 @@ function IndividualTab({ form, submissions, currentIndex, onChangeIndex, onDelet
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-lg sm:rounded-xl border border-gray-200/80 shadow-sm p-2 sm:p-3"
+        className="bg-card rounded-lg sm:rounded-xl border border-border/50 p-2 sm:p-3"
       >
         <div className="flex items-center gap-2 sm:gap-3">
           <button 
@@ -1501,15 +1501,15 @@ function IndividualTab({ form, submissions, currentIndex, onChangeIndex, onDelet
             className={cn(
               "w-7 h-7 sm:w-8 sm:h-8 rounded-md sm:rounded-lg flex items-center justify-center transition-all",
               currentIndex === submissions.length - 1 
-                ? "text-gray-300 cursor-not-allowed bg-gray-50" 
-                : "text-gray-600 hover:bg-gray-200 bg-gray-100"
+                ? "text-muted-foreground/40 cursor-not-allowed bg-muted/30" 
+                : "text-foreground hover:bg-muted/80 bg-muted"
             )}
           >
             <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
           
           <div className="flex-1 flex items-center justify-center gap-1.5 sm:gap-2">
-            <span className="text-[10px] sm:text-xs text-gray-500">الإجابة</span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground">الإجابة</span>
             <input
               type="number"
               min={1}
@@ -1521,9 +1521,9 @@ function IndividualTab({ form, submissions, currentIndex, onChangeIndex, onDelet
                 const arrayIndex = submissions.length - displayNum;
                 if (arrayIndex >= 0 && arrayIndex < submissions.length) onChangeIndex(arrayIndex);
               }}
-              className="w-12 sm:w-16 text-center bg-gray-50 border border-gray-200 rounded-md sm:rounded-lg py-1 sm:py-1.5 text-xs sm:text-sm text-gray-900 font-bold focus:outline-none focus:ring-2 focus:ring-gray-400/30 focus:border-gray-400"
+              className="w-12 sm:w-16 text-center bg-muted border border-border/50 rounded-md sm:rounded-lg py-1 sm:py-1.5 text-xs sm:text-sm text-foreground font-bold focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50"
             />
-            <span className="text-[10px] sm:text-xs text-gray-500">من <span className="font-semibold text-gray-700">{submissions.length}</span></span>
+            <span className="text-[10px] sm:text-xs text-muted-foreground">من <span className="font-semibold text-foreground">{submissions.length}</span></span>
           </div>
           
           <button 
@@ -1532,8 +1532,8 @@ function IndividualTab({ form, submissions, currentIndex, onChangeIndex, onDelet
             className={cn(
               "w-7 h-7 sm:w-8 sm:h-8 rounded-md sm:rounded-lg flex items-center justify-center transition-all",
               currentIndex === 0 
-                ? "text-gray-300 cursor-not-allowed bg-gray-50" 
-                : "text-gray-600 hover:bg-gray-200 bg-gray-100"
+                ? "text-muted-foreground/40 cursor-not-allowed bg-muted/30" 
+                : "text-foreground hover:bg-muted/80 bg-muted"
             )}
           >
             <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -1549,22 +1549,22 @@ function IndividualTab({ form, submissions, currentIndex, onChangeIndex, onDelet
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.2 }}
-          className="bg-white mb-12 rounded-lg sm:rounded-xl border border-gray-200/80 shadow-sm overflow-hidden"
+          className="bg-card mb-12 rounded-lg sm:rounded-xl border border-border/50 overflow-hidden"
         >
           {/* User Header */}
-          <div className="p-2.5 sm:p-3 border-b border-gray-100 bg-gray-50/50">
+          <div className="p-2.5 sm:p-3 border-b border-border/40 bg-muted/30">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 sm:gap-3">
-                <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-gray-200 flex items-center justify-center">
-                  <User className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+                <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-muted flex items-center justify-center">
+                  <User className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                 </div>
                 <div>
-                    <p className="font-semibold text-gray-900 text-xs sm:text-sm">Response {submissions.length - currentIndex}</p>                  <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-gray-500 mt-0.5 flex-wrap">
+                    <p className="font-semibold text-foreground text-xs sm:text-sm">Response {submissions.length - currentIndex}</p>                  <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground mt-0.5 flex-wrap">
                     {currentSubmission?.user?.email && (
                       <>
                         <Mail className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                         <span className="truncate max-w-[100px] sm:max-w-none">{currentSubmission.user.email}</span>
-                        <span className="w-0.5 h-0.5 sm:w-1 sm:h-1 rounded-full bg-gray-300" />
+                        <span className="w-0.5 h-0.5 sm:w-1 sm:h-1 rounded-full bg-muted-foreground/30" />
                       </>
                     )}
                     <Calendar className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
@@ -1594,7 +1594,7 @@ function IndividualTab({ form, submissions, currentIndex, onChangeIndex, onDelet
           </div>
           
           {/* Fields */}
-          <div className="divide-y divide-gray-100 max-h-[320px] sm:max-h-[380px] overflow-y-auto custom-scrollbar">
+          <div className="divide-y divide-border/40 max-h-[320px] sm:max-h-[380px] overflow-y-auto custom-scrollbar">
             {fields.map((field: FormField, idx: number) => {
               const FieldIcon = getFieldIcon(field.type);
               const value = data?.[field.label] || data?.[field.id];
@@ -1603,25 +1603,25 @@ function IndividualTab({ form, submissions, currentIndex, onChangeIndex, onDelet
               return (
                 <div 
                   key={field.id} 
-                  className={cn("p-2.5 sm:p-3 hover:bg-gray-50 transition-colors", isEmpty && "bg-gray-50/40")}
+                  className={cn("p-2.5 sm:p-3 hover:bg-muted/50 transition-colors", isEmpty && "bg-muted/20")}
                 >
                   <div className="flex items-start gap-2 sm:gap-3">
                     <span className={cn(
                       "flex-shrink-0 w-6 h-6 sm:w-7 sm:h-7 rounded-md sm:rounded-lg flex items-center justify-center text-[10px] sm:text-xs font-bold",
-                      isEmpty ? "bg-gray-200 text-gray-400" : "bg-gray-700 text-white"
+                      isEmpty ? "bg-muted text-muted-foreground/60" : "bg-foreground text-background"
                     )}>
                       {idx + 1}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1 sm:gap-1.5 mb-0.5 sm:mb-1">
-                        <FieldIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-400" />
-                        <p className="text-[10px] sm:text-xs font-medium text-gray-500 truncate">{field.label}</p>
+                        <FieldIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-muted-foreground/60" />
+                        <p className="text-[10px] sm:text-xs font-medium text-muted-foreground truncate">{field.label}</p>
                         {field.required && <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-red-500 flex-shrink-0" />}
                       </div>
                       {isEmpty ? (
-                        <p className="text-gray-400 text-xs sm:text-sm italic">لم يتم الإجابة</p>
+                        <p className="text-muted-foreground/60 text-xs sm:text-sm italic">لم يتم الإجابة</p>
                       ) : (
-                        <div className="text-gray-800 text-xs sm:text-sm leading-relaxed break-words">
+                        <div className="text-foreground text-xs sm:text-sm leading-relaxed break-words">
                           <FieldValueRenderer value={value} fieldType={field.type} />
                         </div>
                       )}
@@ -1633,7 +1633,7 @@ function IndividualTab({ form, submissions, currentIndex, onChangeIndex, onDelet
           </div>
           
           {/* Footer */}
-          <div className="p-2 sm:p-2.5 bg-gray-50/80 border-t border-gray-100 flex items-center justify-between text-[10px] sm:text-xs text-gray-400">
+          <div className="p-2 sm:p-2.5 bg-muted/30 border-t border-border/40 flex items-center justify-between text-[10px] sm:text-xs text-muted-foreground/60">
             <span className="font-mono">#{currentSubmission?.id.slice(0, 8)}</span>
             <span>{formatRelativeDate(currentSubmission?.submittedAt)}</span>
           </div>
@@ -1665,23 +1665,23 @@ function DeleteConfirmationModal({ isOpen, onClose, onConfirm, isLoading }: {
         initial={{ scale: 0.9, opacity: 0, y: 20 }} 
         animate={{ scale: 1, opacity: 1, y: 0 }} 
         exit={{ scale: 0.9, opacity: 0, y: 20 }} 
-        className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 max-w-[90vw] sm:max-w-sm w-full shadow-2xl" 
+        className="bg-card rounded-xl sm:rounded-2xl p-4 sm:p-6 max-w-[90vw] sm:max-w-sm w-full shadow-2xl" 
         onClick={(e) => e.stopPropagation()}
       >
         <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 sm:mb-4 rounded-lg sm:rounded-xl bg-red-100 flex items-center justify-center">
           <AlertCircle className="w-6 h-6 sm:w-7 sm:h-7 text-red-600" />
         </div>
-        <h3 className="text-lg sm:text-xl font-bold text-gray-900 text-center mb-1.5 sm:mb-2">حذف الإجابة</h3>
-        <p className="text-gray-500 text-center text-sm sm:text-base mb-4 sm:mb-6">
+        <h3 className="text-lg sm:text-xl font-bold text-foreground text-center mb-1.5 sm:mb-2">حذف الإجابة</h3>
+        <p className="text-muted-foreground text-center text-sm sm:text-base mb-4 sm:mb-6">
           هل أنت متأكد من حذف هذه الإجابة؟
           <br />
-          <span className="text-xs sm:text-sm text-gray-400">لا يمكن التراجع عن هذا الإجراء</span>
+          <span className="text-xs sm:text-sm text-muted-foreground/60">لا يمكن التراجع عن هذا الإجراء</span>
         </p>
         <div className="flex gap-2 sm:gap-3">
           <button 
             onClick={onClose} 
             disabled={isLoading} 
-            className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl border border-gray-200 text-gray-700 font-medium text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl border border-border text-foreground font-medium text-sm hover:bg-muted/50 transition-colors disabled:opacity-50"
           >
             إلغاء
           </button>
@@ -2092,7 +2092,7 @@ export default function FormResponsesPage() {
     ? Math.round((totalSubmissions / form.viewCount) * 100) 
     : 0;
 
-  // Stats cards configuration - unified gray color scheme
+  // Stats cards configuration - unified theme color scheme
   const statsCards = [
     {
       key: 'responses',
@@ -2100,9 +2100,9 @@ export default function FormResponsesPage() {
       subtitle: `من ${form.viewCount || 0} مشاهدة`,
       value: totalSubmissions,
       change: responseRate,
-      bgColor: 'bg-gray-100',
-      hoverColor: 'hover:bg-gray-200',
-      textColor: 'text-gray-900',
+      bgColor: 'bg-muted',
+      hoverColor: 'hover:bg-muted/80',
+      textColor: 'text-foreground',
     },
     {
       key: 'views',
@@ -2110,9 +2110,9 @@ export default function FormResponsesPage() {
       subtitle: `${totalSubmissions} تحويل`,
       value: form.viewCount || 0,
       change: form.viewCount ? Math.round((totalSubmissions / form.viewCount) * 100) : 0,
-      bgColor: 'bg-gray-100',
-      hoverColor: 'hover:bg-gray-200',
-      textColor: 'text-gray-900',
+      bgColor: 'bg-muted',
+      hoverColor: 'hover:bg-muted/80',
+      textColor: 'text-foreground',
     },
     {
       key: 'rate',
@@ -2121,9 +2121,9 @@ export default function FormResponsesPage() {
       value: responseRate,
       isPercentage: true,
       change: responseRate,
-      bgColor: 'bg-gray-100',
-      hoverColor: 'hover:bg-gray-200',
-      textColor: 'text-gray-900',
+      bgColor: 'bg-muted',
+      hoverColor: 'hover:bg-muted/80',
+      textColor: 'text-foreground',
     },
     {
       key: 'questions',
@@ -2131,9 +2131,9 @@ export default function FormResponsesPage() {
       subtitle: `${form.fields?.filter((f: FormField) => f.required).length || 0} سؤال مطلوب`,
       value: form.fields?.length || 0,
       change: form.fields?.length ? Math.round((form.fields.filter((f: FormField) => f.required).length / form.fields.length) * 100) : 0,
-      bgColor: 'bg-gray-100',
-      hoverColor: 'hover:bg-gray-200',
-      textColor: 'text-gray-900',
+      bgColor: 'bg-muted',
+      hoverColor: 'hover:bg-muted/80',
+      textColor: 'text-foreground',
     },
   ];
 
@@ -2172,17 +2172,17 @@ export default function FormResponsesPage() {
                   </Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
-              <BreadcrumbSeparator className="text-gray-300 rotate-180" />
+              <BreadcrumbSeparator className="text-muted-foreground/30 rotate-180" />
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link href={`/app/forms/${formId}`} className="text-gray-500 hover:text-gray-900 transition-colors max-w-[120px] sm:max-w-[200px] truncate">
+                  <Link href={`/app/forms/${formId}`} className="text-muted-foreground hover:text-foreground transition-colors max-w-[120px] sm:max-w-[200px] truncate">
                     {form.title}
                   </Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
-              <BreadcrumbSeparator className="text-gray-300 rotate-180" />
+              <BreadcrumbSeparator className="text-muted-foreground/30 rotate-180" />
               <BreadcrumbItem>
-                <BreadcrumbPage className="text-gray-900 font-medium">
+                <BreadcrumbPage className="text-foreground font-medium">
                   الردود
                 </BreadcrumbPage>
               </BreadcrumbItem>
@@ -2216,7 +2216,7 @@ export default function FormResponsesPage() {
               </p>
 
               {/* Subtitle */}
-              <p className="text-[10px] sm:text-xs text-gray-500 mb-1.5 sm:mb-2 line-clamp-1">
+              <p className="text-[10px] sm:text-xs text-muted-foreground mb-1.5 sm:mb-2 line-clamp-1">
                 {stat.subtitle}
               </p>
 
@@ -2234,7 +2234,7 @@ export default function FormResponsesPage() {
                 {/* Change Indicator */}
                 <div className={cn(
                   "hidden sm:flex items-center gap-0.5 text-[10px] sm:text-xs font-medium px-1.5 sm:px-2 py-0.5 rounded-full",
-                  "bg-white/50 text-gray-700"
+                  "bg-card/50 text-foreground/70"
                 )}>
                   <span>~{stat.change}%</span>
                 </div>
@@ -2248,23 +2248,23 @@ export default function FormResponsesPage() {
           initial={{ opacity: 0, y: -10 }} 
           animate={{ opacity: 1, y: 0 }} 
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-sm mb-4"
+          className="bg-card rounded-xl sm:rounded-2xl border border-border/50 mb-4"
         >
           {/* Top Header */}
           <div className="p-3 sm:p-4 lg:p-5">
             <div className="flex items-center justify-between gap-2 sm:gap-3">
               {/* Form Info */}
               <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 lg:w-11 lg:h-11 rounded-lg sm:rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
-                  <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 lg:w-11 lg:h-11 rounded-lg sm:rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
+                  <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h1 className="text-sm sm:text-base lg:text-lg font-bold text-gray-900 truncate">
+                  <h1 className="text-sm sm:text-base lg:text-lg font-bold text-foreground truncate">
                     {form.title}
                   </h1>
                   <Link 
                     href={`/app/forms/${formId}`} 
-                    className="text-[10px] sm:text-xs text-gray-400 hover:text-gray-600 transition-colors inline-flex items-center gap-1"
+                    className="text-[10px] sm:text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors inline-flex items-center gap-1"
                   >
                     تعديل النموذج
                     <ExternalLink className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
@@ -2281,8 +2281,8 @@ export default function FormResponsesPage() {
                   className={cn(
                     'h-8 sm:h-9 px-2 sm:px-3 rounded-lg flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium transition-all border',
                     linkCopied 
-                      ? 'bg-gray-900 text-white border-gray-900' 
-                      : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                      ? 'bg-foreground text-background border-foreground' 
+                      : 'bg-card text-foreground border-border hover:bg-muted/50'
                   )}
                 >
                   {linkCopied ? (
@@ -2302,7 +2302,7 @@ export default function FormResponsesPage() {
                 <motion.button 
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowIntegrationsMenu(true)}
-                  className="h-8 sm:h-9 px-2 sm:px-3 rounded-lg flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium transition-all border bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                  className="h-8 sm:h-9 px-2 sm:px-3 rounded-lg flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium transition-all border bg-card text-foreground border-border hover:bg-muted/50"
                 >
                   <Plug className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span className="hidden lg:inline">التكاملات</span>
@@ -2316,7 +2316,7 @@ export default function FormResponsesPage() {
                   whileTap={{ scale: 0.95 }}
                   onClick={handleExport} 
                   disabled={isExporting || submissions.length === 0} 
-                  className="h-8 sm:h-9 px-2 sm:px-3 rounded-lg flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="h-8 sm:h-9 px-2 sm:px-3 rounded-lg flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium bg-card text-foreground border border-border hover:bg-muted/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isExporting ? <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" /> : <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                   <span className="hidden sm:inline">CSV</span>
@@ -2327,7 +2327,7 @@ export default function FormResponsesPage() {
                   whileTap={{ scale: 0.95 }}
                   onClick={refreshSubmissions} 
                   disabled={isLoadingSubmissions} 
-                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg flex items-center justify-center bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 transition-all disabled:opacity-50"
+                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg flex items-center justify-center bg-card text-muted-foreground border border-border hover:bg-muted/50 transition-all disabled:opacity-50"
                   title="تحديث"
                 >
                   <RefreshCcw className={cn('w-3.5 h-3.5 sm:w-4 sm:h-4', isLoadingSubmissions && 'animate-spin')} />
@@ -2338,7 +2338,7 @@ export default function FormResponsesPage() {
           
           {/* Tabs - Pills Style */}
           <div className="px-2 sm:px-3 pb-2 sm:pb-3">
-            <div className="flex gap-1 sm:gap-1.5 p-0.5 sm:p-1 bg-gray-100 rounded-lg sm:rounded-xl">
+            <div className="flex gap-1 sm:gap-1.5 p-0.5 sm:p-1 bg-muted rounded-lg sm:rounded-xl">
               {tabs.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
@@ -2350,8 +2350,8 @@ export default function FormResponsesPage() {
                     className={cn(
                       'flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 rounded-md sm:rounded-lg text-xs sm:text-sm font-semibold transition-all',
                       isActive 
-                        ? 'bg-white text-gray-900 shadow-sm' 
-                        : 'text-gray-500 hover:text-gray-700'
+                        ? 'bg-card text-foreground shadow-sm' 
+                        : 'text-muted-foreground hover:text-foreground'
                     )}
                   >
                     <tab.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -2454,9 +2454,9 @@ export default function FormResponsesPage() {
             >
               <div className={cn(
                 "w-full rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden",
-                "bg-white/95 backdrop-blur-xl",
+                "bg-card/95 backdrop-blur-xl",
                 "shadow-xl shadow-black/10",
-                "border border-gray-100/50",
+                "border border-border/50",
                 "max-h-[85vh] sm:max-h-[80vh] flex flex-col"
               )}>
                 {/* Header */}
@@ -2464,21 +2464,21 @@ export default function FormResponsesPage() {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
-                  className="flex items-center gap-3 sm:gap-4 p-4 sm:p-5 border-b border-gray-100 shrink-0"
+                  className="flex items-center gap-3 sm:gap-4 p-4 sm:p-5 border-b border-border/40 shrink-0"
                 >
                   <motion.div 
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 15, delay: 0.15 }}
-                    className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-gray-100 text-gray-600"
+                    className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-muted text-muted-foreground"
                   >
                     <Plug className="h-5 w-5 sm:h-6 sm:w-6" />
                   </motion.div>
                   <div className="flex-1 overflow-hidden text-right">
-                    <h3 className="text-sm sm:text-base font-semibold text-gray-900">
+                    <h3 className="text-sm sm:text-base font-semibold text-foreground">
                       التكاملات
                     </h3>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       ربط ومزامنة البيانات مع خدمات Google
                     </p>
                   </div>
@@ -2486,22 +2486,22 @@ export default function FormResponsesPage() {
                     whileHover={{ scale: 1.1, rotate: 90 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setShowIntegrationsMenu(false)}
-                    className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                    className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-muted transition-colors"
                   >
-                    <X className="h-5 w-5 text-gray-400" />
+                    <X className="h-5 w-5 text-muted-foreground" />
                   </motion.button>
                 </motion.div>
 
                 {/* Integration Tabs */}
                 <div className="px-4 pt-3 shrink-0">
-                  <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
+                  <div className="flex gap-1 p-1 bg-muted rounded-xl">
                     <button
                       onClick={() => setActiveIntegration('sheets')}
                       className={cn(
                         "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all",
                         activeIntegration === 'sheets'
-                          ? "bg-white text-gray-900 shadow-sm"
-                          : "text-gray-500 hover:text-gray-700"
+                          ? "bg-card text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
                       )}
                     >
                       <FileSpreadsheet className="w-4 h-4" />
@@ -2515,8 +2515,8 @@ export default function FormResponsesPage() {
                       className={cn(
                         "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all",
                         activeIntegration === 'drive'
-                          ? "bg-white text-gray-900 shadow-sm"
-                          : "text-gray-500 hover:text-gray-700"
+                          ? "bg-card text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
                       )}
                     >
                       <FolderOpen className="w-4 h-4" />
@@ -2561,22 +2561,22 @@ export default function FormResponsesPage() {
                             {/* Auto-sync Toggle */}
                             <button
                               onClick={handleToggleAutoSync}
-                              className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium bg-gray-50 hover:bg-gray-100 transition-all"
+                              className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium bg-muted/50 hover:bg-muted transition-all"
                             >
                               <div 
                                 className={cn(
                                   "w-11 h-6 rounded-full transition-colors relative cursor-pointer",
-                                  sheetsStatus.isAutoSync ? "bg-gray-900" : "bg-gray-300"
+                                  sheetsStatus.isAutoSync ? "bg-foreground" : "bg-muted-foreground/30"
                                 )}
                               >
                                 <div 
                                   className={cn(
-                                    "w-5 h-5 rounded-full bg-white absolute top-0.5 shadow-sm transition-all",
+                                    "w-5 h-5 rounded-full bg-background absolute top-0.5 shadow-sm transition-all",
                                     sheetsStatus.isAutoSync ? "right-0.5" : "left-0.5"
                                   )} 
                                 />
                               </div>
-                              <span className="text-gray-700">المزامنة التلقائية</span>
+                              <span className="text-foreground">المزامنة التلقائية</span>
                             </button>
                             
                             {/* Actions */}
@@ -2584,7 +2584,7 @@ export default function FormResponsesPage() {
                               <button
                                 onClick={handleExportToSheets}
                                 disabled={isExportingToSheets}
-                                className="h-10 w-10 flex items-center justify-center bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all disabled:opacity-50"
+                                className="h-10 w-10 flex items-center justify-center bg-muted text-foreground rounded-xl hover:bg-muted/80 transition-all disabled:opacity-50"
                                 title="مزامنة الآن"
                               >
                                 {isExportingToSheets ? (
@@ -2599,7 +2599,7 @@ export default function FormResponsesPage() {
                                   href={sheetsStatus.spreadsheetUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="flex-1 flex items-center justify-center gap-2 h-10 px-4 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-all"
+                                  className="flex-1 flex items-center justify-center gap-2 h-10 px-4 bg-foreground text-background rounded-xl text-sm font-medium hover:bg-foreground/90 transition-all"
                                 >
                                   <ExternalLink className="w-4 h-4" />
                                   فتح الجدول
@@ -2623,12 +2623,12 @@ export default function FormResponsesPage() {
                               <motion.div 
                                 animate={{ y: [0, -5, 0] }}
                                 transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                                className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4"
+                                className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4"
                               >
-                                <FileSpreadsheet className="w-8 h-8 text-gray-600" />
+                                <FileSpreadsheet className="w-8 h-8 text-muted-foreground" />
                               </motion.div>
-                              <p className="text-sm font-medium text-gray-900">Google Sheets</p>
-                              <p className="text-xs text-gray-500 mt-1">تصدير ومزامنة الردود تلقائياً</p>
+                              <p className="text-sm font-medium text-foreground">Google Sheets</p>
+                              <p className="text-xs text-muted-foreground mt-1">تصدير ومزامنة الردود تلقائياً</p>
                             </div>
                             
                             {/* Features */}
@@ -2640,10 +2640,10 @@ export default function FormResponsesPage() {
                               ].map((feature, index) => (
                                 <div 
                                   key={feature}
-                                  className="flex items-center gap-2.5 text-sm text-gray-600"
+                                  className="flex items-center gap-2.5 text-sm text-muted-foreground"
                                 >
-                                  <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                    <CheckCircle2 className="w-3 h-3 text-gray-500" />
+                                  <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                                    <CheckCircle2 className="w-3 h-3 text-muted-foreground" />
                                   </div>
                                   <span>{feature}</span>
                                 </div>
@@ -2654,7 +2654,7 @@ export default function FormResponsesPage() {
                             <button
                               onClick={handleExportToSheets}
                               disabled={isExportingToSheets}
-                              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-all disabled:opacity-50"
+                              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-foreground text-background rounded-xl text-sm font-medium hover:bg-foreground/90 transition-all disabled:opacity-50"
                             >
                               {isExportingToSheets ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -2693,8 +2693,8 @@ export default function FormResponsesPage() {
                             </div>
 
                             {/* Info */}
-                            <div className="p-3 bg-gray-50 rounded-xl">
-                              <p className="text-xs text-gray-500 text-right">
+                            <div className="p-3 bg-muted/50 rounded-xl">
+                              <p className="text-xs text-muted-foreground text-right">
                                 الملفات والتوقيعات المرفوعة في هذا النموذج تُحفظ تلقائياً في Google Drive
                               </p>
                             </div>
@@ -2705,7 +2705,7 @@ export default function FormResponsesPage() {
                                 href={driveStatus.folderUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="w-full flex items-center justify-center gap-2 h-10 px-4 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-all"
+                                className="w-full flex items-center justify-center gap-2 h-10 px-4 bg-foreground text-background rounded-xl text-sm font-medium hover:bg-foreground/90 transition-all"
                               >
                                 <FolderOpen className="w-4 h-4" />
                                 فتح المجلد في Drive
@@ -2719,12 +2719,12 @@ export default function FormResponsesPage() {
                               <motion.div 
                                 animate={{ y: [0, -5, 0] }}
                                 transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                                className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4"
+                                className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4"
                               >
-                                <FolderOpen className="w-8 h-8 text-gray-600" />
+                                <FolderOpen className="w-8 h-8 text-muted-foreground" />
                               </motion.div>
-                              <p className="text-sm font-medium text-gray-900">Google Drive</p>
-                              <p className="text-xs text-gray-500 mt-1">رفع الملفات والتوقيعات تلقائياً</p>
+                              <p className="text-sm font-medium text-foreground">Google Drive</p>
+                              <p className="text-xs text-muted-foreground mt-1">رفع الملفات والتوقيعات تلقائياً</p>
                             </div>
                             
                             {/* Features */}
@@ -2736,10 +2736,10 @@ export default function FormResponsesPage() {
                               ].map((feature, index) => (
                                 <div 
                                   key={feature}
-                                  className="flex items-center gap-2.5 text-sm text-gray-600"
+                                  className="flex items-center gap-2.5 text-sm text-muted-foreground"
                                 >
-                                  <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                    <CheckCircle2 className="w-3 h-3 text-gray-500" />
+                                  <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                                    <CheckCircle2 className="w-3 h-3 text-muted-foreground" />
                                   </div>
                                   <span>{feature}</span>
                                 </div>
@@ -2760,7 +2760,7 @@ export default function FormResponsesPage() {
                                 setActiveIntegration('sheets');
                               }}
                               disabled={isExportingToSheets}
-                              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-all disabled:opacity-50"
+                              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-foreground text-background rounded-xl text-sm font-medium hover:bg-foreground/90 transition-all disabled:opacity-50"
                             >
                               {isExportingToSheets ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />

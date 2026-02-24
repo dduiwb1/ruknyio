@@ -199,6 +199,14 @@ export function proxy(request: NextRequest) {
   // 📱 app.rukny.io — Dashboard Subdomain
   // ========================================
   if (subdomain === 'app') {
+    // Public routes (/f/*, /[username]) on app subdomain → redirect to main domain
+    // These routes exist at root level, not under /app
+    if (pathname.startsWith('/f/')) {
+      return NextResponse.redirect(
+        new URL(buildSubdomainUrl(null, pathname, search, rootDomain, protocol))
+      );
+    }
+
     // Auth routes on app subdomain → redirect to accounts subdomain
     if (isAuthPath(pathname)) {
       return NextResponse.redirect(

@@ -796,7 +796,7 @@ export default function PublicFormPage() {
           <div className="space-y-1">
             {fieldLabel}
             <div
-              className="flex items-center gap-1.5 mt-2 p-3 bg-muted/30 rounded-2xl border border-border"
+              className="flex flex-wrap items-center gap-1.5 mt-2 p-3 bg-muted/30 rounded-2xl border border-border"
               role="group"
               aria-label={field.label}
               aria-describedby={ariaDescribedBy}
@@ -809,13 +809,13 @@ export default function PublicFormPage() {
                     key={i}
                     type="button"
                     onClick={() => handleFieldChange(field.id, starValue)}
-                    className="p-1.5 rounded-xl hover:bg-muted transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    className="p-1.5 rounded-xl hover:bg-muted transition-colors min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] flex items-center justify-center"
                     aria-label={`${starValue} من ${minR} إلى ${maxR}`}
                     aria-pressed={isSelected}
                   >
                     <Star
                       className={cn(
-                        "w-7 h-7 transition-colors",
+                        "w-6 h-6 sm:w-7 sm:h-7 transition-colors",
                         currentRating >= starValue ? "fill-warning text-warning" : "text-muted-foreground/30"
                       )}
                     />
@@ -842,7 +842,7 @@ export default function PublicFormPage() {
                 <span>{field.minLabel || min}</span>
                 <span>{field.maxLabel || max}</span>
               </div>
-              <div className="flex gap-1.5">
+              <div className="flex flex-wrap gap-1.5">
                 {Array.from({ length: max - min + 1 }).map((_, i) => {
                   const num = min + i;
                   return (
@@ -851,7 +851,7 @@ export default function PublicFormPage() {
                       type="button"
                       onClick={() => handleFieldChange(field.id, num)}
                       className={cn(
-                        "flex-1 py-3 rounded-xl text-sm font-semibold transition-all min-h-[48px]",
+                        "flex-1 min-w-[36px] py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-semibold transition-all min-h-[40px] sm:min-h-[48px]",
                         value === num 
                           ? "bg-primary text-primary-foreground shadow-sm" 
                           : "bg-muted/50 hover:bg-muted text-foreground border border-border"
@@ -910,7 +910,7 @@ export default function PublicFormPage() {
               }}
             />
             <div
-              className="border-2 border-dashed border-border rounded-2xl p-8 text-center hover:border-primary/50 hover:bg-muted/30 transition-colors min-h-[140px] flex flex-col items-center justify-center cursor-pointer"
+              className="border-2 border-dashed border-border rounded-2xl p-4 sm:p-8 text-center hover:border-primary/50 hover:bg-muted/30 transition-colors min-h-[120px] sm:min-h-[140px] flex flex-col items-center justify-center cursor-pointer"
               role="button"
               tabIndex={0}
               aria-label="رفع الملفات"
@@ -1542,7 +1542,7 @@ export default function PublicFormPage() {
   return (
     <div 
       className={cn(
-        "min-h-screen transition-colors relative",
+        "min-h-screen transition-colors relative overflow-x-hidden",
         formTheme.appearance === 'dark' ? 'dark bg-gray-900' : 
         formTheme.appearance === 'light' ? 'bg-white' : 'bg-background'
       )}

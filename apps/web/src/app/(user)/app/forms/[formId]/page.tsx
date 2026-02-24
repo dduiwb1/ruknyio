@@ -420,28 +420,26 @@ export default function FormDetailsPage() {
               <div className="border-t border-border/40 my-4" />
 
               {/* Meta Info Row */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center">
-                      <Calendar className="w-3.5 h-3.5" />
-                    </div>
-                    <span>{formatDate(form.createdAt)}</span>
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-4 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                    <Calendar className="w-3.5 h-3.5" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center">
-                      <Clock className="w-3.5 h-3.5" />
-                    </div>
-                    <span>{formatRelativeTime(form.updatedAt)}</span>
+                  <span className="truncate">{formatDate(form.createdAt)}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                    <Clock className="w-3.5 h-3.5" />
                   </div>
+                  <span className="truncate">{formatRelativeTime(form.updatedAt)}</span>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Link
                   href={`/app/forms/${form.id}/edit`}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
+                  className="flex-1 min-w-[100px] inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
                 >
                   <Edit className="w-4 h-4" />
                   <span>تحرير</span>
@@ -449,7 +447,7 @@ export default function FormDetailsPage() {
                 
                 <Link
                   href={`/app/forms/${form.id}/responses`}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-muted text-foreground rounded-xl text-sm font-semibold hover:bg-muted/80 transition-colors"
+                  className="flex-1 min-w-[100px] inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 bg-muted text-foreground rounded-xl text-sm font-semibold hover:bg-muted/80 transition-colors"
                 >
                   <BarChart3 className="w-4 h-4" />
                   <span>الإجابات</span>
@@ -463,7 +461,7 @@ export default function FormDetailsPage() {
                 {form.status === FormStatus.PUBLISHED && (
                   <button
                     onClick={handleOpenForm}
-                    className="p-3 bg-muted text-foreground rounded-xl hover:bg-muted/80 transition-colors"
+                    className="p-2.5 sm:p-3 bg-muted text-foreground rounded-xl hover:bg-muted/80 transition-colors"
                     title="عرض النموذج"
                   >
                     <ExternalLink className="w-4 h-4" />
@@ -472,7 +470,7 @@ export default function FormDetailsPage() {
 
                 <button
                   onClick={handleDeleteClick}
-                  className="p-3 bg-destructive/10 text-destructive rounded-xl hover:bg-destructive/20 transition-colors"
+                  className="p-2.5 sm:p-3 bg-destructive/10 text-destructive rounded-xl hover:bg-destructive/20 transition-colors"
                   title="حذف النموذج"
                 >
                   <Trash2 className="w-4 h-4" />
