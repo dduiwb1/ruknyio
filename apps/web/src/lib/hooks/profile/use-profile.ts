@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { getAccessToken } from '@/lib/api/client';
 import { useAuth } from '@/providers/auth-provider';
 import { USER_DATA_CACHE, LIST_CACHE } from '@/lib/query/cache-config';
 import type { 
@@ -114,13 +115,12 @@ const profileApi = {
   uploadAvatar: async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append('avatar', file);
+    const token = getAccessToken();
     
     const response = await fetch('/api/v1/profiles/avatar', {
       method: 'POST',
       credentials: 'include',
-      headers: {
-        'Authorization': `Bearer ${getAccessToken()}`,
-      },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: formData,
     });
     
@@ -132,13 +132,12 @@ const profileApi = {
   uploadCover: async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append('cover', file);
+    const token = getAccessToken();
     
     const response = await fetch('/api/v1/profiles/cover', {
       method: 'POST',
       credentials: 'include',
-      headers: {
-        'Authorization': `Bearer ${getAccessToken()}`,
-      },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: formData,
     });
     
