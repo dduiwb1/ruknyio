@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Clock, RefreshCw, LogOut } from 'lucide-react';
-import { getAccessToken, clearAccessToken, clearCsrfToken, refreshOnce } from '@/lib/api/client';
+import { getCsrfToken, clearCsrfToken, refreshOnce, getSessionExpiresAtMs } from '@/lib/api/client';
 import { toast } from '@/components/toast-provider';
 
 interface SessionTimeoutWarningProps {
@@ -19,23 +19,6 @@ interface SessionTimeoutWarningProps {
   checkInterval?: number;
   /** Enable the feature (default: true) */
   enabled?: boolean;
-}
-
-// JWT decode without library
-function decodeJWT(token: string): { exp?: number; iat?: number } | null {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    return JSON.parse(jsonPayload);
-  } catch {
-    return null;
-  }
 }
 
 // Auth pages and public pages where session timeout should NOT trigger
@@ -80,24 +63,21 @@ export function SessionTimeoutWarning({
       return;
     }
 
-    const token = getAccessToken();
-    if (!token) {
-      // No token - clear any stale CSRF tokens and don't show warning
-      clearCsrfToken();
+    // Tokens are httpOnly now; JS can't decode JWT.
+    // We use CSRF token presence + refresh metadata to estimate expiry.
+    const csrf = getCsrfToken();
+    if (!csrf) {
       setShowWarning(false);
       return;
     }
 
-    const decoded = decodeJWT(token);
-    if (!decoded?.exp) {
-      // Invalid token - clear and don't show warning
-      clearCsrfToken();
-      clearAccessToken();
+    const expiresAt = getSessionExpiresAtMs();
+    if (!expiresAt) {
+      // We don't know expiry yet (e.g. first page load before refresh/login)
       setShowWarning(false);
       return;
     }
 
-    const expiresAt = decoded.exp * 1000; // Convert to ms
     const now = Date.now();
     const remaining = Math.floor((expiresAt - now) / 1000); // Seconds
 
@@ -108,7 +88,6 @@ export function SessionTimeoutWarning({
         handleLogout();
       } else {
         clearCsrfToken();
-        clearAccessToken();
       }
       return;
     }

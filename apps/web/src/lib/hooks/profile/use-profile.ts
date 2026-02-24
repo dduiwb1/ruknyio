@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { getAccessToken } from '@/lib/api/client';
+import { useAuth } from '@/providers/auth-provider';
 import { USER_DATA_CACHE, LIST_CACHE } from '@/lib/query/cache-config';
 import type { 
   UserData, 
@@ -160,13 +160,16 @@ const profileApi = {
 
 export function useProfile() {
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
 
-  // ⚡ Queries - All deduplicated and cached automatically
+  // ⚡ Queries - Only fire when authenticated (prevents 401 spam loop)
   const userQuery = useQuery({
     queryKey: profileQueryKeys.user,
     queryFn: profileApi.fetchUser,
     staleTime: USER_DATA_CACHE.staleTime,
     gcTime: USER_DATA_CACHE.gcTime,
+    enabled: isAuthenticated,
+    retry: false,
   });
 
   const profileQuery = useQuery({
@@ -174,6 +177,8 @@ export function useProfile() {
     queryFn: profileApi.fetchProfile,
     staleTime: USER_DATA_CACHE.staleTime,
     gcTime: USER_DATA_CACHE.gcTime,
+    enabled: isAuthenticated,
+    retry: false,
   });
 
   const socialLinksQuery = useQuery({
@@ -181,6 +186,8 @@ export function useProfile() {
     queryFn: profileApi.fetchSocialLinks,
     staleTime: LIST_CACHE.staleTime,
     gcTime: LIST_CACHE.gcTime,
+    enabled: isAuthenticated,
+    retry: false,
   });
 
   const linkGroupsQuery = useQuery({
@@ -188,6 +195,8 @@ export function useProfile() {
     queryFn: profileApi.fetchLinkGroups,
     staleTime: LIST_CACHE.staleTime,
     gcTime: LIST_CACHE.gcTime,
+    enabled: isAuthenticated,
+    retry: false,
   });
 
   const addressesQuery = useQuery({
@@ -195,6 +204,8 @@ export function useProfile() {
     queryFn: profileApi.fetchAddresses,
     staleTime: LIST_CACHE.staleTime,
     gcTime: LIST_CACHE.gcTime,
+    enabled: isAuthenticated,
+    retry: false,
   });
 
   // ⚡ Mutations with automatic cache invalidation

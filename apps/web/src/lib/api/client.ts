@@ -202,6 +202,7 @@ interface RefreshState {
   isLoggingOut: boolean;
   refreshPromise: Promise<RefreshResult> | null;
   lastRefreshTime: number;
+  expiresInSeconds: number | null;
 }
 
 function getGlobalRefreshState(): RefreshState {
@@ -212,6 +213,7 @@ function getGlobalRefreshState(): RefreshState {
       isLoggingOut: false,
       refreshPromise: null,
       lastRefreshTime: Date.now(),
+      expiresInSeconds: null,
     };
   }
   
@@ -222,6 +224,7 @@ function getGlobalRefreshState(): RefreshState {
       isLoggingOut: false,
       refreshPromise: null,
       lastRefreshTime: Date.now(),
+      expiresInSeconds: null,
     } as RefreshState;
   }
   return (window as any)[REFRESH_STATE_KEY];
@@ -278,6 +281,30 @@ export interface RefreshResult {
 export function updateLastRefreshTime(): void {
   const state = getGlobalRefreshState();
   state.lastRefreshTime = Date.now();
+}
+
+/**
+ * Update the last known access token expiry (seconds)
+ */
+export function updateLastExpiresIn(expiresInSeconds: number): void {
+  const state = getGlobalRefreshState();
+  state.expiresInSeconds = Number.isFinite(expiresInSeconds) ? expiresInSeconds : null;
+}
+
+/**
+ * Get the last known access token expiry (seconds)
+ */
+export function getLastExpiresIn(): number | null {
+  return getGlobalRefreshState().expiresInSeconds;
+}
+
+/**
+ * Compute session expiry timestamp in ms, if known.
+ */
+export function getSessionExpiresAtMs(): number | null {
+  const state = getGlobalRefreshState();
+  if (!state.expiresInSeconds) return null;
+  return state.lastRefreshTime + state.expiresInSeconds * 1000;
 }
 
 /**
@@ -401,6 +428,9 @@ export async function refreshOnce(): Promise<RefreshResult> {
         // 🔒 Update CSRF token from response
         setCsrfToken(data.csrf_token);
         updateLastRefreshTime();
+        if (typeof data.expires_in === 'number') {
+          updateLastExpiresIn(data.expires_in);
+        }
         
         // Schedule next silent refresh
         if (typeof data.expires_in === 'number') {

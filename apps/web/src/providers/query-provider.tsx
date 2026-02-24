@@ -25,14 +25,22 @@ function retryDelay(attemptIndex: number): number {
 
 // ⚡ Should retry based on error type
 function shouldRetry(failureCount: number, error: unknown): boolean {
-  // Don't retry on auth errors
+  // Don't retry on auth errors - check statusCode first (ApiException)
+  if (error && typeof error === 'object' && 'statusCode' in error) {
+    const status = (error as { statusCode: number }).statusCode;
+    if (status === 401 || status === 403 || status === 429) {
+      return false;
+    }
+  }
+  // Fallback: check error message text
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
     if (
       message.includes('unauthorized') ||
       message.includes('forbidden') ||
       message.includes('401') ||
-      message.includes('403')
+      message.includes('403') ||
+      message.includes('too many')
     ) {
       return false;
     }
