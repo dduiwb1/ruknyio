@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node -e \"try{require('fs').rmSync('node_modules/@types/mapbox__point-geometry',{recursive:true,force:true})}catch{}; try{require('fs').rmSync('../node_modules/@types/mapbox__point-geometry',{recursive:true,force:true})}catch{}; try{require('fs').rmSync('../../node_modules/@types/mapbox__point-geometry',{recursive:true,force:true})}catch{}\" && next build",
     "start": "next start -H 0.0.0.0 -p ${PORT:-3000}",
     "lint": "eslint",
     "analyze": "cross-env ANALYZE=true next build --webpack",
