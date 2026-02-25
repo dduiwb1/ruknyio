@@ -1,6 +1,3 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
 
 // نظام الخصائص الديناميكية للمنتجات - كل فئة لها حقول مخصصة
 const storeCategories = [
@@ -261,52 +258,3 @@ const storeCategories = [
     },
   },
 ];
-
-async function main() {
-  console.log('🌱 Seeding store categories with templateFields...');
-
-  for (const category of storeCategories) {
-    await prisma.store_categories.upsert({
-      where: { id: category.id },
-      update: {
-        name: category.name,
-        nameAr: category.nameAr,
-        slug: category.slug,
-        description: category.description,
-        descriptionAr: category.descriptionAr,
-        icon: category.icon,
-        color: category.color,
-        order: category.order,
-        isActive: category.isActive,
-        templateFields: category.templateFields,
-        updatedAt: new Date(),
-      },
-      create: {
-        id: category.id,
-        name: category.name,
-        nameAr: category.nameAr,
-        slug: category.slug,
-        description: category.description,
-        descriptionAr: category.descriptionAr,
-        icon: category.icon,
-        color: category.color,
-        order: category.order,
-        isActive: category.isActive,
-        templateFields: category.templateFields,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    });
-    console.log(`  ✓ ${category.nameAr} (${category.name})`);
-  }
-
-  console.log('\n✅ Seeding completed with dynamic product attributes!');
-}
-
-main()
-  .catch((e) => {
-    console.error('❌ Seeding failed:', e);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });

@@ -116,6 +116,7 @@ const navSections: NavSection[] = [
     iconColor: "text-white",
     items: [
       { href: "/dashboard/stores", label: "Stores", icon: Store },
+      { href: "/dashboard/stores/categories", label: "Store Categories", icon: FolderOpen },
       { href: "/dashboard/orders", label: "Orders", icon: ShoppingBag },
       { href: "/dashboard/transactions", label: "Transactions", icon: CreditCard },
       { href: "/dashboard/invoices", label: "Invoices", icon: Receipt },
@@ -256,7 +257,7 @@ export function Sidebar({ className }: { className?: string }) {
   // Auto-expand the section that contains the current path
   useEffect(() => {
     for (const section of navSections) {
-      if (section.items.some((item) => pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href)))) {
+      if (section.items.some((item) => pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/")))) {
         setExpandedSection(section.id);
         break;
       }
@@ -267,9 +268,20 @@ export function Sidebar({ className }: { className?: string }) {
     setExpandedSection((prev) => (prev === sectionId ? null : sectionId));
   };
 
-  const isItemActive = (item: NavItem): boolean => {
+  const isItemActive = (item: NavItem, section: NavSection): boolean => {
     if (item.href === "/dashboard") return pathname === "/dashboard";
-    return pathname === item.href || pathname.startsWith(item.href);
+    // Exact match always wins
+    if (pathname === item.href) return true;
+    // For startsWith, only match if no other sibling in the same section is a better (more specific) match
+    if (pathname.startsWith(item.href + "/")) {
+      const hasBetterMatch = section.items.some(
+        (sibling) =>
+          sibling.href !== item.href &&
+          (pathname === sibling.href || pathname.startsWith(sibling.href + "/")),
+      );
+      return !hasBetterMatch;
+    }
+    return false;
   };
 
   const initials = mounted
@@ -401,7 +413,7 @@ export function Sidebar({ className }: { className?: string }) {
                     <div className="py-1 pl-4 space-y-0.5">
                       {section.items.map((item, index) => {
                         const Icon = item.icon;
-                        const isActive = isItemActive(item);
+                        const isActive = isItemActive(item, section);
 
                         return (
                           <motion.div

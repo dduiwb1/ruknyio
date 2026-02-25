@@ -3,6 +3,7 @@
  *
  * API URL Strategy:
  * - API_URL: Relative path (/api/v1) for fetch requests (uses Next.js rewrites/proxy)
+ *   → Keeps cookies same-origin so httpOnly access_token is always sent.
  * - API_EXTERNAL_URL: Full URL for browser redirects (OAuth, magic links)
  */
 
@@ -12,9 +13,14 @@ const runtimeAppUrl =
 export const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL || runtimeAppUrl || "http://localhost:3002";
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+/** Relative path — goes through Next.js proxy (see next.config.ts rewrites) */
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
 
-export const API_EXTERNAL_URL = API_URL;
+/** Absolute URL — only used for browser redirects (OAuth, magic links) */
+export const API_EXTERNAL_URL =
+  process.env.NEXT_PUBLIC_API_EXTERNAL_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:3001/api/v1";
 
 /** Build an absolute API path for fetch requests */
 export function buildApiPath(path: string): string {
