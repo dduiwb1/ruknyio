@@ -15,17 +15,18 @@ import AuthForm from '@/components/ui/auth-form';
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { sendMagicLink, isLoading, error, clearError, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { sendMagicLink, isLoading, error, clearError, isAuthenticated, isLoading: authLoading, isRateLimited } = useAuth();
   
   const [email, setEmail] = useState('');
   const [sessionMessage, setSessionMessage] = useState<string | null>(null);
 
   // 🛡️ Redirect authenticated users to dashboard
+  // ⚠️ Do NOT redirect when rate limited - auth state is unknown
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
+    if (!authLoading && isAuthenticated && !isRateLimited) {
       router.replace('/app');
     }
-  }, [authLoading, isAuthenticated, router]);
+  }, [authLoading, isAuthenticated, isRateLimited, router]);
 
   // Check for session expired message
   useEffect(() => {

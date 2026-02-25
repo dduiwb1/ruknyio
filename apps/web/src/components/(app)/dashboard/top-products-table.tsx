@@ -26,7 +26,7 @@ interface TopProductsTableProps {
 const defaultProducts: TopProduct[] = [];
 
 function defaultFormatCurrency(amount: number): string {
-  return `${amount.toLocaleString("en-US")} IQD`;
+  return `${(amount ?? 0).toLocaleString("en-US")} IQD`;
 }
 
 export function TopProductsTable({
@@ -50,7 +50,7 @@ export function TopProductsTable({
     );
   }
 
-  const totalAmount = products.reduce((sum, p) => sum + p.amount, 0);
+  const totalAmount = products.reduce((sum, p) => sum + (p.amount || 0), 0);
 
   return (
     <motion.div
@@ -109,19 +109,19 @@ export function TopProductsTable({
                 {product.name}
               </p>
               <p className="text-xs text-muted-foreground">
-                {formatCurrency(product.price)} × {product.quantity}
+                {formatCurrency(product.price || 0)} × {product.quantity || 0}
               </p>
             </div>
 
             {/* Amount */}
             <div className="text-left shrink-0">
               <p className="text-sm font-bold text-foreground tabular-nums">
-                {formatCurrency(product.amount)}
+                {formatCurrency(product.amount || 0)}
               </p>
               <div className="flex items-center justify-end gap-1">
                 <TrendingUp className="w-3 h-3 text-emerald-500" />
                 <span className="text-[10px] text-emerald-500">
-                  {product.quantity} مبيعة
+                  {product.quantity || 0} مبيعة
                 </span>
               </div>
             </div>

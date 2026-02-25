@@ -85,18 +85,18 @@ interface TrafficSource {
 // ============ Utility Functions ============
 
 function formatNumber(num: number): string {
-  return num.toLocaleString("en-US");
+  return (num ?? 0).toLocaleString("en-US");
 }
 
 function formatCurrency(amount: number): string {
-  return `${formatNumber(amount)} IQD`;
+  return `${formatNumber(amount ?? 0)} IQD`;
 }
 
 // ============ Main Component ============
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { isLoading: authLoading, isAuthenticated } = useAuth();
+  const { isLoading: authLoading, isAuthenticated, isRateLimited } = useAuth();
   
   const [loading, setLoading] = useState(true);
   const [storeStats, setStoreStats] = useState<StoreStats | null>(null);
@@ -111,11 +111,12 @@ export default function DashboardPage() {
   const initializedRef = useRef(false);
 
   // Redirect to login if not authenticated
+  // ⚠️ Do NOT redirect when rate limited (429) - auth state is unknown
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
+    if (!authLoading && !isAuthenticated && !isRateLimited) {
       window.location.replace(getAuthUrl('/login'));
     }
-  }, [authLoading, isAuthenticated]);
+  }, [authLoading, isAuthenticated, isRateLimited]);
 
   // Fetch dashboard data
   useEffect(() => {
@@ -171,7 +172,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated && !isRateLimited) return null;
 
   // Stats cards data
   const statsData = [

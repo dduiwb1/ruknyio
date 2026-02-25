@@ -19,7 +19,7 @@ import { getAuthUrl } from '@/lib/url';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading } = useAuthContext();
+  const { isAuthenticated, isLoading: authLoading, isRateLimited } = useAuthContext();
   const { logout } = useAuth();
   
   // Profile Hook
@@ -55,7 +55,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !isRateLimited) {
     window.location.replace(getAuthUrl('/login'));
     return null;
   }

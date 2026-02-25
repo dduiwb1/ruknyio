@@ -141,7 +141,7 @@ function groupByDate(items: (Notification | Activity)[]): Record<string, (Notifi
 
 export default function NotificationsPage() {
   const router = useRouter();
-  const { isLoading: authLoading, isAuthenticated } = useAuth();
+  const { isLoading: authLoading, isAuthenticated, isRateLimited } = useAuth();
   
   const [loading, setLoading] = useState(true);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -150,11 +150,12 @@ export default function NotificationsPage() {
   const initializedRef = useRef(false);
 
   // Redirect to login if not authenticated
+  // ⚠️ Do NOT redirect when rate limited (429) - auth state is unknown
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
+    if (!authLoading && !isAuthenticated && !isRateLimited) {
       window.location.replace(getAuthUrl('/login'));
     }
-  }, [authLoading, isAuthenticated]);
+  }, [authLoading, isAuthenticated, isRateLimited]);
 
   // Fetch notifications/activities
   useEffect(() => {
@@ -214,7 +215,7 @@ export default function NotificationsPage() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !isRateLimited) {
     return null;
   }
 

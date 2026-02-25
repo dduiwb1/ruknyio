@@ -33,16 +33,47 @@ export class ProductsService {
    * Create a new product with optional variants and attributes
    */
   async create(userId: string, createProductDto: CreateProductDto) {
-    // Get user's store
-    const store = await this.prisma.store.findUnique({
+    // Get user's store, or auto-create if missing (recovery for users whose store creation failed during registration)
+    let store = await this.prisma.store.findUnique({
       where: { userId },
       include: { store_categories: true },
     });
 
     if (!store) {
-      throw new BadRequestException(
-        'You need to create a store first before adding products',
-      );
+      // Auto-create store for users who don't have one (e.g., store creation failed during quicksign)
+      this.logger.warn(`⚠️ User ${userId} has no store - auto-creating one`);
+      try {
+        const user = await this.prisma.user.findUnique({
+          where: { id: userId },
+          include: { profile: true },
+        });
+        if (!user) {
+          throw new BadRequestException('المستخدم غير موجود');
+        }
+        const slug = user.profile?.username || `store-${userId.slice(0, 8)}`;
+        const { randomBytes } = await import('crypto');
+        const existingSlug = await this.prisma.store.findUnique({ where: { slug }, select: { id: true } });
+        const finalSlug = existingSlug ? `${slug}_${randomBytes(3).toString('hex')}` : slug;
+
+        store = await this.prisma.store.create({
+          data: {
+            id: require('crypto').randomUUID(),
+            userId: user.id,
+            name: user.profile?.username || user.email.split('@')[0],
+            slug: finalSlug,
+            status: 'ACTIVE',
+            country: 'Iraq',
+            contactEmail: user.email,
+          },
+          include: { store_categories: true },
+        });
+        this.logger.log(`✅ Auto-created store ${store.id} for user ${userId}`);
+      } catch (autoCreateError) {
+        this.logger.error(`❌ Failed to auto-create store for user ${userId}: ${autoCreateError.message}`);
+        throw new BadRequestException(
+          'تحتاج إنشاء متجر أولاً قبل إضافة المنتجات',
+        );
+      }
     }
 
     // Generate slug if not provided

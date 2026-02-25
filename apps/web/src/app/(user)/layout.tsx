@@ -23,7 +23,7 @@ export default function UserLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isLoading: authLoading, isAuthenticated } = useAuth();
+  const { isLoading: authLoading, isAuthenticated, isRateLimited } = useAuth();
   const [mounted, setMounted] = useState(false);
   
   // Prevent hydration mismatch
@@ -32,15 +32,16 @@ export default function UserLayout({
   }, []);
 
   // 🔐 Centralized auth guard — protects ALL (user) routes
+  // ⚠️ Do NOT redirect when rate limited (429) - auth state is unknown
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
+    if (!authLoading && !isAuthenticated && !isRateLimited) {
       const loginUrl = getAuthUrl('/login');
       window.location.replace(loginUrl);
     }
-  }, [authLoading, isAuthenticated]);
+  }, [authLoading, isAuthenticated, isRateLimited]);
   
-  // 🔐 Show loading spinner while checking auth
-  if (authLoading || !isAuthenticated) {
+  // 🔐 Show loading spinner while checking auth or rate limited
+  if (authLoading || (!isAuthenticated && !isRateLimited)) {
     return (
       <div className="flex h-svh items-center justify-center" dir="rtl">
         <div className="flex flex-col items-center gap-3">
@@ -50,11 +51,12 @@ export default function UserLayout({
     );
   }
 
-  // Don't show main sidebar on settings pages, form creation pages, and preview pages (they have their own layout)
+  // Don't show main sidebar on settings pages, form creation pages, preview pages, and store creation wizards (they have their own layout)
   const isSettingsPage = matchesAppPath(pathname, '/settings');
   const isFormCreatePage = matchesAppPath(pathname, '/forms/create');
   const isFormPreviewPage = matchesAppPath(pathname, '/forms/preview');
-  const hideSidebar = isSettingsPage || isFormCreatePage || isFormPreviewPage;
+  const isStoreCreatePage = matchesAppPath(pathname, '/store/products/new') || matchesAppPath(pathname, '/store/categories/new');
+  const hideSidebar = isSettingsPage || isFormCreatePage || isFormPreviewPage || isStoreCreatePage;
 
   return (
     <div className="flex h-svh overflow-hidden" dir="rtl">

@@ -18,6 +18,7 @@ import {
   useState,
   useCallback,
   useMemo,
+  useRef,
   type ReactNode,
 } from 'react';
 import {
@@ -34,7 +35,7 @@ import {
   type CompleteProfileInput,
   type QuickSignResponse,
 } from '@/lib/api';
-import { clearCsrfToken, setCsrfToken, getCsrfToken, updateLastRefreshTime, setLoggingOut, resetRefreshState } from '@/lib/api/client';
+import { ApiException, clearCsrfToken, setCsrfToken, getCsrfToken, updateLastRefreshTime, setLoggingOut, resetRefreshState } from '@/lib/api/client';
 import { getAuthUrl } from '@/lib/url';
 
 // ============ Types ============
@@ -44,6 +45,7 @@ interface AuthState {
   isLoading: boolean;
   isAuthenticated: boolean;
   needsProfileCompletion: boolean;
+  isRateLimited: boolean;
   error: string | null;
 }
 
@@ -64,6 +66,9 @@ interface AuthContextType extends AuthState {
   refreshUser: () => Promise<void>;
   setUser: (user: User) => void;
   clearError: () => void;
+
+  /** True when /auth/me returned 429 – auth state is unknown, callers should NOT redirect */
+  isRateLimited: boolean;
 }
 
 // ============ Context ============
@@ -82,8 +87,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isLoading: true,
     isAuthenticated: false,
     needsProfileCompletion: false,
+    isRateLimited: false,
     error: null,
   });
+
+  // Retry counter for rate-limited auth checks
+  const rateLimitRetryRef = useRef(0);
+  const MAX_RATE_LIMIT_RETRIES = 3;
 
   // Initialize auth state on mount
   useEffect(() => {
@@ -121,9 +131,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
           isLoading: false,
           isAuthenticated: true,
           needsProfileCompletion: !user.name || !user.username,
+          isRateLimited: false,
           error: null,
         });
       } catch (err) {
+        // 🔒 Handle 429 (Rate Limited) - DON'T clear auth state, retry with backoff
+        if (err instanceof ApiException && err.isRateLimited) {
+          const retryCount = rateLimitRetryRef.current;
+          if (retryCount < MAX_RATE_LIMIT_RETRIES) {
+            rateLimitRetryRef.current = retryCount + 1;
+            const delayMs = Math.min(5000 * Math.pow(2, retryCount), 30_000);
+            setState(prev => ({
+              ...prev,
+              isLoading: false,
+              isRateLimited: true,
+              // Keep previous auth state if we had one
+              error: null,
+            }));
+            // Retry after delay
+            setTimeout(() => initAuth(), delayMs);
+            return;
+          }
+          // Exhausted retries - keep rate limited state, DON'T redirect
+          setState(prev => ({
+            ...prev,
+            isLoading: false,
+            isRateLimited: true,
+            error: null,
+          }));
+          return;
+        }
+
         // Clear CSRF token
         // Don't log error if it's just "Unauthorized" - this is expected when no user is logged in
         clearCsrfToken();
@@ -132,6 +170,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           isLoading: false,
           isAuthenticated: false,
           needsProfileCompletion: false,
+          isRateLimited: false,
           error: null,
         });
       }
@@ -178,6 +217,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           isLoading: false,
           isAuthenticated: true,
           needsProfileCompletion: response.needsProfileCompletion || false,
+          isRateLimited: false,
           error: null,
         });
       } else {
@@ -188,6 +228,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           isLoading: false,
           isAuthenticated: true,
           needsProfileCompletion: response.needsProfileCompletion || !user.name || !user.username,
+          isRateLimited: false,
           error: null,
         });
       }
@@ -223,6 +264,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           isLoading: false,
           isAuthenticated: true,
           needsProfileCompletion: response.needsProfileCompletion || false,
+          isRateLimited: false,
           error: null,
         });
       } else {
@@ -233,6 +275,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           isLoading: false,
           isAuthenticated: true,
           needsProfileCompletion: response.needsProfileCompletion || !user.name || !user.username,
+          isRateLimited: false,
           error: null,
         });
       }
@@ -319,6 +362,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         isLoading: false,
         isAuthenticated: false,
         needsProfileCompletion: false,
+        isRateLimited: false,
         error: null,
       });
 

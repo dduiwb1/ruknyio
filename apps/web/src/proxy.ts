@@ -47,6 +47,7 @@ const SKIP_PATHS = [
   '/sw.js',
   '/icons/',
   '/logos/',
+  '/offline',
 ];
 
 /**

@@ -30,6 +30,11 @@ export class ApiException extends Error {
     super(message);
     this.name = 'ApiException';
   }
+
+  /** True when the server returned 429 Too Many Requests */
+  get isRateLimited(): boolean {
+    return this.statusCode === 429;
+  }
 }
 
 // Request configuration
@@ -582,6 +587,20 @@ async function apiClient<T>(
           credentials: 'include',
         });
       }
+    }
+
+    // Handle 429 - Rate limited: retry once after delay
+    if (response.status === 429) {
+      const retryAfter = response.headers.get('Retry-After');
+      const delayMs = retryAfter ? Math.min(parseInt(retryAfter, 10) * 1000, 10_000) : 3_000;
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+      response = await fetch(url, {
+        ...restConfig,
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+        credentials: 'include',
+      });
     }
 
     // Parse response

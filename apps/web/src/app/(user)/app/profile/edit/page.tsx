@@ -47,7 +47,7 @@ const tabs: { id: EditTab; label: string; icon: React.ElementType }[] = [
 
 export default function EditProfilePage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading } = useAuthContext();
+  const { isAuthenticated, isLoading: authLoading, isRateLimited } = useAuthContext();
   const [activeTab, setActiveTab] = useState<EditTab>('images');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -213,7 +213,7 @@ export default function EditProfilePage() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !isRateLimited) {
     window.location.replace(getAuthUrl('/login'));
     return null;
   }

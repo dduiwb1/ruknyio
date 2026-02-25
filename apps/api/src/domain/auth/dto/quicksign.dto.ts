@@ -19,6 +19,15 @@ export class RequestQuickSignDto {
   @IsEmail({}, { message: 'يجب إدخال بريد إلكتروني صحيح' })
   @IsNotEmpty({ message: 'البريد الإلكتروني مطلوب' })
   email: string;
+
+  @ApiProperty({
+    example: 'http://localhost:3002',
+    description: 'عنوان الواجهة الأمامية للتوجيه بعد التحقق (اختياري)',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  callbackUrl?: string;
 }
 
 export class ResendQuickSignDto {
@@ -29,6 +38,15 @@ export class ResendQuickSignDto {
   @IsEmail({}, { message: 'يجب إدخال بريد إلكتروني صحيح' })
   @IsNotEmpty({ message: 'البريد الإلكتروني مطلوب' })
   email: string;
+
+  @ApiProperty({
+    example: 'http://localhost:3002',
+    description: 'عنوان الواجهة الأمامية للتوجيه بعد التحقق (اختياري)',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  callbackUrl?: string;
 }
 
 export class VerifyIPCodeDto {
@@ -138,34 +156,16 @@ export class CompleteProfileDto {
   })
   @IsOptional()
   @IsString()
-  @IsIn(
-    [
-      'fashion',
-      'electronics',
-      'food',
-      'beauty',
-      'home',
-      'sports',
-      'books',
-      'jewelry',
-      'health',
-      'photography',
-      'automotive',
-      'travel',
-      'gifts',
-      'pets',
-      'kids',
-      'services',
-      'handmade',
-      'organic',
-      'cafe',
-      'other',
-    ],
-    {
-      message: 'التصنيف غير صحيح',
-    },
-  )
   storeCategory?: string;
+
+  @ApiProperty({
+    example: 'cat_fashion',
+    description: 'معرف فئة المتجر من جدول store_categories (إذا كان بائع)',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  storeCategoryId?: string;
 
   @ApiProperty({
     example: 'متجر متخصص في الأزياء العصرية',

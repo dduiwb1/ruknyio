@@ -67,6 +67,7 @@ export class QuickSignService {
     email: string,
     ipAddress?: string,
     userAgent?: string,
+    callbackUrl?: string,
   ): Promise<{ token: string; type: QuickSignType; expiresIn: number }> {
     // ⚡ التحقق من cache أولاً للمستخدم
     const cacheKey = `${this.USER_CACHE_PREFIX}${email}`;
@@ -123,6 +124,7 @@ export class QuickSignService {
       userId: existingUser?.id,
       expiresAt: expiresAt.toISOString(),
       used: false,
+      callbackUrl: callbackUrl || undefined,
     };
     await this.redis.set(tokenCacheKey, JSON.stringify(tokenData), this.QUICKSIGN_EXPIRY_MINUTES * 60);
 
@@ -175,6 +177,7 @@ export class QuickSignService {
     used?: boolean;
     expired?: boolean;
     profileCompleted?: boolean;
+    callbackUrl?: string;
   }> {
     try {
       // 🔒 Debug: Log incoming token
@@ -216,6 +219,7 @@ export class QuickSignService {
         userId?: string;
         expiresAt: string;
         used: boolean;
+        callbackUrl?: string;
       }>(tokenCacheKey);
       
       if (cachedData) {
@@ -262,6 +266,7 @@ export class QuickSignService {
           type: cachedData.type,
           userId: cachedData.userId,
           profileCompleted,
+          callbackUrl: cachedData.callbackUrl,
         };
       }
 
@@ -559,6 +564,7 @@ export class QuickSignService {
     used?: boolean;
     expired?: boolean;
     profileCompleted?: boolean;
+    callbackUrl?: string;
     error?: 'locked' | 'already_processing';
   }> {
     const tokenHash = this.hashToken(token);

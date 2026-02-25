@@ -89,11 +89,11 @@ interface Product {
 // ============ Utilities ============
 
 function formatNumber(num: number): string {
-  return num.toLocaleString('en-US');
+  return (num ?? 0).toLocaleString('en-US');
 }
 
 function formatCurrency(amount: number): string {
-  return `${formatNumber(amount)} IQD`;
+  return `${formatNumber(amount ?? 0)} IQD`;
 }
 
 function formatTimeAgo(dateString: string): string {
@@ -143,6 +143,15 @@ export default function StorePage() {
     const fetchData = async () => {
       try {
         setLoading(true);
+
+        // Ensure store exists first
+        const myStoreRes = await secureFetch(buildApiPath('/stores/my-store'));
+        if (!myStoreRes.ok) {
+          await secureFetch(buildApiPath('/stores'), {
+            method: 'POST',
+            body: JSON.stringify({ name: 'متجري' }),
+          });
+        }
 
         const [storeRes, orderStatsRes, ordersRes, productsRes] = await Promise.all([
           secureFetch(buildApiPath('/stores/stats')),
@@ -916,17 +925,17 @@ function TopProductsList({ products }: { products: Product[] }) {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-foreground truncate">{product.name}</p>
               <p className="text-xs text-muted-foreground">
-                {formatCurrency(product.price)} × {product.quantity}
+                {formatCurrency(product.price || 0)} × {product.quantity || 0}
               </p>
             </div>
 
             <div className="text-left shrink-0">
               <p className="text-sm font-bold text-foreground tabular-nums">
-                {formatCurrency(product.amount)}
+                {formatCurrency(product.amount || 0)}
               </p>
               <div className="flex items-center justify-end gap-1">
                 <TrendingUp className="w-3 h-3 text-emerald-500" />
-                <span className="text-[10px] text-emerald-500">{product.quantity} مبيعة</span>
+                <span className="text-[10px] text-emerald-500">{product.quantity || 0} مبيعة</span>
               </div>
             </div>
           </motion.div>

@@ -12,7 +12,7 @@ import { OAuthCodeService } from './oauth-code.service';
 import { RedisOAuthCodeService } from './redis-oauth-code.service';
 import { WebSocketTokenService } from './websocket-token.service';
 import { SecurityLogService } from '../../infrastructure/security/log.service';
-import { Throttle } from '@nestjs/throttler';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { randomUUID } from 'crypto';
 import { 
   setAccessTokenCookie,
@@ -49,12 +49,11 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  @Throttle({ default: { limit: 60, ttl: 60000 } }) // 60 requests per minute
+  @SkipThrottle() // 🔒 لا rate limit على /auth/me - endpoint قراءة فقط محمي بـ JWT
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get current user' })
   @ApiResponse({ status: 200, description: 'Current user retrieved' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 429, description: 'Too many requests' })
   async getMe(@CurrentUser() user: any) {
     return user;
   }
@@ -434,11 +433,34 @@ export class AuthController {
       needsProfileCompletion: result.needsProfileCompletion,
     });
 
-    // Redirect with code only — في التطوير استخدم FRONTEND_URL_DEV إن وُجد
-    const base =
+    // Determine redirect base — check OAuth state for callback_url (multi-frontend support)
+    const defaultBase =
       process.env.NODE_ENV === 'development' && process.env.FRONTEND_URL_DEV
         ? process.env.FRONTEND_URL_DEV
         : process.env.FRONTEND_URL || 'http://localhost:3000';
+
+    let base = defaultBase;
+    const state = req.query?.state;
+    if (state && typeof state === 'string') {
+      try {
+        const parsed = JSON.parse(Buffer.from(state, 'base64').toString());
+        if (parsed.callback_url && typeof parsed.callback_url === 'string') {
+          const allowedOrigins = [
+            defaultBase,
+            process.env.ADMIN_URL || 'http://localhost:3002',
+            'http://localhost:3000',
+            'http://localhost:3002',
+          ];
+          const origin = parsed.callback_url.replace(/\/+$/, '');
+          if (allowedOrigins.some(allowed => origin === allowed.replace(/\/+$/, ''))) {
+            base = origin;
+          }
+        }
+      } catch {
+        // Invalid state — fall back to default
+      }
+    }
+
     const redirectUrl = `${base}/auth/callback?code=${code}`;
     res.redirect(redirectUrl);
   }

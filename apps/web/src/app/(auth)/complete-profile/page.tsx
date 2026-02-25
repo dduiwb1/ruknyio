@@ -7,7 +7,7 @@ import { useUsernameCheck } from '@/lib/hooks/auth/use-username-check';
 import { quickSignClient } from '@/lib/auth/quicksign-client';
 import { setCsrfToken } from '@/lib/api/client';
 import { sanitizeToken, handleError, logError, formLimiter } from '@/lib/security';
-import { Loader2, CheckCircle2, XCircle, User, AlertTriangle, Store, Sparkles, FileText, MapPin, Phone, ShoppingBag, Utensils, Laptop, Palette, Home, Dumbbell, BookOpen, MoreHorizontal, Briefcase, Heart, Camera, Music, Car, Plane, Shirt, Gift, Gem, PawPrint, Baby, Hammer, Leaf, Coffee } from 'lucide-react';
+import { Loader2, CheckCircle2, XCircle, User, AlertTriangle, Store, Sparkles, FileText, MapPin, Phone, ShoppingBag, Utensils, Laptop, Palette, Home, Dumbbell, BookOpen, MoreHorizontal, Briefcase, Heart, Camera, Music, Car, Plane, Shirt, Gift, Gem, PawPrint, Baby, Hammer, Leaf, Coffee, Wrench, Smartphone, UtensilsCrossed, LucideIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProgressIndicator from '@/components/ui/progress-indicator';
 import { triggerCelebration } from '@/components/ui/confetti';
@@ -71,28 +71,65 @@ const clearProfileToken = (): void => {
   }
 };
 
-// Store categories with icons
-const storeCategories = [
-  { id: 'fashion', label: 'أزياء وملابس', icon: Shirt },
-  { id: 'electronics', label: 'إلكترونيات وأجهزة', icon: Laptop },
-  { id: 'food', label: 'طعام ومشروبات', icon: Utensils },
-  { id: 'beauty', label: 'جمال وعناية شخصية', icon: Palette },
-  { id: 'home', label: 'منزل وأثاث', icon: Home },
-  { id: 'sports', label: 'رياضة ولياقة', icon: Dumbbell },
-  { id: 'books', label: 'كتب وقرطاسية', icon: BookOpen },
-  { id: 'jewelry', label: 'مجوهرات وإكسسوارات', icon: Gem },
-  { id: 'health', label: 'صحة وعافية', icon: Heart },
-  { id: 'photography', label: 'تصوير وخدمات إبداعية', icon: Camera },
-  { id: 'automotive', label: 'سيارات وقطع غيار', icon: Car },
-  { id: 'travel', label: 'سياحة وسفر', icon: Plane },
-  { id: 'gifts', label: 'هدايا ومناسبات', icon: Gift },
-  { id: 'pets', label: 'حيوانات أليفة', icon: PawPrint },
-  { id: 'kids', label: 'أطفال ومستلزماتهم', icon: Baby },
-  { id: 'services', label: 'خدمات مهنية', icon: Briefcase },
-  { id: 'handmade', label: 'منتجات يدوية', icon: Hammer },
-  { id: 'organic', label: 'منتجات طبيعية وعضوية', icon: Leaf },
-  { id: 'cafe', label: 'مقهى أو مطعم', icon: Coffee },
-  { id: 'other', label: 'تصنيف آخر', icon: MoreHorizontal },
+// Icon mapper: converts icon name string from API to Lucide component
+const ICON_MAP: Record<string, LucideIcon> = {
+  Shirt,
+  Smartphone,
+  UtensilsCrossed,
+  Sparkles,
+  Home,
+  Dumbbell,
+  BookOpen,
+  Car,
+  Baby,
+  Wrench,
+  MoreHorizontal,
+  Laptop,
+  Utensils,
+  Palette,
+  Gem,
+  Heart,
+  Camera,
+  Plane,
+  Gift,
+  PawPrint,
+  Hammer,
+  Leaf,
+  Coffee,
+  Briefcase,
+  Store,
+  ShoppingBag,
+  Music,
+};
+
+const getIconComponent = (iconName?: string): LucideIcon => {
+  if (!iconName) return Store;
+  return ICON_MAP[iconName] || Store;
+};
+
+// Store category from API
+interface StoreCategory {
+  id: string;
+  name: string;
+  nameAr: string;
+  slug: string;
+  icon?: string;
+  color?: string;
+}
+
+// Fallback categories (used if API fails)
+const FALLBACK_CATEGORIES: StoreCategory[] = [
+  { id: 'cat_fashion', name: 'Fashion', nameAr: 'الأزياء والموضة', slug: 'fashion', icon: 'Shirt', color: '#EC4899' },
+  { id: 'cat_electronics', name: 'Electronics', nameAr: 'الإلكترونيات', slug: 'electronics', icon: 'Smartphone', color: '#3B82F6' },
+  { id: 'cat_food', name: 'Food & Beverages', nameAr: 'الطعام والمشروبات', slug: 'food-beverages', icon: 'UtensilsCrossed', color: '#F59E0B' },
+  { id: 'cat_beauty', name: 'Beauty & Health', nameAr: 'الجمال والصحة', slug: 'beauty-health', icon: 'Sparkles', color: '#8B5CF6' },
+  { id: 'cat_home', name: 'Home & Garden', nameAr: 'المنزل والحديقة', slug: 'home-garden', icon: 'Home', color: '#10B981' },
+  { id: 'cat_sports', name: 'Sports & Fitness', nameAr: 'الرياضة واللياقة', slug: 'sports-fitness', icon: 'Dumbbell', color: '#EF4444' },
+  { id: 'cat_books', name: 'Books & Education', nameAr: 'الكتب والتعليم', slug: 'books-education', icon: 'BookOpen', color: '#6366F1' },
+  { id: 'cat_automotive', name: 'Automotive', nameAr: 'السيارات', slug: 'automotive', icon: 'Car', color: '#64748B' },
+  { id: 'cat_kids', name: 'Kids & Baby', nameAr: 'الأطفال والرضع', slug: 'kids-baby', icon: 'Baby', color: '#F472B6' },
+  { id: 'cat_services', name: 'Services', nameAr: 'الخدمات', slug: 'services', icon: 'Wrench', color: '#0EA5E9' },
+  { id: 'cat_other', name: 'Other', nameAr: 'أخرى', slug: 'other', icon: 'MoreHorizontal', color: '#94A3B8' },
 ];
 
 // Employee count options
@@ -126,6 +163,7 @@ function CompleteProfileContent() {
   const [storeData, setStoreData] = useState({
     storeDescription: '',
     category: '',
+    categoryId: '',
     employeesCount: '',
     country: '',
     city: '',
@@ -133,6 +171,10 @@ function CompleteProfileContent() {
     latitude: 0,
     longitude: 0,
   });
+
+  // Store categories from API
+  const [storeCategories, setStoreCategories] = useState<StoreCategory[]>(FALLBACK_CATEGORIES);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -154,6 +196,28 @@ function CompleteProfileContent() {
       setQuickSignToken(token);
     }
   }, [urlToken]);
+
+  // 🏪 جلب فئات المتاجر من الـ API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setCategoriesLoading(true);
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+        const res = await fetch(`${apiBase}/stores/categories`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.categories && data.categories.length > 0) {
+            setStoreCategories(data.categories);
+          }
+        }
+      } catch {
+        // Fallback to hardcoded categories
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   // Detect if OAuth user or QuickSign user
   useEffect(() => {
@@ -206,9 +270,16 @@ function CompleteProfileContent() {
     if (field === 'storeDescription' && typeof value === 'string') {
       sanitizedValue = sanitizeDescription(value);
     }
+    if (field === 'category' && typeof value === 'string') {
+      // When category slug changes, also resolve the categoryId
+      const found = storeCategories.find(c => c.slug === value);
+      setStoreData(prev => ({ ...prev, category: value, categoryId: found?.id || '' }));
+      setError(null);
+      return;
+    }
     setStoreData(prev => ({ ...prev, [field]: sanitizedValue }));
     setError(null);
-  }, []);
+  }, [storeCategories]);
 
 
   const validateStep1 = useCallback((): boolean => {
@@ -340,6 +411,7 @@ function CompleteProfileContent() {
           username: formData.username.trim(),
           isVendor: true,
           storeCategory: storeData.category || undefined,
+          storeCategoryId: storeData.categoryId || undefined,
           storeDescription: storeData.storeDescription.trim() || undefined,
           employeesCount: storeData.employeesCount || undefined,
           // Location fields - only send if location was selected
@@ -635,23 +707,30 @@ function CompleteProfileContent() {
                       تصنيف المتجر <span className="text-red-500">*</span>
                     </label>
                     {/* More categories dropdown */}
+                    {categoriesLoading ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground mr-2">جاري تحميل التصنيفات...</span>
+                      </div>
+                    ) : (
                     <Select
                       value={storeData.category}
                       setValue={(value) => handleStoreChange('category', value as string)}
                       placeholder="📋 اختر تصنيف متجرك..."
                     >
                       {storeCategories.map((cat) => {
-                        const Icon = cat.icon;
+                        const Icon = getIconComponent(cat.icon);
                         return (
-                          <SelectOption key={cat.id} value={cat.id}>
+                          <SelectOption key={cat.id} value={cat.slug}>
                             <span className="flex items-center gap-2.5">
                               <Icon className="h-4.5 w-4.5" />
-                              <span>{cat.label}</span>
+                              <span>{cat.nameAr}</span>
                             </span>
                           </SelectOption>
                         );
                       })}
                     </Select>
+                    )}
                     {storeData.category && (
                       <motion.div
                         initial={{ opacity: 0, y: -5 }}
@@ -659,7 +738,7 @@ function CompleteProfileContent() {
                         className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-full"
                       >
                         <CheckCircle2 className="h-3.5 w-3.5" />
-                        {storeCategories.find(c => c.id === storeData.category)?.label}
+                        {storeCategories.find(c => c.slug === storeData.category)?.nameAr}
                       </motion.div>
                     )}
                   </div>

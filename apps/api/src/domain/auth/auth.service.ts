@@ -293,7 +293,7 @@ export class AuthService {
       },
       access_token: accessToken,
       refresh_token: refreshToken,
-      needsProfileCompletion: isNewUser && !user.profile,
+      needsProfileCompletion: !user.profileCompleted,
     };
   }
 
@@ -440,7 +440,7 @@ export class AuthService {
       },
       access_token: accessToken,
       refresh_token: refreshToken,
-      needsProfileCompletion: isNewUser && !user.profile,
+      needsProfileCompletion: !user.profileCompleted,
     };
   }
 

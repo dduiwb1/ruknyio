@@ -38,6 +38,9 @@ import { LinksModule } from './domain/links/links.module';
 // Domain - Stores & Products
 import { StoresModule } from './domain/stores/stores.module';
 
+// Domain - Admin
+import { AdminModule } from './domain/admin/admin.module';
+
 // Domain - Storage (S3)
 import { StorageModule } from './domain/storage/storage.module';
 
@@ -69,7 +72,7 @@ import { SharedModule } from './shared/modules/shared.module';
     ThrottlerModule.forRoot([
       {
         ttl: 60000, // Time window: 60 seconds
-        limit: process.env.NODE_ENV === 'production' ? 30 : 100, // More lenient in development
+        limit: process.env.NODE_ENV === 'production' ? 100 : 300, // 100/min production, 300/min development
       },
     ]),
     // Core
@@ -107,6 +110,9 @@ import { SharedModule } from './shared/modules/shared.module';
 
     // Domain - Stores & Products
     StoresModule,
+
+    // Domain - Admin
+    AdminModule,
 
     // Domain - Storage (S3)
     StorageModule,

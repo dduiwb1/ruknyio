@@ -880,7 +880,7 @@ function EmptyState({ onAddClick }: { onAddClick: () => void }) {
 
 export default function LinksPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading } = useAuthContext();
+  const { isAuthenticated, isLoading: authLoading, isRateLimited } = useAuthContext();
   
   const {
     profile,
@@ -1163,7 +1163,7 @@ export default function LinksPage() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !isRateLimited) {
     window.location.replace(getAuthUrl('/login'));
     return null;
   }

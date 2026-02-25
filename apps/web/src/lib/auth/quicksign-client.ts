@@ -16,6 +16,7 @@ export interface CompleteProfileData {
   username: string;
   isVendor?: boolean;
   storeCategory?: string;
+  storeCategoryId?: string;
   storeDescription?: string;
   employeesCount?: string;
   storeCountry?: string;
@@ -69,6 +70,7 @@ export const quickSignClient = {
         username: data.username,
         isVendor: data.isVendor ?? true,
         storeCategory: data.storeCategory,
+        storeCategoryId: data.storeCategoryId,
         storeDescription: data.storeDescription,
         employeesCount: data.employeesCount,
         storeCountry: data.storeCountry,

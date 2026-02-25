@@ -123,6 +123,7 @@ export class QuickSignController {
       dto.email,
       ipAddress,
       userAgent,
+      dto.callbackUrl,
     );
 
     // ⚡ إرسال البريد الإلكتروني بشكل غير متزامن (fire and forget)
@@ -222,7 +223,7 @@ export class QuickSignController {
   ) {
     const userAgent = req.headers['user-agent'];
     const ipAddress = req.ip || req.socket.remoteAddress;
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const defaultFrontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
     // 🔒 Debug: Log incoming token
     if (!isProduction) {
@@ -235,6 +236,9 @@ export class QuickSignController {
 
     // 🔒 التحقق من Token واستهلاكه بشكل ذري (يمنع race conditions)
     const verification = await this.quickSignService.verifyAndConsumeQuickSign(token);
+
+    // 🔄 استخدام callbackUrl المخزن مع التوكن أو الافتراضي
+    const frontendUrl = verification.callbackUrl || defaultFrontendUrl;
 
     if (!verification.valid) {
       // 🔒 التعامل مع حالة القفل (race condition)
@@ -823,34 +827,69 @@ export class QuickSignController {
     // 🏪 إنشاء Store تلقائياً للمستخدم
     // المتطلبات: لكل مستخدم متجر واحد، واسم المتجر = username
     // slug: نحاول استخدام username مباشرة (أكثر اتساقاً)، وإذا كان محجوزاً نضيف suffix قصير.
-    const baseSlug = dto.username;
-    let storeSlug = baseSlug;
-    const existingSlug = await this.prisma.store.findUnique({
-      where: { slug: storeSlug },
-      select: { id: true },
-    });
-    if (existingSlug) {
-      storeSlug = `${baseSlug}_${crypto.randomBytes(3).toString('hex')}`;
-    }
+    let store: any = null;
+    try {
+      const baseSlug = dto.username;
+      let storeSlug = baseSlug;
+      const existingSlug = await this.prisma.store.findUnique({
+        where: { slug: storeSlug },
+        select: { id: true },
+      });
+      if (existingSlug) {
+        storeSlug = `${baseSlug}_${crypto.randomBytes(3).toString('hex')}`;
+      }
 
-    const store = await this.prisma.store.create({
-      data: {
-        id: crypto.randomUUID(),
-        userId: user.id,
-        name: dto.username,
-        slug: storeSlug,
-        description: dto.storeDescription || null,
-        category: dto.storeCategory || null,
-        employeesCount: dto.employeesCount || null,
-        status: 'ACTIVE',
-        country: dto.storeCountry || dto.country || 'Iraq',
-        city: dto.storeCity || null,
-        address: dto.storeAddress || null,
-        latitude: dto.storeLatitude || null,
-        longitude: dto.storeLongitude || null,
-        contactEmail: user.email,
-      },
-    });
+      // 🏪 ربط categoryId من جدول store_categories
+      let resolvedCategoryId: string | null = null;
+
+      if (dto.storeCategoryId) {
+        // Verify the provided categoryId actually exists
+        const categoryExists = await this.prisma.store_categories.findUnique({
+          where: { id: dto.storeCategoryId },
+          select: { id: true },
+        });
+        if (categoryExists) {
+          resolvedCategoryId = categoryExists.id;
+        }
+      }
+
+      if (!resolvedCategoryId && dto.storeCategory) {
+        // Try to find by slug match
+        const matchedCategory = await this.prisma.store_categories.findFirst({
+          where: {
+            slug: { contains: dto.storeCategory },
+            isActive: true,
+          },
+          select: { id: true },
+        });
+        if (matchedCategory) {
+          resolvedCategoryId = matchedCategory.id;
+        }
+      }
+
+      store = await this.prisma.store.create({
+        data: {
+          id: crypto.randomUUID(),
+          userId: user.id,
+          name: dto.username,
+          slug: storeSlug,
+          description: dto.storeDescription || null,
+          category: dto.storeCategory || null,
+          categoryId: resolvedCategoryId,
+          employeesCount: dto.employeesCount || null,
+          status: 'ACTIVE',
+          country: dto.storeCountry || dto.country || 'Iraq',
+          city: dto.storeCity || null,
+          address: dto.storeAddress || null,
+          latitude: dto.storeLatitude || null,
+          longitude: dto.storeLongitude || null,
+          contactEmail: user.email,
+        },
+      });
+    } catch (storeError) {
+      console.error(`❌ فشل إنشاء المتجر للمستخدم ${user.id}: ${storeError.message}`);
+      // لا نوقف التسجيل - المتجر سيُنشأ تلقائياً عند أول استخدام
+    }
 
     // Parse device info
     const parser = new UAParser(userAgent);
@@ -908,11 +947,11 @@ export class QuickSignController {
         username: user.profile?.username,
         avatar: user.profile?.avatar,
       },
-      store: {
+      store: store ? {
         id: store.id,
         name: store.name,
         slug: store.slug,
-      },
+      } : null,
       csrf_token: csrfToken,
       expires_in: 30 * 60, // 30 minutes - matches access token
       message: 'تم إنشاء حسابك بنجاح',

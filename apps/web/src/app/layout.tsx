@@ -46,7 +46,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    locale: "ar_SA",
+    locale: "ar_iq",
     siteName: "ركني",
     title: "ركني | Rukny",
     description: "صفحتك، متجرك، رابطك - كل شيء في مكان واحد",
