@@ -282,12 +282,49 @@ export class AuthController {
       const csrfToken = generateCsrfToken();
       setCsrfTokenCookie(res, csrfToken);
 
+      // 🔒 جلب بيانات المستخدم لإرسالها مع الـ refresh response
+      // هذا يلغي الحاجة لاستدعاء /auth/me بعد كل refresh (يقلل الطلبات بنسبة 50%)
+      let user = null;
+      try {
+        const dbUser = await this.prisma.user.findUnique({
+          where: { id: tokens.userId },
+          select: {
+            id: true,
+            email: true,
+            role: true,
+            phone: true,
+            profileCompleted: true,
+            profile: {
+              select: {
+                name: true,
+                username: true,
+                avatar: true,
+              },
+            },
+          },
+        });
+        if (dbUser) {
+          user = {
+            id: dbUser.id,
+            email: dbUser.email,
+            role: dbUser.role,
+            name: dbUser.profile?.name ?? null,
+            username: dbUser.profile?.username ?? null,
+            avatar: dbUser.profile?.avatar ?? null,
+            profileCompleted: dbUser.profileCompleted,
+          };
+        }
+      } catch {
+        // إذا فشل جلب المستخدم، نستمر بدون user (الفرونت يستدعي /auth/me كـ fallback)
+      }
+
       // 🔒 Response - لا نُرسل التوكنات في الـ body (فقط في cookies)
       return {
         success: true,
         message: 'Tokens refreshed successfully',
         csrf_token: csrfToken, // 🔒 CSRF token للـ frontend
         expires_in: 30 * 60, // 30 minutes - matches access token JWT and cookie
+        user, // 🔒 بيانات المستخدم (يلغي الحاجة لـ /auth/me)
       };
     } catch (error) {
       // 🔒 مسح الكوكي الفاسدة عند فشل التجديد

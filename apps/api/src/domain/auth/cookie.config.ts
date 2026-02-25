@@ -37,6 +37,11 @@ const ALLOWED_ORIGINS: string[] = [
   process.env.FRONTEND_URL_ALT, // e.g. https://www.rukny.xyz if FRONTEND_URL is https://rukny.xyz
   'http://localhost:3000',
   'http://127.0.0.1:3000',
+  // Production subdomains
+  'https://app.rukny.io',
+  'https://accounts.rukny.io',
+  'https://rukny.io',
+  'https://management.rukny.io',
   // Local network IPs are handled dynamically in validateCsrfOrigin()
 ].filter(Boolean) as string[];
 

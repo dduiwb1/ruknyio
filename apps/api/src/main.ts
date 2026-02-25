@@ -155,6 +155,7 @@ async function bootstrap() {
     'https://www.rukny.io',
     'https://app.rukny.io',
     'https://accounts.rukny.io',
+    'https://management.rukny.io',
     'https://rukny.store',
     'https://www.rukny.store',
     'https://rukny.xyz',
@@ -196,6 +197,7 @@ async function bootstrap() {
       'Origin',
       'X-Requested-With',
       'Cache-Control',
+      'X-CSRF-Token',
     ],
   });
 

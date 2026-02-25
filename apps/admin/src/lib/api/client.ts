@@ -95,13 +95,13 @@ export function clearCsrfToken(): void {
 
 // ---------- Refresh ----------
 
-let refreshPromise: Promise<boolean> | null = null;
+let refreshPromise: Promise<{ ok: boolean; user?: any }> | null = null;
 
 export function resetRefreshState(): void {
   refreshPromise = null;
 }
 
-async function refreshAccessToken(): Promise<boolean> {
+export async function refreshAccessToken(): Promise<{ ok: boolean; user?: any }> {
   if (refreshPromise) return refreshPromise;
 
   refreshPromise = (async () => {
@@ -111,15 +111,15 @@ async function refreshAccessToken(): Promise<boolean> {
         credentials: "include",
         headers: { "Content-Type": "application/json" },
       });
-      if (!res.ok) return false;
+      if (!res.ok) return { ok: false };
       const data = await res.json();
       if (data.success && data.csrf_token) {
         setCsrfToken(data.csrf_token);
-        return true;
+        return { ok: true, user: data.user || null };
       }
-      return false;
+      return { ok: false };
     } catch {
-      return false;
+      return { ok: false };
     } finally {
       refreshPromise = null;
     }
@@ -164,8 +164,8 @@ async function apiClient<T>(
 
   // Auto-refresh on 401
   if (response.status === 401) {
-    const ok = await refreshAccessToken();
-    if (ok) {
+    const result = await refreshAccessToken();
+    if (result.ok) {
       const newToken = getCsrfToken();
       if (newToken && method !== "GET") {
         headers["X-CSRF-Token"] = newToken;

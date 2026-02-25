@@ -115,7 +115,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (!csrfToken) {
           // Try to refresh token from cookie
           try {
-            await refreshToken();
+            const refreshResult = await refreshToken();
+            // 🔒 If refresh returned user data, use it directly (skip /auth/me)
+            if (refreshResult.user) {
+              setState({
+                user: refreshResult.user,
+                isLoading: false,
+                isAuthenticated: true,
+                needsProfileCompletion: !refreshResult.user.name || !refreshResult.user.username,
+                isRateLimited: false,
+                error: null,
+              });
+              return;
+            }
           } catch (err) {
             // No valid session - clear any stale tokens
             clearCsrfToken();
@@ -124,7 +136,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           }
         }
 
-        // Get current user
+        // Get current user (only if refresh didn't return user data)
         const user = await getCurrentUser();
         setState({
           user,

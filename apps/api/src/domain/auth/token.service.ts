@@ -36,6 +36,7 @@ export interface TokenPair {
 export interface RefreshTokensResult {
   accessToken: string;
   refreshToken?: string;
+  userId: string;
 }
 
 export interface TokenPayload {
@@ -280,6 +281,7 @@ export class TokenService {
 
         return {
           accessToken: newAccessToken,
+          userId: gracePeriodSession.userId,
           // refreshToken intentionally omitted during grace period
         };
       }
@@ -424,6 +426,7 @@ export class TokenService {
     return {
       accessToken: newAccessToken,
       refreshToken: newRefreshToken,
+      userId: session.userId,
     };
   }
 

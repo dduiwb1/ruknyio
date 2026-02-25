@@ -278,6 +278,7 @@ export interface RefreshResult {
   success: boolean;
   csrfToken?: string;
   expiresIn?: number;
+  user?: any; // User data from refresh response (eliminates /auth/me call)
 }
 
 /**
@@ -446,6 +447,7 @@ export async function refreshOnce(): Promise<RefreshResult> {
           success: true,
           csrfToken: data.csrf_token,
           expiresIn: data.expires_in,
+          user: data.user || null, // 🔒 User data from refresh (eliminates /auth/me)
         };
       }
 

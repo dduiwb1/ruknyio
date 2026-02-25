@@ -204,6 +204,7 @@ export async function refreshToken(): Promise<AuthResponse> {
     success: true,
     csrf_token: result.csrfToken,
     expires_in: result.expiresIn,
+    user: result.user || undefined, // 🔒 Forward user data from refresh
   };
 }
 

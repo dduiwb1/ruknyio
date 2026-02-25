@@ -21,7 +21,7 @@ import {
   logoutAdmin,
   exchangeOAuthCode,
 } from "@/lib/api/auth";
-import { setCsrfToken, clearCsrfToken, resetRefreshState } from "@/lib/api/client";
+import { setCsrfToken, clearCsrfToken, resetRefreshState, refreshAccessToken } from "@/lib/api/client";
 import { isAllowedAdmin, isAdminRole } from "@/lib/config";
 
 interface AuthContextValue {
@@ -47,7 +47,17 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     (async () => {
       try {
-        const me = await getAdminMe();
+        // 🔒 Try refresh first - it returns user data, skipping separate /auth/me call
+        const refreshResult = await refreshAccessToken();
+        let me: AdminUser;
+
+        if (refreshResult.ok && refreshResult.user) {
+          me = refreshResult.user;
+        } else {
+          // Fallback to /auth/me if refresh didn't return user
+          me = await getAdminMe();
+        }
+
         // Verify the user is an authorized admin
         if (!isAllowedAdmin(me.email) && !isAdminRole(me.role)) {
           if (!cancelled) {
