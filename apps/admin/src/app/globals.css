@@ -40,8 +40,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: "Google Sans", var(--font-ibm-arabic), system-ui, sans-serif;
-  --font-mono: "Google Sans", monospace;
+  --font-sans: "Google Sans Text", var(--font-ibm-arabic), system-ui, sans-serif;
+  --font-mono: ui-monospace, monospace;
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
@@ -143,5 +143,6 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: "Google Sans Text", var(--font-ibm-arabic), system-ui, sans-serif;
   }
 }
