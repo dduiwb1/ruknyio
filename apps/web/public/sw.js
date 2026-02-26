@@ -6,8 +6,11 @@
  * - Network-first strategy for API calls
  * - Background sync for failed requests
  * - Push notifications support
+ * - Update notification system
  */
 
+// 🔄 Version - يتم تحديثه مع كل نشر لضمان كشف التحديثات
+const SW_VERSION = '__SW_VERSION__';
 const CACHE_NAME = 'rukny-v1';
 const STATIC_CACHE = 'rukny-static-v1';
 const DYNAMIC_CACHE = 'rukny-dynamic-v1';
@@ -22,14 +25,23 @@ const STATIC_ASSETS = [
 
 // ============ Install Event ============
 self.addEventListener('install', (event) => {
+  console.log('[SW] Installing new version:', SW_VERSION);
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
       return cache.addAll(STATIC_ASSETS);
     })
   );
   
-  // Activate immediately
-  self.skipWaiting();
+  // ⚠️ لا نستدعي self.skipWaiting() هنا!
+  // ننتظر حتى المستخدم يضغط "تحديث الآن" ثم نرسل رسالة SKIP_WAITING
+});
+
+// ============ Message Event (للتحديث عند طلب المستخدم) ============
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('[SW] Skip waiting requested, activating new version');
+    self.skipWaiting();
+  }
 });
 
 // ============ Activate Event ============

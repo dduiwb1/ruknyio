@@ -62,7 +62,8 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         if (!isAllowedAdmin(me.email) && !isAdminRole(me.role)) {
           if (!cancelled) {
             setError("Access denied. You are not authorized as an admin.");
-            await logoutAdmin();
+            // ⚠️ لا نستدعي logoutAdmin() لأن ذلك يحذف كوكيز المستخدم العادي
+            // فقط نمسح الحالة المحلية بدون مسح الجلسة من السيرفر
           }
           return;
         }
@@ -109,7 +110,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
       // Verify admin access after OAuth
       if (!isAllowedAdmin(res.user.email) && !isAdminRole(res.user.role)) {
-        await logoutAdmin();
+        // ⚠️ لا نستدعي logoutAdmin() لأن ذلك يحذف كوكيز المستخدم العادي
         throw new Error("Access denied. This account is not authorized for admin access.");
       }
 

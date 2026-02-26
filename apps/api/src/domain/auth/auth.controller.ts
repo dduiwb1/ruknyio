@@ -627,11 +627,34 @@ export class AuthController {
       needsProfileCompletion: result.needsProfileCompletion,
     });
 
-    // Redirect with code only — في التطوير استخدم FRONTEND_URL_DEV إن وُجد
-    const base =
+    // Determine redirect base — check OAuth state for callback_url (multi-frontend support)
+    const defaultBase =
       process.env.NODE_ENV === 'development' && process.env.FRONTEND_URL_DEV
         ? process.env.FRONTEND_URL_DEV
         : process.env.FRONTEND_URL || 'http://localhost:3000';
+
+    let base = defaultBase;
+    const state = req.query?.state;
+    if (state && typeof state === 'string') {
+      try {
+        const parsed = JSON.parse(Buffer.from(state, 'base64').toString());
+        if (parsed.callback_url && typeof parsed.callback_url === 'string') {
+          const allowedOrigins = [
+            defaultBase,
+            process.env.ADMIN_URL || 'http://localhost:3002',
+            'http://localhost:3000',
+            'http://localhost:3002',
+          ];
+          const origin = parsed.callback_url.replace(/\/+$/, '');
+          if (allowedOrigins.some(allowed => origin === allowed.replace(/\/+$/, ''))) {
+            base = origin;
+          }
+        }
+      } catch {
+        // Invalid state — fall back to default
+      }
+    }
+
     const redirectUrl = `${base}/auth/callback?code=${code}`;
     res.redirect(redirectUrl);
   }

@@ -57,6 +57,18 @@ export async function registerServiceWorker(
       });
     });
 
+    // Check if there's already a waiting worker (e.g., from a previous visit)
+    if (registration.waiting && navigator.serviceWorker.controller) {
+      options.onUpdate?.(registration);
+    }
+
+    // 🔄 Periodically check for updates (every 60 minutes)
+    setInterval(() => {
+      registration.update().catch(() => {
+        // Update check failed (likely offline)
+      });
+    }, 60 * 60 * 1000);
+
     // Handle controller change (new SW activated)
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       // New service worker activated
