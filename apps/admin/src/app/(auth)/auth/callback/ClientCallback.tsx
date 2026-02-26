@@ -38,6 +38,12 @@ function CallbackContent() {
         exchangeAttemptedRef.current = true;
         const response = await handleOAuthCallback(code);
 
+        // If the user needs to complete their profile, redirect there
+        if (response.needsProfileCompletion) {
+          router.push("/complete-profile");
+          return;
+        }
+
         const callbackUrl =
           sessionStorage.getItem("oauth_callback") || "/dashboard";
         sessionStorage.removeItem("oauth_callback");

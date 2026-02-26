@@ -37,6 +37,8 @@ model User {
   telegramLastName       String?
   telegramEnabled        Boolean                 @default(true)
   telegramConnectedAt    DateTime?
+  isVerified             Boolean                 @default(false)
+  verifiedAt             DateTime?
   addresses              addresses[]
   calendar_integrations  calendar_integrations[]
   carts                  carts?
@@ -69,6 +71,7 @@ model User {
   trusted_devices        trusted_devices[]
   twoFactorBackupCodes   TwoFactorBackupCode[]
   files                  UserFile[]
+  verificationRequests   VerificationRequest[]
   verification_codes     verification_codes[]
   whatsappNotifications  WhatsappNotification[]
   whatsappOtps           WhatsappOtp[]
@@ -1654,6 +1657,7 @@ enum FileCategory {
   EVENT_GALLERY
   PRODUCT_IMAGE
   BANNER
+  VERIFICATION_SCREENSHOT
 }
 
 enum WaitlistStatus {
@@ -1664,7 +1668,47 @@ enum WaitlistStatus {
   CANCELLED
 }
 
-/// 📱 نوع حساب المستخدم
+/// � نوع طلب التوثيق
+enum VerificationRequestType {
+  PERSONAL
+  BUSINESS
+}
+
+/// 📋 حالة طلب التوثيق
+enum VerificationRequestStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+/// 📋 طلب توثيق الحساب
+model VerificationRequest {
+  id              String                    @id @default(uuid())
+  userId          String
+  user            User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type            VerificationRequestType   @default(PERSONAL)
+  status          VerificationRequestStatus @default(PENDING)
+  fullName        String
+  socialLinks     Json?                     // [{platform, url}]
+  screenshots     String[]                  @default([])
+  businessName    String?
+  businessEmail   String?
+  notes           String?
+  adminNotes      String?
+  rejectionReason String?
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("verification_requests")
+}
+
+/// �📱 نوع حساب المستخدم
 enum AccountType {
   REGULAR
   GUEST_CHECKOUT

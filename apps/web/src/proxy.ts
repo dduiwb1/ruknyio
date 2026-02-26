@@ -177,10 +177,13 @@ export function proxy(request: NextRequest) {
 
     // Authenticated user on auth pages → redirect to app
     // Exception: /auth/callback and /complete-profile need to work even with session
+    // Exception: session=expired query param means auth failed, don't redirect back to /app
     if (isAuthPath(pathname) && userHasSession) {
       const authExceptions = ['/auth/callback', '/complete-profile', '/welcome'];
       const isException = authExceptions.some(p => pathname === p || pathname.startsWith(p + '/'));
-      if (!isException) {
+      const hasSessionExpired = request.nextUrl.searchParams.get('session') === 'expired' || 
+                                 request.nextUrl.searchParams.get('session') === 'invalid';
+      if (!isException && !hasSessionExpired) {
         return NextResponse.redirect(new URL('/app', request.url));
       }
     }
@@ -243,7 +246,10 @@ export function proxy(request: NextRequest) {
   if (subdomain === 'accounts') {
     if (pathname === '/') {
       // 🛡️ Authenticated user → redirect to app
-      if (userHasSession) {
+      // Exception: session=expired means auth failed, don't redirect back
+      const hasSessionExpired = request.nextUrl.searchParams.get('session') === 'expired' ||
+                                 request.nextUrl.searchParams.get('session') === 'invalid';
+      if (userHasSession && !hasSessionExpired) {
         return NextResponse.redirect(
           new URL(buildAppRedirectUrl(request, subdomain, rootDomain, protocol))
         );
@@ -262,9 +268,12 @@ export function proxy(request: NextRequest) {
     if (isAuthPath(pathname)) {
       // 🛡️ Authenticated user on auth pages → redirect to app
       // Exception: /auth/callback and /complete-profile need to work even with session
+      // Exception: session=expired means auth failed, don't redirect back
       const authExceptions = ['/auth/callback', '/complete-profile', '/welcome'];
       const isException = authExceptions.some(p => pathname === p || pathname.startsWith(p + '/'));
-      if (userHasSession && !isException) {
+      const hasSessionExpired = request.nextUrl.searchParams.get('session') === 'expired' ||
+                                 request.nextUrl.searchParams.get('session') === 'invalid';
+      if (userHasSession && !isException && !hasSessionExpired) {
         return NextResponse.redirect(
           new URL(buildAppRedirectUrl(request, subdomain, rootDomain, protocol))
         );

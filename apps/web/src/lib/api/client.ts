@@ -404,6 +404,8 @@ export async function refreshOnce(): Promise<RefreshResult> {
   // 🔒 Cross-page protection: check if refresh failed recently in another page load
   if (isRefreshBlockedByPreviousFailure()) {
     state.refreshFailed = true; // Sync in-memory state
+    // 🔒 Must call handleAuthFailure to trigger redirect instead of silently returning
+    handleAuthFailure('expired');
     return { success: false };
   }
 

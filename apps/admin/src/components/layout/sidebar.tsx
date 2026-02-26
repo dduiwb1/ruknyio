@@ -51,6 +51,7 @@ import {
   HelpingHand,
   BookOpen,
   Layers,
+  FileCheck,
 } from "lucide-react";
 import { useAuth } from "@/providers";
 import { cn } from "@/lib/utils";
@@ -102,10 +103,7 @@ const navSections: NavSection[] = [
     iconColor: "text-black",
     items: [
       { href: "/dashboard/users", label: "All Users", icon: Users },
-      { href: "/dashboard/users/admins", label: "Admins", icon: Crown },
-      { href: "/dashboard/users/verified", label: "Verified", icon: UserCheck },
-      { href: "/dashboard/users/banned", label: "Banned", icon: UserX },
-      { href: "/dashboard/users/roles", label: "Roles & Permissions", icon: Key },
+      { href: "/dashboard/verification", label: "Verification", icon: FileCheck },
     ],
   },
   {

@@ -32,6 +32,7 @@ import {
   X,
   Globe,
   MonitorSmartphone,
+  BadgeCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -74,6 +75,7 @@ export const settingsSections: SettingsSection[] = [
       { href: '/app/settings?tab=devices', label: 'الأجهزة الموثوقة', icon: Smartphone },
       { href: '/app/settings?tab=logs', label: 'سجل الأمان', icon: History },
       { href: '/app/settings?tab=ip-protection', label: 'تنبيهات الدخول', icon: Globe, badge: 'جديد' },
+      { href: '/app/settings?tab=verification', label: 'توثيق الحساب', icon: BadgeCheck, badge: 'جديد' },
     ],
   },
   {

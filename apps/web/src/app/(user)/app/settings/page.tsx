@@ -29,6 +29,7 @@ import {
   User as UserIcon,
   Settings,
   Sparkles,
+  BadgeCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/providers';
@@ -86,12 +87,13 @@ const SocialIntegrations = lazy(() => import('@/components/(app)/settings/Social
 const AnalyticsIntegrations = lazy(() => import('@/components/(app)/settings/AnalyticsIntegrations').then(m => ({ default: m.AnalyticsIntegrations })));
 const NotificationIntegrations = lazy(() => import('@/components/(app)/settings/NotificationIntegrations').then(m => ({ default: m.NotificationIntegrations })));
 const StorageIntegrations = lazy(() => import('@/components/(app)/settings/StorageIntegrations').then(m => ({ default: m.StorageIntegrations })));
+const VerificationRequest = lazy(() => import('@/components/(app)/settings/VerificationRequest').then(m => ({ default: m.VerificationRequest })));
 
 /* =========================================================================
    Types & Data
    ========================================================================= */
 type SettingTab =
-  | '2fa' | 'sessions' | 'devices' | 'logs' | 'ip-protection'
+  | '2fa' | 'sessions' | 'devices' | 'logs' | 'ip-protection' | 'verification'
   | 'overview' | 'social' | 'analytics' | 'notifications' | 'storage'
   | 'store-general' | 'products' | 'orders'
   | 'forms-general' | 'templates' | 'submissions'
@@ -116,6 +118,7 @@ const allSettings: SettingItem[] = [
   { id: 'devices', label: 'الأجهزة الموثوقة', description: 'أجهزة تسجيل الدخول', icon: Smartphone, category: 'security', color: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-500/10 dark:bg-emerald-500/15' },
   { id: 'logs', label: 'سجل الأمان', description: 'تتبع النشاطات الأمنية', icon: ScrollText, category: 'security', color: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-500/10 dark:bg-emerald-500/15' },
   { id: 'ip-protection', label: 'تنبيهات الدخول', description: 'تنبيه عند دخول من موقع جديد', icon: Globe, category: 'security', color: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-500/10 dark:bg-emerald-500/15', badge: 'جديد', badgeVariant: 'info' },
+  { id: 'verification', label: 'توثيق الحساب', description: 'طلب توثيق حسابك', icon: BadgeCheck, category: 'security', color: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-500/10 dark:bg-emerald-500/15', badge: 'جديد', badgeVariant: 'info' },
   // Integrations
   { id: 'overview', label: 'نظرة عامة', description: 'جميع التكاملات المتاحة', icon: Zap, category: 'integrations', color: 'text-violet-600 dark:text-violet-400', iconBg: 'bg-violet-500/10 dark:bg-violet-500/15' },
   { id: 'social', label: 'وسائل التواصل', description: 'ربط حسابات التواصل', icon: Share2, category: 'integrations', color: 'text-violet-600 dark:text-violet-400', iconBg: 'bg-violet-500/10 dark:bg-violet-500/15' },
@@ -376,6 +379,7 @@ function SettingsContent() {
       case 'devices': return <TrustedDevices />;
       case 'logs': return <SecurityLogs />;
       case 'ip-protection': return <IPProtectionSettings />;
+      case 'verification': return <VerificationRequest />;
       default: return null;
     }
   }, [activeTab]);

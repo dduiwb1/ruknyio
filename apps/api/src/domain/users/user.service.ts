@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../core/database/prisma/prisma.service';
 import { SecurityLogService } from '../../infrastructure/security/log.service';
@@ -9,6 +10,7 @@ import { EmailService } from '../../integrations/email/email.service';
 import { SecurityDetectorService } from '../../infrastructure/security/detector.service';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { RedisService } from '../../core/cache/redis.service';
+import { S3Service } from '../../shared/services/s3.service';
 import { generateSecret, generateURI, verifySync } from 'otplib';
 import * as qrcode from 'qrcode';
 import {
@@ -20,6 +22,8 @@ import {
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     private prisma: PrismaService,
     private securityLogService: SecurityLogService,
@@ -27,6 +31,7 @@ export class UserService {
     private securityDetectorService: SecurityDetectorService,
     private notificationsGateway: NotificationsGateway,
     private redisService: RedisService,
+    private s3Service: S3Service,
   ) {}
 
   // Get user profile
@@ -542,5 +547,165 @@ export class UserService {
   // Remove Trusted Device
   async removeTrustedDevice(userId: string, deviceId: string) {
     return this.securityDetectorService.removeTrustedDevice(userId, deviceId);
+  }
+
+  // ─── Verification Requests ──────────────────────────
+
+  /**
+   * Get the user's latest verification request
+   */
+  async getVerificationRequest(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { isVerified: true, verifiedAt: true },
+    });
+
+    const latestRequest = await this.prisma.verificationRequest.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        fullName: true,
+        socialLinks: true,
+        screenshots: true,
+        businessName: true,
+        businessEmail: true,
+        notes: true,
+        rejectionReason: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    // Generate presigned URLs for S3 screenshot keys
+    let screenshotUrls: string[] = latestRequest?.screenshots || [];
+    if (latestRequest?.screenshots?.length) {
+      const isS3Keys = !latestRequest.screenshots[0]?.startsWith('data:');
+      if (isS3Keys) {
+        const bucket = this.s3Service.getDefaultBucket();
+        screenshotUrls = await this.s3Service.getPresignedGetUrls(
+          bucket,
+          latestRequest.screenshots,
+          3600, // 1 hour
+        );
+      }
+    }
+
+    return {
+      isVerified: user?.isVerified || false,
+      verifiedAt: user?.verifiedAt || null,
+      request: latestRequest
+        ? { ...latestRequest, screenshots: screenshotUrls }
+        : null,
+    };
+  }
+
+  /**
+   * Submit a verification request
+   */
+  async submitVerificationRequest(
+    userId: string,
+    body: {
+      type: 'PERSONAL' | 'BUSINESS';
+      fullName: string;
+      socialLinks?: string;
+      businessName?: string;
+      businessEmail?: string;
+      notes?: string;
+    },
+    files?: Express.Multer.File[],
+  ) {
+    // Check if user is already verified
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { isVerified: true, email: true },
+    });
+    if (!user) throw new BadRequestException('المستخدم غير موجود');
+    if (user.isVerified) throw new BadRequestException('الحساب موثق بالفعل');
+
+    // Check if there's a pending request
+    const existingPending = await this.prisma.verificationRequest.findFirst({
+      where: {
+        userId,
+        status: { in: ['PENDING', 'UNDER_REVIEW'] },
+      },
+    });
+    if (existingPending) {
+      throw new BadRequestException('لديك طلب توثيق قيد المراجعة بالفعل');
+    }
+
+    if (!body.fullName || body.fullName.trim().length < 2) {
+      throw new BadRequestException('الاسم الكامل مطلوب');
+    }
+
+    // Parse social links
+    let socialLinks: any = null;
+    if (body.socialLinks) {
+      try {
+        socialLinks = JSON.parse(body.socialLinks);
+      } catch {
+        socialLinks = null;
+      }
+    }
+
+    // For personal verification, require at least one screenshot or social link
+    if (body.type === 'PERSONAL') {
+      const hasScreenshots = files && files.length > 0;
+      const hasSocialLinks = socialLinks && Array.isArray(socialLinks) && socialLinks.length > 0;
+      if (!hasScreenshots && !hasSocialLinks) {
+        throw new BadRequestException('يجب رفع صور أو إضافة روابط منصات التواصل الاجتماعي');
+      }
+    }
+
+    // For business verification, require business name
+    if (body.type === 'BUSINESS' && !body.businessName?.trim()) {
+      throw new BadRequestException('اسم الشركة مطلوب للتوثيق التجاري');
+    }
+
+    // Upload screenshots to S3
+    const screenshots: string[] = [];
+    if (files && files.length > 0) {
+      const bucket = this.s3Service.getDefaultBucket();
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const ext = file.originalname?.split('.').pop() || 'jpg';
+        const key = `verification/${userId}/${Date.now()}-${i}.${ext}`;
+        try {
+          await this.s3Service.uploadBuffer(bucket, key, file.buffer, file.mimetype);
+          screenshots.push(key);
+        } catch (err) {
+          this.logger.error(`Failed to upload verification screenshot: ${err}`);
+          throw new BadRequestException('فشل رفع الصور، حاول مرة أخرى');
+        }
+      }
+    }
+
+    const request = await this.prisma.verificationRequest.create({
+      data: {
+        userId,
+        type: body.type as any,
+        fullName: body.fullName.trim(),
+        socialLinks,
+        screenshots,
+        businessName: body.businessName?.trim() || null,
+        businessEmail: body.businessEmail?.trim() || null,
+        notes: body.notes?.trim() || null,
+      },
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        fullName: true,
+        createdAt: true,
+      },
+    });
+
+    return {
+      success: true,
+      message: 'تم تقديم طلب التوثيق بنجاح. سيتم مراجعته قريباً.',
+      request,
+    };
   }
 }

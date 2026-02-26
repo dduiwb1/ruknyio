@@ -132,6 +132,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
             // No valid session - clear any stale tokens
             clearCsrfToken();
             setState(prev => ({ ...prev, isLoading: false }));
+            // 🔒 Redirect to login if on a protected route with no valid session
+            if (typeof window !== 'undefined') {
+              const path = window.location.pathname;
+              if (path === '/app' || path.startsWith('/app/')) {
+                window.location.href = '/login?session=expired';
+              }
+            }
             return;
           }
         }

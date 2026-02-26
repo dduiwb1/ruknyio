@@ -109,6 +109,55 @@ export async function logoutAdmin(): Promise<void> {
   });
 }
 
+/** Complete QuickSign profile (for magic link users) */
+export async function completeQuickSignProfile(data: {
+  name: string;
+  username: string;
+  quickSignToken: string;
+}): Promise<{ success: boolean; csrf_token?: string; message?: string }> {
+  const res = await fetch(buildApiPath("auth/quicksign/complete-profile"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(
+      Array.isArray(json.message)
+        ? json.message.join(", ")
+        : json.message || "Failed to complete profile"
+    );
+  }
+
+  return json;
+}
+
+/** Complete OAuth profile (for Google OAuth users) */
+export async function completeOAuthProfile(data: {
+  name: string;
+  username: string;
+}): Promise<{ success: boolean; user: AdminUser; message: string }> {
+  const res = await fetch(buildApiPath("auth/update-profile"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(
+      Array.isArray(json.message)
+        ? json.message.join(", ")
+        : json.message || "Failed to complete profile"
+    );
+  }
+
+  return json;
+}
+
 /** Google OAuth URL — passes callback_url so backend redirects back to admin */
 export function getGoogleAuthUrl(): string {
   return buildApiExternalUrl(`auth/google?callback_url=${encodeURIComponent(APP_URL)}`);

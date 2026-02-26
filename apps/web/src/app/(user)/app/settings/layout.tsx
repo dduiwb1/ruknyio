@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { SettingsSidebar, settingsSections, type SettingsSection } from "@/components/(app)/settings/SettingsSidebar";
 import { SettingsBreadcrumb } from "@/components/(app)/settings/SettingsBreadcrumb";
+import { PhonePreview } from "@/components/(app)/shared/PhonePreview";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Main Layout
@@ -60,13 +61,13 @@ export default function SettingsLayout({
 
   return (
     <div
-      className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 gap-3 my-2 mx-2 md:ms-0"
+      className="relative flex h-[calc(100%-1rem)] flex-1 min-w-0 gap-4 m-2 md:ms-0"
       dir="rtl"
     >
       <SettingsSidebar />
-      <div className="flex-1 min-w-0 bg-card rounded-2xl border border-border/40 overflow-hidden flex flex-col">
+      <div className="flex-1 min-w-0 bg-card rounded-2xl border border-border/50 overflow-hidden flex flex-col">
         {/* Mobile Header - always visible */}
-        <header className="sticky top-0 z-40 lg:hidden bg-card/95 backdrop-blur-md border-b border-border/40">
+        <header className="sticky top-0 z-40 lg:hidden bg-card/95 backdrop-blur-md border-b border-border/50">
           <div className="flex items-center gap-3 px-4 py-3.5">
             {/* زر رجوع - إلى لوحة التحكم أو قائمة الإعدادات */}
             <Link href={currentTab ? "/app/settings" : "/app"}>
@@ -106,7 +107,7 @@ export default function SettingsLayout({
         </header>
 
         {/* Desktop Header */}
-        <header className="hidden lg:block border-b border-border/40 bg-card">
+        <header className="hidden lg:block border-b border-border/50 bg-card">
           <div className="px-6 py-4">
             <div className="flex items-center gap-3 mb-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary/10">
@@ -127,6 +128,11 @@ export default function SettingsLayout({
         <div className="flex-1 min-h-0 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {children}
         </div>
+      </div>
+
+      {/* Phone Preview Sidebar - Desktop Only */}
+      <div className="hidden xl:flex">
+        <PhonePreview />
       </div>
     </div>
   );

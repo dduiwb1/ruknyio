@@ -12,6 +12,8 @@ import {
   Query,
   Res,
   HttpStatus,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -20,6 +22,8 @@ import {
   ApiResponse,
   ApiBody,
 } from '@nestjs/swagger';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { Response } from 'express';
 import { UserService } from './user.service';
 import { SecurityLogService } from '../../infrastructure/security/log.service';
@@ -464,5 +468,44 @@ export class UserController {
     });
 
     return { message: 'تم مسح جميع IPs الموثوقة بنجاح' };
+  }
+
+  // ─── Verification Requests ─────────────────────────
+
+  /**
+   * GET /user/verification-request
+   * Get current user's latest verification request
+   */
+  @Get('verification-request')
+  @ApiOperation({ summary: 'Get current verification request status' })
+  async getVerificationRequest(@Request() req) {
+    return this.userService.getVerificationRequest(req.user.id);
+  }
+
+  /**
+   * POST /user/verification-request
+   * Submit a new verification request with screenshots
+   */
+  @Post('verification-request')
+  @UseInterceptors(
+    FilesInterceptor('screenshots', 5, {
+      storage: memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB per file
+    }),
+  )
+  @ApiOperation({ summary: 'Submit account verification request' })
+  async submitVerificationRequest(
+    @Request() req,
+    @Body() body: {
+      type: 'PERSONAL' | 'BUSINESS';
+      fullName: string;
+      socialLinks?: string; // JSON string
+      businessName?: string;
+      businessEmail?: string;
+      notes?: string;
+    },
+    @UploadedFiles() files?: Express.Multer.File[],
+  ) {
+    return this.userService.submitVerificationRequest(req.user.id, body, files);
   }
 }

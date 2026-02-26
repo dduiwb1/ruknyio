@@ -327,9 +327,10 @@ export class AuthController {
         user, // 🔒 بيانات المستخدم (يلغي الحاجة لـ /auth/me)
       };
     } catch (error) {
-      // 🔒 مسح الكوكي الفاسدة عند فشل التجديد
+      // 🔒 مسح جميع الكوكيز عند فشل التجديد
       // هذا يمنع الحلقة اللانهائية من محاولات التجديد
-      clearRefreshTokenCookie(res);
+      // يجب مسح access_token أيضاً حتى لا يبقى كوكي قديم يسبب redirect loop في proxy
+      clearAuthCookies(res);
       throw error;
     }
   }
