@@ -78,6 +78,12 @@ self.addEventListener('fetch', (event) => {
   if (!url.protocol.startsWith('http')) {
     return;
   }
+
+  // Skip OAuth/auth redirects — these are navigation requests to external providers
+  // (Google, LinkedIn, magic link verify, etc.) and must NOT be intercepted
+  if (url.pathname.startsWith('/api/v1/auth/')) {
+    return;
+  }
   
   // API calls: Network first, cache fallback
   if (url.pathname.startsWith('/api/')) {
