@@ -211,4 +211,108 @@ export class AdminController {
   async deleteStoreCategory(@Param('id') id: string) {
     return this.adminService.deleteStoreCategory(id);
   }
+
+  // ─── Orders Management ─────────────────────────────
+
+  /**
+   * GET /admin/orders/stats
+   * Platform-wide order statistics
+   */
+  @Get('orders/stats')
+  @ApiOperation({ summary: 'Get order statistics (Admin only)' })
+  async getOrderStats() {
+    return this.adminService.getOrderStats();
+  }
+
+  /**
+   * GET /admin/orders/export
+   * Export orders as JSON (no pagination) for CSV generation
+   */
+  @Get('orders/export')
+  @ApiOperation({ summary: 'Export orders (Admin only)' })
+  async exportOrders(
+    @Query('status') status?: string,
+    @Query('storeId') storeId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.adminService.exportOrders({ status, storeId, startDate, endDate });
+  }
+
+  /**
+   * GET /admin/orders
+   * Paginated orders list with filters
+   */
+  @Get('orders')
+  @ApiOperation({ summary: 'Get paginated orders list (Admin only)' })
+  async getOrders(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('storeId') storeId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: string,
+    @Query('minAmount') minAmount?: string,
+    @Query('maxAmount') maxAmount?: string,
+  ) {
+    return this.adminService.getOrders({
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 20,
+      search,
+      status,
+      storeId,
+      startDate,
+      endDate,
+      sortBy,
+      sortOrder: sortOrder as 'asc' | 'desc',
+      minAmount: minAmount ? parseFloat(minAmount) : undefined,
+      maxAmount: maxAmount ? parseFloat(maxAmount) : undefined,
+    });
+  }
+
+  /**
+   * GET /admin/orders/:id
+   * Single order details
+   */
+  @Get('orders/:id')
+  @ApiOperation({ summary: 'Get order details (Admin only)' })
+  async getOrderById(@Param('id') id: string) {
+    return this.adminService.getOrderById(id);
+  }
+
+  /**
+   * PUT /admin/orders/:id/status
+   * Update order status
+   */
+  @Put('orders/:id/status')
+  @ApiOperation({ summary: 'Update order status (Admin only)' })
+  async updateOrderStatus(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      status: string;
+      storeNote?: string;
+      estimatedDelivery?: string;
+    },
+  ) {
+    return this.adminService.adminUpdateOrderStatus(
+      id,
+      body.status,
+      body.storeNote,
+      body.estimatedDelivery,
+    );
+  }
+
+  /**
+   * DELETE /admin/orders/:id
+   * Delete an order
+   */
+  @Delete('orders/:id')
+  @ApiOperation({ summary: 'Delete an order (Admin only)' })
+  async deleteOrder(@Param('id') id: string) {
+    return this.adminService.adminDeleteOrder(id);
+  }
 }

@@ -687,4 +687,496 @@ export class AdminService {
     await this.prisma.store_categories.delete({ where: { id } });
     return { success: true };
   }
+
+  // ─── Orders Management ─────────────────────────────
+
+  /**
+   * Platform-wide order statistics
+   */
+  async getOrderStats() {
+    const cacheKey = `${this.CACHE_PREFIX}order-stats`;
+    const cached = await this.redis.get<any>(cacheKey);
+    if (cached) return cached;
+
+    const [
+      totalOrders,
+      todayOrders,
+      weekOrders,
+      monthOrders,
+      statusCounts,
+      revenueTotal,
+      revenueThisMonth,
+      revenueToday,
+      avgOrderValue,
+    ] = await Promise.all([
+      this.prisma.orders.count(),
+      this.prisma.orders.count({
+        where: { createdAt: { gte: this.startOfDay() } },
+      }),
+      this.prisma.orders.count({
+        where: { createdAt: { gte: this.startOfWeek() } },
+      }),
+      this.prisma.orders.count({
+        where: { createdAt: { gte: this.startOfMonth() } },
+      }),
+      this.prisma.orders.groupBy({
+        by: ['status'],
+        _count: { id: true },
+      }),
+      this.prisma.orders.aggregate({
+        where: { status: 'DELIVERED' },
+        _sum: { total: true },
+      }),
+      this.prisma.orders.aggregate({
+        where: {
+          status: 'DELIVERED',
+          createdAt: { gte: this.startOfMonth() },
+        },
+        _sum: { total: true },
+      }),
+      this.prisma.orders.aggregate({
+        where: {
+          status: 'DELIVERED',
+          createdAt: { gte: this.startOfDay() },
+        },
+        _sum: { total: true },
+      }),
+      this.prisma.orders.aggregate({
+        _avg: { total: true },
+      }),
+    ]);
+
+    const getCount = (status: string) =>
+      statusCounts.find((s) => s.status === status)?._count?.id || 0;
+
+    const stats = {
+      total: totalOrders,
+      today: todayOrders,
+      thisWeek: weekOrders,
+      thisMonth: monthOrders,
+      byStatus: {
+        pending: getCount('PENDING'),
+        confirmed: getCount('CONFIRMED'),
+        processing: getCount('PROCESSING'),
+        shipped: getCount('SHIPPED'),
+        outForDelivery: getCount('OUT_FOR_DELIVERY'),
+        delivered: getCount('DELIVERED'),
+        cancelled: getCount('CANCELLED'),
+        refunded: getCount('REFUNDED'),
+      },
+      revenue: {
+        total: Number(revenueTotal._sum?.total || 0),
+        thisMonth: Number(revenueThisMonth._sum?.total || 0),
+        today: Number(revenueToday._sum?.total || 0),
+      },
+      averageOrderValue: Number(avgOrderValue._avg?.total || 0),
+      cancellationRate:
+        totalOrders > 0
+          ? Math.round((getCount('CANCELLED') / totalOrders) * 100)
+          : 0,
+    };
+
+    await this.redis.set(cacheKey, JSON.stringify(stats), this.CACHE_TTL);
+    return stats;
+  }
+
+  /**
+   * Get paginated orders list with filters (admin)
+   */
+  async getOrders(params: {
+    page: number;
+    limit: number;
+    search?: string;
+    status?: string;
+    storeId?: string;
+    startDate?: string;
+    endDate?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    minAmount?: number;
+    maxAmount?: number;
+  }) {
+    const {
+      page,
+      limit,
+      search,
+      status,
+      storeId,
+      startDate,
+      endDate,
+      sortBy,
+      sortOrder,
+      minAmount,
+      maxAmount,
+    } = params;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+
+    if (status) where.status = status;
+    if (storeId) where.storeId = storeId;
+
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate);
+      if (endDate) where.createdAt.lte = new Date(endDate);
+    }
+
+    if (minAmount !== undefined || maxAmount !== undefined) {
+      where.total = {};
+      if (minAmount !== undefined) where.total.gte = minAmount;
+      if (maxAmount !== undefined) where.total.lte = maxAmount;
+    }
+
+    if (search) {
+      where.OR = [
+        { orderNumber: { contains: search, mode: 'insensitive' } },
+        { phoneNumber: { contains: search, mode: 'insensitive' } },
+        {
+          users: {
+            OR: [
+              { email: { contains: search, mode: 'insensitive' } },
+              {
+                profile: {
+                  name: { contains: search, mode: 'insensitive' },
+                },
+              },
+            ],
+          },
+        },
+        {
+          stores: {
+            name: { contains: search, mode: 'insensitive' },
+          },
+        },
+      ];
+    }
+
+    const orderBy: any = {};
+    if (sortBy === 'total') orderBy.total = sortOrder || 'desc';
+    else if (sortBy === 'status') orderBy.status = sortOrder || 'asc';
+    else if (sortBy === 'orderNumber') orderBy.orderNumber = sortOrder || 'desc';
+    else orderBy.createdAt = sortOrder || 'desc';
+
+    const [orders, total] = await Promise.all([
+      this.prisma.orders.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy,
+        select: {
+          id: true,
+          orderNumber: true,
+          status: true,
+          subtotal: true,
+          shippingFee: true,
+          discount: true,
+          total: true,
+          currency: true,
+          phoneNumber: true,
+          customerNote: true,
+          storeNote: true,
+          estimatedDelivery: true,
+          deliveredAt: true,
+          cancelledAt: true,
+          cancellationReason: true,
+          createdAt: true,
+          updatedAt: true,
+          users: {
+            select: {
+              id: true,
+              email: true,
+              profile: {
+                select: { name: true, avatar: true },
+              },
+            },
+          },
+          stores: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              logo: true,
+            },
+          },
+          _count: {
+            select: { order_items: true },
+          },
+        },
+      }),
+      this.prisma.orders.count({ where }),
+    ]);
+
+    return {
+      data: orders.map((order) => ({
+        ...order,
+        subtotal: Number(order.subtotal),
+        shippingFee: Number(order.shippingFee),
+        discount: Number(order.discount),
+        total: Number(order.total),
+        itemsCount: order._count?.order_items || 0,
+        customer: order.users
+          ? {
+              id: order.users.id,
+              email: order.users.email,
+              name: order.users.profile?.name,
+              avatar: order.users.profile?.avatar,
+            }
+          : null,
+        store: order.stores,
+      })),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  /**
+   * Get single order details (admin — no ownership check)
+   */
+  async getOrderById(id: string) {
+    const order = await this.prisma.orders.findUnique({
+      where: { id },
+      include: {
+        users: {
+          select: {
+            id: true,
+            email: true,
+            profile: {
+              select: { name: true, username: true, avatar: true },
+            },
+          },
+        },
+        stores: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            logo: true,
+            contactEmail: true,
+            contactPhone: true,
+          },
+        },
+        addresses: true,
+        order_items: {
+          include: {
+            products: {
+              include: {
+                product_images: {
+                  where: { isPrimary: true },
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
+        coupons: {
+          select: { code: true, discountType: true, discountValue: true },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    return {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      subtotal: Number(order.subtotal),
+      shippingFee: Number(order.shippingFee),
+      discount: Number(order.discount),
+      total: Number(order.total),
+      currency: order.currency,
+      phoneNumber: order.phoneNumber,
+      customerNote: order.customerNote,
+      storeNote: order.storeNote,
+      estimatedDelivery: order.estimatedDelivery,
+      deliveredAt: order.deliveredAt,
+      cancelledAt: order.cancelledAt,
+      cancellationReason: order.cancellationReason,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+      customer: order.users
+        ? {
+            id: order.users.id,
+            email: order.users.email,
+            name: order.users.profile?.name,
+            username: order.users.profile?.username,
+            avatar: order.users.profile?.avatar,
+          }
+        : null,
+      store: order.stores,
+      address: order.addresses,
+      items: order.order_items?.map((item) => ({
+        id: item.id,
+        productId: item.productId,
+        productName: item.productName,
+        productNameAr: item.productNameAr,
+        price: Number(item.price),
+        quantity: item.quantity,
+        subtotal: Number(item.subtotal),
+        image: item.products?.product_images?.[0]?.imagePath || null,
+      })),
+      coupon: order.coupons || null,
+    };
+  }
+
+  /**
+   * Admin update order status (no ownership check)
+   */
+  async adminUpdateOrderStatus(
+    id: string,
+    status: string,
+    storeNote?: string,
+    estimatedDelivery?: string,
+  ) {
+    const order = await this.prisma.orders.findUnique({ where: { id } });
+    if (!order) throw new Error('Order not found');
+
+    const updateData: any = {
+      status,
+      updatedAt: new Date(),
+    };
+
+    if (storeNote !== undefined) updateData.storeNote = storeNote;
+    if (estimatedDelivery)
+      updateData.estimatedDelivery = new Date(estimatedDelivery);
+    if (status === 'DELIVERED') updateData.deliveredAt = new Date();
+    if (status === 'CANCELLED') {
+      updateData.cancelledAt = new Date();
+      // Restore stock
+      const items = await this.prisma.order_items.findMany({
+        where: { orderId: id },
+      });
+      for (const item of items) {
+        await this.prisma.products.update({
+          where: { id: item.productId },
+          data: { quantity: { increment: item.quantity } },
+        });
+      }
+    }
+
+    await this.prisma.orders.update({ where: { id }, data: updateData });
+
+    // Invalidate cache
+    await this.redis.del(`${this.CACHE_PREFIX}order-stats`);
+    await this.redis.del(`${this.CACHE_PREFIX}platform-stats`);
+
+    return this.getOrderById(id);
+  }
+
+  /**
+   * Export orders (no pagination) for CSV
+   */
+  async exportOrders(params: {
+    status?: string;
+    storeId?: string;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    const { status, storeId, startDate, endDate } = params;
+    const where: any = {};
+
+    if (status) where.status = status;
+    if (storeId) where.storeId = storeId;
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate);
+      if (endDate) where.createdAt.lte = new Date(endDate);
+    }
+
+    const orders = await this.prisma.orders.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        subtotal: true,
+        shippingFee: true,
+        discount: true,
+        total: true,
+        currency: true,
+        phoneNumber: true,
+        customerNote: true,
+        storeNote: true,
+        estimatedDelivery: true,
+        deliveredAt: true,
+        cancelledAt: true,
+        cancellationReason: true,
+        createdAt: true,
+        updatedAt: true,
+        users: {
+          select: {
+            email: true,
+            profile: { select: { name: true } },
+          },
+        },
+        stores: {
+          select: { name: true },
+        },
+        addresses: {
+          select: {
+            fullName: true,
+            phoneNumber: true,
+            city: true,
+            district: true,
+            street: true,
+          },
+        },
+        _count: {
+          select: { order_items: true },
+        },
+      },
+    });
+
+    return {
+      data: orders.map((order) => ({
+        orderNumber: order.orderNumber,
+        status: order.status,
+        customerName: order.users?.profile?.name || order.users?.email || '—',
+        customerEmail: order.users?.email || '—',
+        phone: order.phoneNumber || order.addresses?.phoneNumber || '—',
+        storeName: order.stores?.name || '—',
+        itemsCount: order._count?.order_items || 0,
+        subtotal: Number(order.subtotal),
+        shippingFee: Number(order.shippingFee),
+        discount: Number(order.discount),
+        total: Number(order.total),
+        currency: order.currency,
+        city: order.addresses?.city || '—',
+        district: order.addresses?.district || '—',
+        street: order.addresses?.street || '—',
+        customerNote: order.customerNote || '',
+        storeNote: order.storeNote || '',
+        cancellationReason: order.cancellationReason || '',
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
+        deliveredAt: order.deliveredAt || '',
+        cancelledAt: order.cancelledAt || '',
+      })),
+      total: orders.length,
+    };
+  }
+
+  /**
+   * Admin delete order
+   */
+  async adminDeleteOrder(id: string) {
+    const order = await this.prisma.orders.findUnique({ where: { id } });
+    if (!order) throw new Error('Order not found');
+
+    // Delete order items first
+    await this.prisma.order_items.deleteMany({ where: { orderId: id } });
+    await this.prisma.orders.delete({ where: { id } });
+
+    // Invalidate cache
+    await this.redis.del(`${this.CACHE_PREFIX}order-stats`);
+    await this.redis.del(`${this.CACHE_PREFIX}platform-stats`);
+
+    return { success: true };
+  }
 }
