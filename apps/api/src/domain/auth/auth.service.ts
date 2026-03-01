@@ -174,6 +174,7 @@ export class AuthService {
           email,
           googleId,
           emailVerified: true, // Google emails are considered verified
+          profileCompleted: true, // OAuth users have name/email/avatar from provider
           profile: {
             create: {
               id: crypto.randomUUID(),
@@ -219,6 +220,15 @@ export class AuthService {
         include: {
           profile: true,
         },
+      });
+    }
+
+    // Ensure profileCompleted is true for OAuth users with a profile
+    if (!user.profileCompleted && user.profile) {
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: { profileCompleted: true },
+        include: { profile: true },
       });
     }
 
@@ -323,6 +333,7 @@ export class AuthService {
           email,
           linkedinId,
           emailVerified: true, // LinkedIn emails are considered verified
+          profileCompleted: true, // OAuth users have name/email/avatar from provider
           profile: {
             create: {
               id: crypto.randomUUID(),
@@ -368,6 +379,15 @@ export class AuthService {
         include: {
           profile: true,
         },
+      });
+    }
+
+    // Ensure profileCompleted is true for OAuth users with a profile
+    if (!user.profileCompleted && user.profile) {
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: { profileCompleted: true },
+        include: { profile: true },
       });
     }
 

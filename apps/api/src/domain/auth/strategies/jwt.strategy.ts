@@ -88,6 +88,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             role: true,
             phone: true,
             bannerUrls: true,
+            profileCompleted: true,
             profile: {
               select: {
                 name: true,
@@ -193,6 +194,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       bio: session.user.profile?.bio,
       phone: session.user.phone,
       bannerUrls: session.user.bannerUrls || [],
+      profileCompleted: session.user.profileCompleted ?? false,
       sessionId: session.id, // 🔒 Session ID للاستخدام لاحقاً
     };
     return result;
