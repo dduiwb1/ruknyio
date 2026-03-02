@@ -18,7 +18,7 @@
     "start:prod": "node dist/main",
     "deploy": "prisma migrate deploy && node dist/main",
     "migrate": "prisma migrate deploy",
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate || true",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
