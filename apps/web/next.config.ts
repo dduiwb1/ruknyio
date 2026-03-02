@@ -11,6 +11,14 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'auth.rukny.xyz',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.rukny.xyz',
+      },
+      {
+        protocol: 'https',
         hostname: '*.googleusercontent.com',
       },
     ],
