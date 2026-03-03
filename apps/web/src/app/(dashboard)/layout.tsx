@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { requireCompleteProfile } from '@/lib/dal';
 import { Sidebar } from './components/dashboard-sidebar';
 import { DashboardNav } from './components/dashboard-nav';
-import { PhonePreview } from '@/components/(app)/shared/PhonePreview';
+import { CollapsiblePhonePreview } from '@/components/(app)/shared/CollapsiblePhonePreview';
 
 export default async function DashboardLayout({
   children,
@@ -18,23 +18,21 @@ export default async function DashboardLayout({
 
       {/* Main Content Area */}
       <div className="flex-1 min-w-0 flex gap-2 p-2 ps-0">
-        {/* Card Container */}
-        <div className="flex-1 min-w-0 relative h-full bg-card rounded-4xl border border-border/50 overflow-hidden">
-          {/* Floating Nav */}
-          <DashboardNav />
+        {/* CollapsiblePhonePreview wraps content + preview for shared context */}
+        <CollapsiblePhonePreview>
+          {/* Card Container */}
+          <div className="flex-1 min-w-0 relative h-full bg-card rounded-4xl border border-border/50 overflow-hidden transition-all duration-300">
+            {/* Floating Nav */}
+            <DashboardNav />
 
-          {/* Scrollable content */}
-          <main className="h-full overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            <div className="mx-auto w-full max-w-7xl px-4 pt-14 pb-6 sm:px-6">
-              {children}
-            </div>
-          </main>
-        </div>
-
-        {/* Phone Preview - outside card container */}
-        <div className="hidden xl:block h-full overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <PhonePreview />
-        </div>
+            {/* Scrollable content */}
+            <main className="h-full overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <div className="mx-auto w-full max-w-7xl px-4 pt-14 pb-6 sm:px-6">
+                {children}
+              </div>
+            </main>
+          </div>
+        </CollapsiblePhonePreview>
       </div>
     </div>
   );

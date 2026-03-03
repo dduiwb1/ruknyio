@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { IBM_Plex_Sans_Arabic } from 'next/font/google';
-import { Toaster } from 'sonner';
+import { ToastProvider } from '@/components/ui/toast';
 import { AuthProvider } from '@/providers/auth-provider';
 import { QueryProvider } from '@/providers/query-provider';
 import { getUserOptional } from '@/lib/dal';
@@ -32,8 +32,9 @@ export default async function RootLayout({
       <body className={`${ibmPlexSansArabic.className} antialiased`}>
         <QueryProvider>
           <AuthProvider initialUser={user}>
-            {children}
-            <Toaster position="top-center" richColors dir="rtl" />
+            <ToastProvider position="bottom-right">
+              {children}
+            </ToastProvider>
           </AuthProvider>
         </QueryProvider>
       </body>

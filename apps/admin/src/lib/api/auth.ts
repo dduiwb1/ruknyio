@@ -42,7 +42,7 @@ export async function sendAdminMagicLink(email: string): Promise<MagicLinkRespon
   const res = await fetch(buildApiPath("auth/quicksign/request"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, callbackUrl: APP_URL }),
+    body: JSON.stringify({ email }),
     credentials: "include",
   });
 
@@ -60,7 +60,7 @@ export async function resendAdminMagicLink(email: string): Promise<MagicLinkResp
   const res = await fetch(buildApiPath("auth/quicksign/resend"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, callbackUrl: APP_URL }),
+    body: JSON.stringify({ email }),
     credentials: "include",
   });
 

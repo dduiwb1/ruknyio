@@ -2,6 +2,7 @@ import {
   IsString,
   IsOptional,
   IsEnum,
+  IsBoolean,
   MaxLength,
   Matches,
 } from 'class-validator';
@@ -50,4 +51,37 @@ export class CreateProfileDto {
   @IsOptional()
   @MaxLength(100, { message: 'Name must be less than 100 characters' })
   name?: string;
+
+  @ApiPropertyOptional({
+    example: 'بغداد، العراق',
+    description: 'User location',
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(200, { message: 'Location must be less than 200 characters' })
+  location?: string;
+
+  @ApiPropertyOptional({
+    example: false,
+    description: 'Hide email from public profile',
+  })
+  @IsBoolean()
+  @IsOptional()
+  hideEmail?: boolean;
+
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Hide phone number from public profile',
+  })
+  @IsBoolean()
+  @IsOptional()
+  hidePhone?: boolean;
+
+  @ApiPropertyOptional({
+    example: false,
+    description: 'Hide location from public profile',
+  })
+  @IsBoolean()
+  @IsOptional()
+  hideLocation?: boolean;
 }

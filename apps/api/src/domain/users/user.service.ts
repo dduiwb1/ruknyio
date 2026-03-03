@@ -16,6 +16,8 @@ import {
   SessionResponseDto,
   ChangeEmailDto,
   UpdateSecurityPreferencesDto,
+  DeactivateAccountDto,
+  DeleteAccountDto,
 } from './dto';
 
 @Injectable()
@@ -405,7 +407,7 @@ export class UserService {
     };
   }
 
-  // Change Email (بدون كلمة مرور - يتم التحقق عبر رمز مرسل للبريد)
+  // Request Email Change (بموافقة المسؤول - لا يتم التغيير مباشرة)
   async changeEmail(
     userId: string,
     changeEmailDto: ChangeEmailDto,
@@ -425,55 +427,218 @@ export class UserService {
       throw new UnauthorizedException('User not found');
     }
 
+    // التحقق من توثيق البريد الحالي
+    if (!user.emailVerified) {
+      throw new BadRequestException('يجب توثيق بريدك الإلكتروني الحالي أولاً');
+    }
+
+    // التحقق من تفعيل 2FA
+    if (!user.twoFactorEnabled) {
+      throw new BadRequestException('يجب تفعيل المصادقة الثنائية (2FA) أولاً');
+    }
+
     // Check if new email is already in use
     const existingUser = await this.prisma.user.findUnique({
       where: { email: changeEmailDto.newEmail },
     });
 
     if (existingUser) {
-      throw new BadRequestException('Email already in use');
+      throw new BadRequestException('البريد الإلكتروني مستخدم بالفعل');
+    }
+
+    // التحقق من عدم وجود طلب معلّق
+    const pendingRequest = await this.prisma.emailChangeRequest.findFirst({
+      where: {
+        userId,
+        status: 'PENDING',
+      },
+    });
+
+    if (pendingRequest) {
+      throw new BadRequestException('لديك طلب تغيير بريد إلكتروني قيد المراجعة بالفعل');
     }
 
     const oldEmail = user.email;
     const newEmail = changeEmailDto.newEmail;
 
-    // Update email
-    await this.prisma.user.update({
-      where: { id: userId },
+    // إنشاء طلب تغيير بريد إلكتروني (بانتظار موافقة المسؤول)
+    await this.prisma.emailChangeRequest.create({
       data: {
-        email: newEmail,
-        emailVerified: false, // Require re-verification
-        updatedAt: new Date(),
+        userId,
+        oldEmail,
+        newEmail,
+        status: 'PENDING',
+        ipAddress,
+        browser,
       },
-      select: { id: true, email: true, emailVerified: true },
     });
 
-    // Log email change
+    // Log the request
     await this.securityLogService.createLog({
       userId,
       action: 'EMAIL_CHANGE',
-      status: 'SUCCESS',
-      description: `تم تغيير البريد الإلكتروني من ${oldEmail} إلى ${newEmail}`,
+      status: 'WARNING',
+      description: `طلب تغيير البريد الإلكتروني من ${oldEmail} إلى ${newEmail} - بانتظار موافقة المسؤول`,
       ipAddress,
       browser,
     });
 
-    // Send email alerts to both old and new email
-    await this.emailService.sendEmailChangeAlert(
+    return {
+      message: 'تم إرسال طلب تغيير البريد الإلكتروني بنجاح — بانتظار مراجعة المسؤول',
       oldEmail,
       newEmail,
-      user.profile?.name || 'مستخدم',
-      {
-        ipAddress,
-        browser,
-        timestamp: new Date(),
+      status: 'PENDING',
+    };
+  }
+
+  // الحصول على آخر طلب تغيير بريد إلكتروني
+  async getEmailChangeRequest(userId: string) {
+    const request = await this.prisma.emailChangeRequest.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        oldEmail: true,
+        newEmail: true,
+        status: true,
+        reason: true,
+        createdAt: true,
+        reviewedAt: true,
       },
-    );
+    });
+
+    return request;
+  }
+
+  // إلغاء طلب تغيير البريد الإلكتروني
+  async cancelEmailChangeRequest(userId: string) {
+    const request = await this.prisma.emailChangeRequest.findFirst({
+      where: { userId, status: 'PENDING' },
+    });
+
+    if (!request) {
+      throw new BadRequestException('لا يوجد طلب قيد المراجعة');
+    }
+
+    await this.prisma.emailChangeRequest.delete({
+      where: { id: request.id },
+    });
+
+    return { message: 'تم إلغاء طلب تغيير البريد الإلكتروني' };
+  }
+
+  // إرسال رابط توثيق البريد الإلكتروني
+  async sendEmailVerification(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { profile: { select: { name: true } } },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    if (user.emailVerified) {
+      throw new BadRequestException('بريدك الإلكتروني موثّق بالفعل');
+    }
+
+    // إنشاء رمز تحقق
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+
+    // حذف أي رموز سابقة
+    await this.prisma.verification_codes.deleteMany({
+      where: {
+        userId,
+        type: 'EMAIL_CHANGE',
+        verified: false,
+      },
+    });
+
+    // إنشاء رمز جديد
+    await this.prisma.verification_codes.create({
+      data: {
+        id: crypto.randomUUID(),
+        userId,
+        code,
+        type: 'EMAIL_CHANGE',
+        expiresAt,
+      },
+    });
+
+    // إرسال رمز التحقق عبر البريد
+    try {
+      await this.emailService.sendEmail({
+        to: user.email,
+        subject: '🔐 رمز توثيق بريدك الإلكتروني - Rukny',
+        html: `
+          <div dir="rtl" style="font-family: 'IBM Plex Sans Arabic', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
+            <h2 style="color: #1a1a1a; margin-bottom: 16px;">توثيق البريد الإلكتروني</h2>
+            <p style="color: #666; font-size: 14px;">مرحباً ${user.profile?.name || 'مستخدم'}،</p>
+            <p style="color: #666; font-size: 14px;">رمز التحقق الخاص بك:</p>
+            <div style="background: #f4f4f5; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0;">
+              <code style="font-size: 28px; letter-spacing: 6px; font-weight: bold; color: #1a1a1a;">${code}</code>
+            </div>
+            <p style="color: #999; font-size: 12px;">صالح لمدة 30 دقيقة</p>
+          </div>
+        `,
+      });
+    } catch (error) {
+      console.error('Failed to send verification email:', error);
+    }
 
     return {
-      message: 'Email changed successfully',
-      oldEmail,
-      newEmail,
+      message: 'تم إرسال رمز التحقق إلى بريدك الإلكتروني',
+    };
+  }
+
+  // التحقق من رمز توثيق البريد الإلكتروني
+  async verifyEmailCode(userId: string, code: string) {
+    const verification = await this.prisma.verification_codes.findFirst({
+      where: {
+        userId,
+        type: 'EMAIL_CHANGE',
+        verified: false,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!verification) {
+      throw new BadRequestException('رمز التحقق غير صالح أو منتهي الصلاحية');
+    }
+
+    if (verification.attempts >= 5) {
+      throw new BadRequestException('تم تجاوز عدد المحاولات المسموح بها');
+    }
+
+    if (verification.code !== code) {
+      // زيادة عدد المحاولات
+      await this.prisma.verification_codes.update({
+        where: { id: verification.id },
+        data: { attempts: { increment: 1 } },
+      });
+      throw new BadRequestException('رمز التحقق غير صحيح');
+    }
+
+    // تحديث الرمز كمُحقق
+    await this.prisma.verification_codes.update({
+      where: { id: verification.id },
+      data: { verified: true, verifiedAt: new Date() },
+    });
+
+    // تحديث حالة التوثيق
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { emailVerified: true },
+    });
+
+    // مسح كاش المستخدم
+    await this.redisService.del(`user:profile:${userId}`);
+
+    return {
+      message: 'تم توثيق بريدك الإلكتروني بنجاح',
+      emailVerified: true,
     };
   }
 
@@ -542,5 +707,156 @@ export class UserService {
   // Remove Trusted Device
   async removeTrustedDevice(userId: string, deviceId: string) {
     return this.securityDetectorService.removeTrustedDevice(userId, deviceId);
+  }
+
+  // Deactivate Account
+  async deactivateAccount(
+    userId: string,
+    dto: DeactivateAccountDto,
+    ipAddress?: string,
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { profile: { select: { name: true } } },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    if ((user as any).isDeactivated) {
+      throw new BadRequestException('Account is already deactivated');
+    }
+
+    // Deactivate the account
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        isDeactivated: true,
+        deactivatedAt: new Date(),
+        updatedAt: new Date(),
+      } as any,
+    });
+
+    // Revoke all sessions
+    await this.prisma.session.updateMany({
+      where: { userId, isRevoked: false },
+      data: {
+        isRevoked: true,
+        revokedAt: new Date(),
+        revokedReason: 'Account deactivated',
+      },
+    });
+
+    // Log deactivation
+    await this.securityLogService.createLog({
+      userId,
+      action: 'ACCOUNT_DEACTIVATED' as any,
+      status: 'SUCCESS',
+      description: `تم تعطيل الحساب${dto.reason ? `: ${dto.reason}` : ''}`,
+      ipAddress,
+    });
+
+    // Send email notification
+    await this.emailService.sendSecurityAlert(
+      user.email,
+      user.profile?.name || 'مستخدم',
+      {
+        action: 'ACCOUNT_DEACTIVATED',
+        actionArabic: 'تعطيل الحساب',
+        description: 'تم تعطيل حسابك مؤقتاً. يمكنك إعادة تفعيله في أي وقت عند تسجيل الدخول.',
+        timestamp: new Date(),
+      },
+    );
+
+    return { message: 'تم تعطيل الحساب بنجاح' };
+  }
+
+  // Reactivate Account
+  async reactivateAccount(userId: string, ipAddress?: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { profile: { select: { name: true } } },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    if (!(user as any).isDeactivated) {
+      throw new BadRequestException('Account is not deactivated');
+    }
+
+    // Reactivate the account
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        isDeactivated: false,
+        deactivatedAt: null,
+        updatedAt: new Date(),
+      } as any,
+    });
+
+    // Log reactivation
+    await this.securityLogService.createLog({
+      userId,
+      action: 'ACCOUNT_REACTIVATED' as any,
+      status: 'SUCCESS',
+      description: 'تم إعادة تفعيل الحساب',
+      ipAddress,
+    });
+
+    return { message: 'تم إعادة تفعيل الحساب بنجاح' };
+  }
+
+  // Delete Account Permanently
+  async deleteAccount(
+    userId: string,
+    dto: DeleteAccountDto,
+    ipAddress?: string,
+  ) {
+    if (dto.confirmation !== 'DELETE') {
+      throw new BadRequestException('يجب كتابة DELETE لتأكيد الحذف');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { profile: { select: { name: true } } },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Log deletion before deleting (so the log references the user)
+    await this.securityLogService.createLog({
+      userId,
+      action: 'ACCOUNT_DELETED' as any,
+      status: 'SUCCESS',
+      description: `تم حذف الحساب نهائياً${dto.reason ? `: ${dto.reason}` : ''}`,
+      ipAddress,
+    });
+
+    // Send farewell email before deletion
+    await this.emailService.sendSecurityAlert(
+      user.email,
+      user.profile?.name || 'مستخدم',
+      {
+        action: 'ACCOUNT_DELETED',
+        actionArabic: 'حذف الحساب',
+        description: 'تم حذف حسابك نهائياً وجميع البيانات المرتبطة به.',
+        timestamp: new Date(),
+      },
+    );
+
+    // Delete the user (cascade will delete profile, sessions, etc.)
+    await this.prisma.user.delete({
+      where: { id: userId },
+    });
+
+    // Clear cache
+    await this.redisService.del(`user:profile:${userId}`);
+
+    return { message: 'تم حذف الحساب نهائياً' };
   }
 }

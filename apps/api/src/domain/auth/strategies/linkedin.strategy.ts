@@ -21,12 +21,13 @@ export class LinkedInStrategy extends PassportStrategy(
     private authService: AuthService,
   ) {
     // LinkedIn OpenID Connect scopes (new API)
-    const scopes = (
+    const scopeString = (
       configService.get<string>('LINKEDIN_SCOPES') || 'openid,profile,email'
     )
       .split(',')
       .map((s) => s.trim())
-      .filter(Boolean);
+      .filter(Boolean)
+      .join(' ');
 
     super({
       authorizationURL: 'https://www.linkedin.com/oauth/v2/authorization',
@@ -34,7 +35,8 @@ export class LinkedInStrategy extends PassportStrategy(
       clientID: configService.get<string>('LINKEDIN_CLIENT_ID'),
       clientSecret: configService.get<string>('LINKEDIN_CLIENT_SECRET'),
       callbackURL: configService.get<string>('LINKEDIN_CALLBACK_URL'),
-      scope: scopes,
+      scope: scopeString,
+      state: false, // Session not used - CSRF protection handled by SameSite cookies + CORS
     });
   }
 

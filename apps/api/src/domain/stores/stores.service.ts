@@ -96,12 +96,13 @@ export class StoresService {
   /**
    * Get user's store
    * ⚡ Performance: Cached for 5 minutes
+   * 🏪 Auto-creates store if user doesn't have one (e.g., OAuth registration)
    */
   async getMyStore(userId: string) {
     const cacheKey = CacheKeys.storeByUserId(userId);
 
     return this.cacheManager.wrap(cacheKey, CACHE_TTL.STORE, async () => {
-      const store = await this.prisma.store.findFirst({
+      let store = await this.prisma.store.findFirst({
         where: { userId },
         include: {
           store_categories: true,
@@ -113,6 +114,42 @@ export class StoresService {
           },
         },
       });
+
+      // Auto-create store if none exists (handles OAuth registrations)
+      if (!store) {
+        this.logger.log(`Auto-creating store for user ${userId}`);
+
+        const user = await this.prisma.user.findUnique({
+          where: { id: userId },
+          include: { profile: true },
+        });
+
+        if (!user) return null;
+
+        const storeName = user.profile?.name || 'متجري';
+        const slug = await this.generateUniqueSlug(
+          user.profile?.username || storeName,
+        );
+
+        store = await this.prisma.store.create({
+          data: {
+            slug,
+            userId,
+            name: storeName,
+            contactEmail: user.email || undefined,
+            country: 'Iraq',
+          },
+          include: {
+            store_categories: true,
+            _count: {
+              select: {
+                products: true,
+                orders: true,
+              },
+            },
+          },
+        });
+      }
 
       return store;
     });

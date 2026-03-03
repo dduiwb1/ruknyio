@@ -30,6 +30,8 @@ import {
   Verify2FADto,
   ChangeEmailDto,
   UpdateSecurityPreferencesDto,
+  DeactivateAccountDto,
+  DeleteAccountDto,
 } from './dto';
 
 @ApiTags('User')
@@ -260,8 +262,8 @@ export class UserController {
   }
 
   @Patch('change-email')
-  @ApiOperation({ summary: 'Change email address' })
-  @ApiResponse({ status: 200, description: 'Email changed successfully' })
+  @ApiOperation({ summary: 'Request email change (requires admin approval)' })
+  @ApiResponse({ status: 200, description: 'Email change request submitted' })
   async changeEmail(@Request() req, @Body() changeEmailDto: ChangeEmailDto) {
     const ipAddress = req.ip || req.connection.remoteAddress;
     const userAgent = req.headers['user-agent'];
@@ -271,6 +273,34 @@ export class UserController {
       ipAddress,
       userAgent,
     );
+  }
+
+  @Get('email-change-request')
+  @ApiOperation({ summary: 'Get latest email change request status' })
+  @ApiResponse({ status: 200, description: 'Email change request retrieved' })
+  async getEmailChangeRequest(@Request() req) {
+    return this.userService.getEmailChangeRequest(req.user.id);
+  }
+
+  @Delete('email-change-request')
+  @ApiOperation({ summary: 'Cancel pending email change request' })
+  @ApiResponse({ status: 200, description: 'Email change request cancelled' })
+  async cancelEmailChangeRequest(@Request() req) {
+    return this.userService.cancelEmailChangeRequest(req.user.id);
+  }
+
+  @Post('send-email-verification')
+  @ApiOperation({ summary: 'Send email verification code' })
+  @ApiResponse({ status: 200, description: 'Verification code sent' })
+  async sendEmailVerification(@Request() req) {
+    return this.userService.sendEmailVerification(req.user.id);
+  }
+
+  @Post('verify-email')
+  @ApiOperation({ summary: 'Verify email with code' })
+  @ApiResponse({ status: 200, description: 'Email verified successfully' })
+  async verifyEmail(@Request() req, @Body() body: { code: string }) {
+    return this.userService.verifyEmailCode(req.user.id, body.code);
   }
 
   @Get('security-preferences')
@@ -464,5 +494,43 @@ export class UserController {
     });
 
     return { message: 'تم مسح جميع IPs الموثوقة بنجاح' };
+  }
+
+  // ==================== Account Management ====================
+
+  @Patch('deactivate')
+  @ApiOperation({ summary: 'تعطيل الحساب مؤقتاً' })
+  @ApiResponse({
+    status: 200,
+    description: 'تم تعطيل الحساب بنجاح',
+  })
+  async deactivateAccount(
+    @Request() req,
+    @Body() dto: DeactivateAccountDto,
+  ) {
+    const ipAddress = req.ip || req.connection?.remoteAddress;
+    return this.userService.deactivateAccount(req.user.id, dto, ipAddress);
+  }
+
+  @Patch('reactivate')
+  @ApiOperation({ summary: 'إعادة تفعيل الحساب' })
+  @ApiResponse({
+    status: 200,
+    description: 'تم إعادة تفعيل الحساب بنجاح',
+  })
+  async reactivateAccount(@Request() req) {
+    const ipAddress = req.ip || req.connection?.remoteAddress;
+    return this.userService.reactivateAccount(req.user.id, ipAddress);
+  }
+
+  @Delete('account')
+  @ApiOperation({ summary: 'حذف الحساب نهائياً' })
+  @ApiResponse({
+    status: 200,
+    description: 'تم حذف الحساب نهائياً',
+  })
+  async deleteAccount(@Request() req, @Body() dto: DeleteAccountDto) {
+    const ipAddress = req.ip || req.connection?.remoteAddress;
+    return this.userService.deleteAccount(req.user.id, dto, ipAddress);
   }
 }

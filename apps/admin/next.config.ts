@@ -40,8 +40,7 @@ const nextConfig: NextConfig = {
 
   // 🔄 API Proxy - Forward to backend
   async rewrites() {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL 
-      || process.env.API_BACKEND_URL 
+    const apiUrl = process.env.API_BACKEND_URL 
       || 'http://localhost:3001';
 
     return [

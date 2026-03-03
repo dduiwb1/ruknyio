@@ -33,6 +33,9 @@ const labelMap: Record<string, string> = {
   events: 'الأحداث',
   tasks: 'المهام',
   settings: 'الإعدادات',
+  account: 'الحساب والأمان',
+  appearance: 'المظهر',
+  integrations: 'التكاملات',
   profile: 'الملف الشخصي',
   notifications: 'الإشعارات',
   analytics: 'الإحصائيات',
@@ -98,12 +101,12 @@ export function DashboardNav() {
 
   return (
     <header className="absolute top-0 inset-x-0 z-20 pointer-events-none">
-      <div className="flex items-center justify-between gap-4 px-4 pt-4 pb-2 sm:px-6 pointer-events-auto">
+      <div className="flex items-center justify-center lg:justify-between gap-4 px-4 pt-4 pb-2 sm:px-6 pointer-events-auto">
 
         {/* ═══════ Right Side (RTL): Breadcrumbs ═══════ */}
         <nav
           className={cn(
-            'flex items-center  gap-1.5 rounded-4xl border border-border/30 px-4 py-2.5 backdrop-blur-xl dark:border-white/10 transition-opacity duration-200',
+            'hidden lg:flex items-center gap-1.5 rounded-4xl border border-border/30 px-4 py-2.5 backdrop-blur-xl dark:border-white/10 transition-opacity duration-200',
             isSearchOpen && 'opacity-0 pointer-events-none',
           )}
           aria-label="Breadcrumb"

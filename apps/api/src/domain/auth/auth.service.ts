@@ -155,15 +155,18 @@ export class AuthService {
   async googleLogin(googleUser: any, userAgent?: string, ipAddress?: string) {
     const { googleId, email, name, avatar } = googleUser;
 
-    // Try to find existing user by Google ID or email
+    // Prioritize lookup by Google ID, then fall back to email
     let user = await this.prisma.user.findFirst({
-      where: {
-        OR: [{ googleId }, { email }],
-      },
-      include: {
-        profile: true,
-      },
+      where: { googleId },
+      include: { profile: true },
     });
+
+    if (!user) {
+      user = await this.prisma.user.findFirst({
+        where: { email },
+        include: { profile: true },
+      });
+    }
 
     let isNewUser = false;
     if (!user) {
@@ -192,6 +195,28 @@ export class AuthService {
         },
       });
       isNewUser = true;
+
+      // 🏪 إنشاء Store تلقائياً للمستخدم الجديد عبر Google
+      try {
+        const storeSlug = (user.profile?.username || email.split('@')[0])
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '-')
+          .replace(/-+/g, '-')
+          .slice(0, 40)
+          || `store-${crypto.randomUUID().slice(0, 8)}`;
+        await this.prisma.store.create({
+          data: {
+            userId: user.id,
+            name: name || 'متجري',
+            slug: storeSlug,
+            contactEmail: email,
+            country: 'Iraq',
+          },
+        });
+      } catch (storeErr) {
+        // لا تُفشل عملية التسجيل بسبب فشل إنشاء المتجر
+        // سيتم إنشاؤه تلقائياً عند أول زيارة لإعدادات المتجر
+      }
     } else if (!user.googleId) {
       // Link existing user account with Google
       user = await this.prisma.user.update({
@@ -314,15 +339,18 @@ export class AuthService {
   ) {
     const { linkedinId, email, name, avatar } = linkedinUser;
 
-    // Try to find existing user by LinkedIn ID or email
+    // Prioritize lookup by LinkedIn ID, then fall back to email
     let user = await this.prisma.user.findFirst({
-      where: {
-        OR: [{ linkedinId }, { email }],
-      },
-      include: {
-        profile: true,
-      },
+      where: { linkedinId },
+      include: { profile: true },
     });
+
+    if (!user) {
+      user = await this.prisma.user.findFirst({
+        where: { email },
+        include: { profile: true },
+      });
+    }
 
     let isNewUser = false;
     if (!user) {
@@ -351,6 +379,28 @@ export class AuthService {
         },
       });
       isNewUser = true;
+
+      // 🏪 إنشاء Store تلقائياً للمستخدم الجديد عبر LinkedIn
+      try {
+        const storeSlug = (user.profile?.username || email.split('@')[0])
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '-')
+          .replace(/-+/g, '-')
+          .slice(0, 40)
+          || `store-${crypto.randomUUID().slice(0, 8)}`;
+        await this.prisma.store.create({
+          data: {
+            userId: user.id,
+            name: name || 'متجري',
+            slug: storeSlug,
+            contactEmail: email,
+            country: 'Iraq',
+          },
+        });
+      } catch (storeErr) {
+        // لا تُفشل عملية التسجيل بسبب فشل إنشاء المتجر
+        // سيتم إنشاؤه تلقائياً عند أول زيارة لإعدادات المتجر
+      }
     } else if (!user.linkedinId) {
       // Link existing user account with LinkedIn
       user = await this.prisma.user.update({

@@ -37,6 +37,8 @@ model User {
   telegramLastName       String?
   telegramEnabled        Boolean                 @default(true)
   telegramConnectedAt    DateTime?
+  isDeactivated          Boolean                 @default(false)
+  deactivatedAt          DateTime?
   addresses              addresses[]
   calendar_integrations  calendar_integrations[]
   carts                  carts?
@@ -73,6 +75,7 @@ model User {
   whatsappNotifications  WhatsappNotification[]
   whatsappOtps           WhatsappOtp[]
   wishlists              wishlists[]
+  emailChangeRequests    EmailChangeRequest[]
 
   @@index([telegramChatId])
   @@index([telegramConnectedAt])
@@ -93,6 +96,10 @@ model Profile {
   avatar       String?
   coverImage   String?
   visibility   Visibility   @default(PUBLIC)
+  hideEmail    Boolean      @default(false)
+  hidePhone    Boolean      @default(true)
+  hideLocation Boolean      @default(false)
+  location     String?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   storageUsed  BigInt       @default(0)
@@ -1611,6 +1618,9 @@ enum SecurityAction {
   TWO_FACTOR_FAILED
   TWO_FACTOR_BACKUP_REGENERATED
   SECURITY_SETTINGS_CHANGED
+  ACCOUNT_DEACTIVATED
+  ACCOUNT_REACTIVATED
+  ACCOUNT_DELETED
 }
 
 enum SecurityStatus {
@@ -1701,4 +1711,32 @@ enum WhatsappNotificationType {
   ORDER_OUT_FOR_DELIVERY
   ORDER_DELIVERED
   ORDER_CANCELLED
+}
+
+/// 📧 طلب تغيير البريد الإلكتروني (بموافقة المسؤول)
+model EmailChangeRequest {
+  id          String                   @id @default(uuid())
+  userId      String
+  oldEmail    String
+  newEmail    String
+  status      EmailChangeRequestStatus @default(PENDING)
+  reason      String?
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  ipAddress   String?
+  browser     String?
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+  user        User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("email_change_requests")
+}
+
+enum EmailChangeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

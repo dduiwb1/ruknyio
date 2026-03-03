@@ -119,6 +119,13 @@ export class ProfilesService {
         delete profile.user.email;
       }
 
+      // Respect privacy settings for non-owners
+      if (profile.userId !== requesterId) {
+        if ((profile as any).hideEmail) {
+          delete profile.user.email;
+        }
+      }
+
       // Get follow counts separately
       const [followersCount, followingCount] = await Promise.all([
         this.prisma.follows.count({
@@ -215,7 +222,12 @@ export class ProfilesService {
           select: {
             id: true,
             email: true,
+            phone: true,
             twoFactorEnabled: true,
+            googleId: true,
+            linkedinId: true,
+            isDeactivated: true,
+            deactivatedAt: true,
           },
         },
         socialLinks: {
