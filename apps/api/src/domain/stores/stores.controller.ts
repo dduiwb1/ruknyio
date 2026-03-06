@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -23,6 +24,7 @@ import { Throttle } from '@nestjs/throttler';
 import { StoresService } from './stores.service';
 import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
+import { UpdateStoreAnalyticsDto } from './dto/update-store-analytics.dto';
 import { JwtAuthGuard } from '../../core/common/guards/auth/jwt-auth.guard';
 
 @ApiTags('Stores')
@@ -127,6 +129,37 @@ export class StoresController {
   @ApiResponse({ status: 404, description: 'Store not found' })
   remove(@Param('id') id: string, @Request() req) {
     return this.storesService.remove(id, req.user.id);
+  }
+
+  /**
+   * 📊 Get Google Analytics settings for my store
+   */
+  @Get('my-store/analytics')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get store analytics settings' })
+  @ApiResponse({ status: 200, description: 'Analytics settings retrieved' })
+  getAnalyticsSettings(@Request() req) {
+    return this.storesService.getAnalyticsSettings(req.user.id);
+  }
+
+  /**
+   * 📊 Update Google Analytics settings for my store
+   */
+  @Patch('my-store/analytics')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update store analytics settings' })
+  @ApiResponse({ status: 200, description: 'Analytics settings updated' })
+  @ApiResponse({ status: 400, description: 'Invalid measurement ID' })
+  updateAnalyticsSettings(
+    @Request() req,
+    @Body() dto: UpdateStoreAnalyticsDto,
+  ) {
+    return this.storesService.updateAnalyticsSettings(
+      req.user.id,
+      dto.googleAnalyticsId,
+    );
   }
 
   /**

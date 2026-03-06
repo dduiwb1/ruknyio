@@ -3,6 +3,7 @@ import { IBM_Plex_Sans_Arabic } from 'next/font/google';
 import { ToastProvider } from '@/components/ui/toast';
 import { AuthProvider } from '@/providers/auth-provider';
 import { QueryProvider } from '@/providers/query-provider';
+import { GoogleAnalyticsProvider } from '@/providers/google-analytics-provider';
 import { getUserOptional } from '@/lib/dal';
 import './globals.css';
 
@@ -30,6 +31,7 @@ export default async function RootLayout({
   return (
     <html lang="ar" dir="rtl" className={ibmPlexSansArabic.variable}>
       <body className={`${ibmPlexSansArabic.className} antialiased`}>
+        <GoogleAnalyticsProvider />
         <QueryProvider>
           <AuthProvider initialUser={user}>
             <ToastProvider position="bottom-right">

@@ -66,6 +66,12 @@ function getParentInfo(pathname: string) {
 export function DashboardNav() {
   const pathname = usePathname();
   const { user, setUser } = useAuth();
+
+  // Hide nav in Settings page
+  if (pathname?.startsWith('/app/settings')) {
+    return null;
+  }
+
   const breadcrumbs = buildBreadcrumbs(pathname);
   const parent = getParentInfo(pathname);
   const [notificationCount, setNotificationCount] = useState(0);

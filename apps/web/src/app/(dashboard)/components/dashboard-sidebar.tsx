@@ -72,6 +72,11 @@ export function Sidebar({ className }: SidebarProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
 
+  // Hide sidebar in Settings page
+  if (pathname?.startsWith('/app/settings')) {
+    return null;
+  }
+
   /* ---- Navigation items ------------------------------------------ */
   const navItems: NavItem[] = [
     { href: "/app", label: "لوحة التحكم", icon: LayoutDashboard },

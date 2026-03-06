@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { requireCompleteProfile } from '@/lib/dal';
-import { Sidebar } from './components/dashboard-sidebar';
+import { SidebarWrapper } from './components/sidebar-wrapper';
 import { DashboardNav } from './components/dashboard-nav';
 import { CollapsiblePhonePreview } from '@/components/(app)/shared/CollapsiblePhonePreview';
 
@@ -13,8 +13,8 @@ export default async function DashboardLayout({
 
   return (
     <div dir="rtl" className="flex h-screen bg-background">
-      {/* Sidebar */}
-      <Sidebar />
+      {/* Sidebar - Settings or Dashboard */}
+      <SidebarWrapper />
 
       {/* Main Content Area */}
       <div className="flex-1 min-w-0 flex gap-2 p-2 ps-0">

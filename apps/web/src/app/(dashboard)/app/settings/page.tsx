@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/providers';
 import { cn } from '@/lib/utils';
+import { usePhonePreview } from '@/components/(app)/shared';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -48,6 +49,7 @@ type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 export default function ProfileSettingsPage() {
   const { user } = useAuth();
+  const { collapsed } = usePhonePreview();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
@@ -270,142 +272,143 @@ export default function ProfileSettingsPage() {
         </div>
       </SettingsSection>
 
-      {/* Basic Info */}
-      <SettingsSection title="المعلومات الأساسية" description="اسمك واسم المستخدم والنبذة التعريفية">
-        <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <SettingsField label="الاسم الكامل" htmlFor="displayName">
-              <Input
-                id="displayName"
-                value={form.displayName}
-                onChange={(e) => updateField('displayName', e.target.value)}
-                placeholder="أدخل اسمك الكامل"
+      <div className={cn('grid gap-5', collapsed ? 'lg:grid-cols-2' : 'grid-cols-1')}>
+        {/* Basic Info */}
+        <SettingsSection title="المعلومات الأساسية" description="اسمك واسم المستخدم والنبذة التعريفية" className="h-full">
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <SettingsField label="الاسم الكامل" htmlFor="displayName">
+                <Input
+                  id="displayName"
+                  value={form.displayName}
+                  onChange={(e) => updateField('displayName', e.target.value)}
+                  placeholder="أدخل اسمك الكامل"
+                />
+              </SettingsField>
+
+              <SettingsField label="اسم المستخدم" htmlFor="username">
+                <div className="relative">
+                  <Input
+                    id="username"
+                    value={form.username}
+                    onChange={(e) => updateField('username', e.target.value)}
+                    placeholder="username"
+                    className="pe-16 justify-items-end-safe"
+                    dir="ltr"
+                  />
+                </div>
+              </SettingsField>
+            </div>
+
+            <SettingsField label="النبذة التعريفية" htmlFor="bio">
+              <Textarea
+                id="bio"
+                value={form.bio}
+                onChange={(e) => updateField('bio', e.target.value)}
+                placeholder="اكتب نبذة قصيرة عنك..."
+                className="min-h-20"
               />
             </SettingsField>
 
-            <SettingsField label="اسم المستخدم" htmlFor="username">
+            <SettingsField label="الموقع الجغرافي" htmlFor="location">
               <div className="relative">
+                <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                 <Input
-                  id="username"
-                  value={form.username}
-                  onChange={(e) => updateField('username', e.target.value)}
-                  placeholder="username"
-                  className="pe-16 justify-items-end-safe"
-                  dir="ltr"
+                  id="location"
+                  value={form.location}
+                  onChange={(e) => updateField('location', e.target.value)}
+                  placeholder="مثال: بغداد، العراق"
+                  className="pr-9"
                 />
               </div>
             </SettingsField>
           </div>
+        </SettingsSection>
 
-          <SettingsField label="النبذة التعريفية" htmlFor="bio">
-            <Textarea
-              id="bio"
-              value={form.bio}
-              onChange={(e) => updateField('bio', e.target.value)}
-              placeholder="اكتب نبذة قصيرة عنك..."
-              className="min-h-20"
-            />
-          </SettingsField>
-
-          <SettingsField label="الموقع الجغرافي" htmlFor="location">
-            <div className="relative">
-              <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <Input
-                id="location"
-                value={form.location}
-                onChange={(e) => updateField('location', e.target.value)}
-                placeholder="مثال: بغداد، العراق"
-                className="pr-9"
-              />
-            </div>
-          </SettingsField>
-        </div>
-      </SettingsSection>
-
-      {/* Privacy */}
-      <SettingsSection title="الخصوصية" description="تحكّم بمن يستطيع رؤية ملفك الشخصي ومعلوماتك">
-        <div className="space-y-4">
-          {/* Profile Visibility */}
-          <SettingsField label="ظهور الملف الشخصي">
-            <div className="grid grid-cols-2 gap-2">
-              {([
-                { key: 'PUBLIC' as const, label: 'عام', icon: Globe, desc: 'مرئي للجميع' },
-                { key: 'PRIVATE' as const, label: 'خاص', icon: Lock, desc: 'المتابعين فقط' },
-              ]).map((opt) => (
-                <button
-                  key={opt.key}
-                  type="button"
-                  onClick={() => setProfileVisibility(opt.key)}
-                  className={cn(
-                    'flex flex-col items-center gap-1.5 rounded-xl border-2 px-3 py-3 transition-all cursor-pointer',
-                    profileVisibility === opt.key
-                      ? 'border-primary bg-primary/5'
-                      : 'border-transparent bg-background/50 hover:bg-muted/50'
-                  )}
-                >
-                  <opt.icon
+        {/* Privacy */}
+        <SettingsSection title="الخصوصية" description="تحكّم بمن يستطيع رؤية ملفك الشخصي ومعلوماتك" className="h-full">
+          <div className="space-y-4">
+            {/* Profile Visibility */}
+            <SettingsField label="ظهور الملف الشخصي">
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  { key: 'PUBLIC' as const, label: 'عام', icon: Globe, desc: 'مرئي للجميع' },
+                  { key: 'PRIVATE' as const, label: 'خاص', icon: Lock, desc: 'المتابعين فقط' },
+                ]).map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setProfileVisibility(opt.key)}
                     className={cn(
-                      'size-4',
-                      profileVisibility === opt.key ? 'text-primary' : 'text-muted-foreground'
-                    )}
-                  />
-                  <span
-                    className={cn(
-                      'text-[12px] font-medium',
-                      profileVisibility === opt.key ? 'text-primary' : 'text-foreground/80'
+                      'flex flex-col items-center gap-1.5 rounded-xl border-2 px-3 py-3 transition-all cursor-pointer',
+                      profileVisibility === opt.key
+                        ? 'border-primary bg-primary/5'
+                        : 'border-transparent bg-background/50 hover:bg-muted/50'
                     )}
                   >
-                    {opt.label}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">{opt.desc}</span>
-                </button>
-              ))}
+                    <opt.icon
+                      className={cn(
+                        'size-4',
+                        profileVisibility === opt.key ? 'text-primary' : 'text-muted-foreground'
+                      )}
+                    />
+                    <span
+                      className={cn(
+                        'text-[12px] font-medium',
+                        profileVisibility === opt.key ? 'text-primary' : 'text-foreground/80'
+                      )}
+                    >
+                      {opt.label}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">{opt.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </SettingsField>
+
+            <div className="space-y-2 pt-1">
+              <SettingsRow>
+                <div className="flex items-center gap-3">
+                  <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-xl', hideEmail ? 'bg-amber-500/10' : 'bg-muted/50')}>
+                    <Mail className={cn('size-4', hideEmail ? 'text-amber-500' : 'text-muted-foreground')} />
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-medium text-foreground">إخفاء البريد الإلكتروني</p>
+                    <p className="text-[11px] text-muted-foreground">لن يظهر بريدك في ملفك العام</p>
+                  </div>
+                </div>
+                <ToggleSwitch checked={hideEmail} onChange={setHideEmail} />
+              </SettingsRow>
+
+              <SettingsRow>
+                <div className="flex items-center gap-3">
+                  <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-xl', hidePhone ? 'bg-amber-500/10' : 'bg-muted/50')}>
+                    <Phone className={cn('size-4', hidePhone ? 'text-amber-500' : 'text-muted-foreground')} />
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-medium text-foreground">إخفاء رقم الهاتف</p>
+                    <p className="text-[11px] text-muted-foreground">لن يظهر رقمك في ملفك العام</p>
+                  </div>
+                </div>
+                <ToggleSwitch checked={hidePhone} onChange={setHidePhone} />
+              </SettingsRow>
+
+              <SettingsRow>
+                <div className="flex items-center gap-3">
+                  <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-xl', hideLocation ? 'bg-amber-500/10' : 'bg-muted/50')}>
+                    <MapPin className={cn('size-4', hideLocation ? 'text-amber-500' : 'text-muted-foreground')} />
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-medium text-foreground">إخفاء الموقع الجغرافي</p>
+                    <p className="text-[11px] text-muted-foreground">لن يظهر موقعك في ملفك العام</p>
+                  </div>
+                </div>
+                <ToggleSwitch checked={hideLocation} onChange={setHideLocation} />
+              </SettingsRow>
             </div>
-          </SettingsField>
-
-          {/* Hide specific info */}
-          <div className="space-y-2 pt-1">
-            <SettingsRow>
-              <div className="flex items-center gap-3">
-                <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-xl', hideEmail ? 'bg-amber-500/10' : 'bg-muted/50')}>
-                  <Mail className={cn('size-4', hideEmail ? 'text-amber-500' : 'text-muted-foreground')} />
-                </div>
-                <div>
-                  <p className="text-[13px] font-medium text-foreground">إخفاء البريد الإلكتروني</p>
-                  <p className="text-[11px] text-muted-foreground">لن يظهر بريدك في ملفك العام</p>
-                </div>
-              </div>
-              <ToggleSwitch checked={hideEmail} onChange={setHideEmail} />
-            </SettingsRow>
-
-            <SettingsRow>
-              <div className="flex items-center gap-3">
-                <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-xl', hidePhone ? 'bg-amber-500/10' : 'bg-muted/50')}>
-                  <Phone className={cn('size-4', hidePhone ? 'text-amber-500' : 'text-muted-foreground')} />
-                </div>
-                <div>
-                  <p className="text-[13px] font-medium text-foreground">إخفاء رقم الهاتف</p>
-                  <p className="text-[11px] text-muted-foreground">لن يظهر رقمك في ملفك العام</p>
-                </div>
-              </div>
-              <ToggleSwitch checked={hidePhone} onChange={setHidePhone} />
-            </SettingsRow>
-
-            <SettingsRow>
-              <div className="flex items-center gap-3">
-                <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-xl', hideLocation ? 'bg-amber-500/10' : 'bg-muted/50')}>
-                  <MapPin className={cn('size-4', hideLocation ? 'text-amber-500' : 'text-muted-foreground')} />
-                </div>
-                <div>
-                  <p className="text-[13px] font-medium text-foreground">إخفاء الموقع الجغرافي</p>
-                  <p className="text-[11px] text-muted-foreground">لن يظهر موقعك في ملفك العام</p>
-                </div>
-              </div>
-              <ToggleSwitch checked={hideLocation} onChange={setHideLocation} />
-            </SettingsRow>
           </div>
-        </div>
-      </SettingsSection>
+        </SettingsSection>
+      </div>
 
       {/* Save Button */}
       <motion.div

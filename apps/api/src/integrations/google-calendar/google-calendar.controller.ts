@@ -11,12 +11,20 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { ConfigService } from '@nestjs/config';
 import { GoogleCalendarService } from './google-calendar.service';
 import { JwtAuthGuard } from '../../core/common/guards/auth/jwt-auth.guard';
 
 @Controller('google/calendar')
 export class GoogleCalendarController {
-  constructor(private readonly googleCalendarService: GoogleCalendarService) {}
+  private readonly frontendUrl: string;
+
+  constructor(
+    private readonly googleCalendarService: GoogleCalendarService,
+    private readonly configService: ConfigService,
+  ) {
+    this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || this.configService.get<string>('FRONTEND_URL_DEV') || 'http://localhost:3000';
+  }
 
   /**
    * Start Google Calendar OAuth flow
@@ -61,19 +69,19 @@ export class GoogleCalendarController {
 
     if (!code) {
       return res.redirect(
-        `${process.env.FRONTEND_URL}${returnUrl}?google_error=no_code`,
+        `${this.frontendUrl}${returnUrl}?google_error=no_code`,
       );
     }
 
     try {
       // Redirect to frontend with code for exchange
       return res.redirect(
-        `${process.env.FRONTEND_URL}${returnUrl}?google_code=${code}`,
+        `${this.frontendUrl}${returnUrl}?google_code=${code}`,
       );
     } catch (error) {
       console.error('OAuth callback error:', error);
       return res.redirect(
-        `${process.env.FRONTEND_URL}${returnUrl}?google_error=callback_failed`,
+        `${this.frontendUrl}${returnUrl}?google_error=callback_failed`,
       );
     }
   }

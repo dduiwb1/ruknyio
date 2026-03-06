@@ -306,6 +306,54 @@ export class StoresService {
   }
 
   /**
+   * Get store analytics settings (Google Analytics)
+   */
+  async getAnalyticsSettings(userId: string) {
+    const store = await this.prisma.store.findFirst({ where: { userId } });
+    if (!store) throw new NotFoundException('Store not found');
+
+    const metadata = (store.metadata as Record<string, unknown>) || {};
+    return {
+      googleAnalyticsId: (metadata.googleAnalyticsId as string) || '',
+      isConnected: !!metadata.googleAnalyticsId,
+    };
+  }
+
+  /**
+   * Update store analytics settings (Google Analytics)
+   */
+  async updateAnalyticsSettings(
+    userId: string,
+    googleAnalyticsId: string | undefined,
+  ) {
+    const store = await this.prisma.store.findFirst({ where: { userId } });
+    if (!store) throw new NotFoundException('Store not found');
+
+    const currentMetadata = (store.metadata as Record<string, unknown>) || {};
+    const updatedMetadata = {
+      ...currentMetadata,
+      googleAnalyticsId: googleAnalyticsId || null,
+      googleAnalyticsConnectedAt: googleAnalyticsId ? new Date().toISOString() : null,
+    };
+
+    const updatedStore = await this.prisma.store.update({
+      where: { id: store.id },
+      data: { metadata: updatedMetadata },
+    });
+
+    // Invalidate cache
+    await this.cacheManager.invalidate(
+      CacheKeys.storeByUserId(userId),
+      CacheKeys.storeBySlug(store.slug),
+    );
+
+    return {
+      googleAnalyticsId: googleAnalyticsId || '',
+      isConnected: !!googleAnalyticsId,
+    };
+  }
+
+  /**
    * Delete store
    */
   async remove(id: string, userId: string) {

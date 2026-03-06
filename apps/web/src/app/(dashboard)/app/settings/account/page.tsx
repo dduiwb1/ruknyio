@@ -21,6 +21,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '@/providers';
+import { usePhonePreview } from '@/components/(app)/shared/phone-preview-context';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -77,6 +78,7 @@ function formatLastActivity(dateStr: string) {
 
 export default function AccountSecurityPage() {
   const { user } = useAuth();
+  const { collapsed } = usePhonePreview();
   const [isLoading, setIsLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
@@ -297,11 +299,14 @@ export default function AccountSecurityPage() {
 
   return (
     <div className="space-y-5 mt-2">
-      {/* Email & Phone */}
-      <SettingsSection
-        title="معلومات الاتصال"
-        description="بريدك الإلكتروني ورقم هاتفك المرتبطين بحسابك"
-      >
+      {/* Row 1: Contact Info + Login Method */}
+      <div className={cn('grid gap-5', collapsed ? 'lg:grid-cols-2' : 'grid-cols-1')}>
+        {/* Email & Phone */}
+        <SettingsSection
+          className="h-full"
+          title="معلومات الاتصال"
+          description="بريدك الإلكتروني ورقم هاتفك المرتبطين بحسابك"
+        >
         <div className="space-y-3">
           <SettingsRow>
             <div className="flex items-center gap-3 min-w-0">
@@ -577,20 +582,21 @@ export default function AccountSecurityPage() {
             </div>
           </SettingsRow>
         </div>
-      </SettingsSection>
+        </SettingsSection>
 
-      {/* Authentication Method */}
-      <SettingsSection
-        title="طريقة تسجيل الدخول"
-        description="حسابك يستخدم روابط الدخول السريع (QuickSign) عبر البريد الإلكتروني"
-      >
+        {/* Authentication Method */}
+        <SettingsSection
+          className="h-full"
+          title="طريقة تسجيل الدخول"
+          description="حسابك يستخدم روابط الدخول السريع ( الرابط السحري ) عبر البريد الإلكتروني"
+        >
         <SettingsRow>
           <div className="flex items-center gap-3">
             <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
               <Link2 className="size-4 text-primary" />
             </div>
             <div>
-              <p className="text-[13px] font-medium text-foreground">الدخول السريع (QuickSign)</p>
+              <p className="text-[13px] font-medium text-foreground">الدخول السريع ( الرابط السحري )</p>
               <p className="text-[11px] text-muted-foreground">
                 يتم إرسال رابط دخول آمن لبريدك الإلكتروني في كل مرة تسجل فيها الدخول
               </p>
@@ -600,13 +606,17 @@ export default function AccountSecurityPage() {
             مفعّل
           </Badge>
         </SettingsRow>
-      </SettingsSection>
+        </SettingsSection>
+      </div>
 
-      {/* 2FA */}
-      <SettingsSection
-        title="المصادقة الثنائية"
-        description="أضف طبقة أمان إضافية لحسابك"
-      >
+      {/* Row 2: 2FA + Connected Accounts */}
+      <div className={cn('grid gap-5', collapsed ? 'lg:grid-cols-2' : 'grid-cols-1')}>
+        {/* 2FA */}
+        <SettingsSection
+          className="h-full"
+          title="المصادقة الثنائية"
+          description="أضف طبقة أمان إضافية لحسابك"
+        >
         <div className="space-y-4">
           <SettingsRow>
             <div className="flex items-center gap-3">
@@ -723,13 +733,14 @@ export default function AccountSecurityPage() {
             </div>
           )}
         </div>
-      </SettingsSection>
+        </SettingsSection>
 
-      {/* Connected Accounts */}
-      <SettingsSection
-        title="الحسابات المرتبطة"
-        description="حسابات تسجيل الدخول المرتبطة بحسابك"
-      >
+        {/* Connected Accounts */}
+        <SettingsSection
+          className="h-full"
+          title="الحسابات المرتبطة"
+          description="حسابات تسجيل الدخول المرتبطة بحسابك"
+        >
         <div className="space-y-3">
           {/* Google */}
           <SettingsRow>
@@ -799,7 +810,8 @@ export default function AccountSecurityPage() {
             )}
           </SettingsRow>
         </div>
-      </SettingsSection>
+        </SettingsSection>
+      </div>
 
       {/* Active Sessions */}
       <SettingsSection
@@ -812,7 +824,7 @@ export default function AccountSecurityPage() {
               لا توجد جلسات نشطة
             </p>
           ) : (
-            sessions.map((session) => {
+            sessions.slice(0, 3).map((session) => {
               const DeviceIcon = getDeviceIcon(session);
               const deviceLabel = [session.browser, session.os]
                 .filter(Boolean)
