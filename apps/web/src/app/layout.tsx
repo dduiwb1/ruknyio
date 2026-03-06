@@ -15,7 +15,7 @@ const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
 
 export const metadata: Metadata = {
   title: {
-    default: 'ركني | منصة إدارة المتاجر',
+    default: 'ركني | Rukny',
     template: '%s | ركني',
   },
   description: 'منصة ركني لإدارة المتاجر الإلكترونية',
