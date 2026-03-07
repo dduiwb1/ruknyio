@@ -773,7 +773,7 @@ function SummaryQuestionCard({ question, qIndex, submissions, defaultExpanded = 
                                 </span>
                                 <div className="flex-1 min-w-0">
                                   <div className="text-sm text-foreground font-medium break-words leading-relaxed">
-                                    <FieldValueRenderer value={resp.value} fieldType={question.type} compact />
+                                    <FieldValueRenderer value={resp.value} type={question.type} />
                                   </div>
                                   <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                                     <User className="w-3 h-3" />
@@ -1296,7 +1296,7 @@ function QuestionsTab({ form, submissions, selectedQuestion, onSelectQuestion, o
                               ) : (
                                 <div>
                                   <div className="text-foreground text-sm leading-relaxed break-words group-hover:text-foreground">
-                                    <FieldValueRenderer value={resp.value} fieldType={currentField?.type} compact />
+                                    <FieldValueRenderer value={resp.value} type={currentField?.type} />
                                   </div>
                                   {/* Duplicate indicator */}
                                   {duplicateCount > 1 && (
@@ -1622,7 +1622,7 @@ function IndividualTab({ form, submissions, currentIndex, onChangeIndex, onDelet
                         <p className="text-muted-foreground/60 text-xs sm:text-sm italic">لم يتم الإجابة</p>
                       ) : (
                         <div className="text-foreground text-xs sm:text-sm leading-relaxed break-words">
-                          <FieldValueRenderer value={value} fieldType={field.type} />
+                          <FieldValueRenderer value={value} type={field.type} />
                         </div>
                       )}
                     </div>
