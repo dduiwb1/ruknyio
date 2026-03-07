@@ -58,14 +58,30 @@ function isLocalHost(host: string): boolean {
   );
 }
 
+function getSubdomain(host: string): string | null {
+  // Extract first part of hostname (subdomain)
+  // e.g., "app.rukny.xyz" -> "app", "localhost:3000" -> null
+  const withoutPort = hostWithoutPort(host);
+  const parts = withoutPort.split('.');
+  if (parts.length < 2 || isLocalHost(withoutPort)) {
+    return null;
+  }
+  return parts[0];
+}
+
 function buildCrossHostUrl(
   request: NextRequest,
-  targetHost: string,
+  targetSubdomain: string,
   pathname: string,
   search: string,
 ): URL {
+  const requestHost = normalizeHost(
+    request.headers.get('x-forwarded-host') || request.headers.get('host'),
+  );
+  const hostWithoutSubdomain = requestHost.split('.').slice(1).join('.');
   const protocol = request.nextUrl.protocol;
-  return new URL(`${protocol}//${targetHost}${pathname}${search}`);
+  const newHost = hostWithoutSubdomain ? `${targetSubdomain}.${hostWithoutSubdomain}` : targetSubdomain;
+  return new URL(`${protocol}//${newHost}${pathname}${search}`);
 }
 
 export function middleware(request: NextRequest) {
@@ -80,10 +96,10 @@ export function middleware(request: NextRequest) {
     request.headers.get('x-forwarded-host') || request.headers.get('host'),
   );
   const requestHostName = hostWithoutPort(requestHost);
-  const isAppHost = requestHostName === APP_HOST;
-  const isAccountsHost = requestHostName === ACCOUNTS_HOST;
-  const useSubdomainRouting =
-    !isLocalHost(requestHostName) && (isAppHost || isAccountsHost);
+  const subdomain = getSubdomain(requestHostName);
+  const isAppHost = subdomain === 'app';
+  const isAccountsHost = subdomain === 'accounts';
+  const useSubdomainRouting = subdomain !== null && (isAppHost || isAccountsHost);
 
   const isAuthenticated = hasSessionCookie(
     request.headers.get('cookie'),
@@ -107,31 +123,31 @@ export function middleware(request: NextRequest) {
       if (isAppHost) {
         if (isAuthenticated) {
           return NextResponse.redirect(
-            buildCrossHostUrl(request, APP_HOST, '/app', ''),
+            buildCrossHostUrl(request, 'app', '/app', ''),
           );
         }
 
-        const loginUrl = buildCrossHostUrl(request, ACCOUNTS_HOST, '/login', '');
+        const loginUrl = buildCrossHostUrl(request, 'accounts', '/login', '');
         loginUrl.searchParams.set('callbackUrl', '/app');
         return NextResponse.redirect(loginUrl);
       }
 
       if (isAccountsHost) {
         return NextResponse.redirect(
-          buildCrossHostUrl(request, ACCOUNTS_HOST, '/login', ''),
+          buildCrossHostUrl(request, 'accounts', '/login', ''),
         );
       }
     }
 
     if (isAppHost && isAuthDomainRoute) {
       return NextResponse.redirect(
-        buildCrossHostUrl(request, ACCOUNTS_HOST, pathname, search),
+        buildCrossHostUrl(request, 'accounts', pathname, search),
       );
     }
 
     if (isAccountsHost && pathname.startsWith('/app')) {
       return NextResponse.redirect(
-        buildCrossHostUrl(request, APP_HOST, pathname, search),
+        buildCrossHostUrl(request, 'app', pathname, search),
       );
     }
   }
@@ -141,11 +157,11 @@ export function middleware(request: NextRequest) {
   // because QuickSign SIGNUP users arrive with a token but no cookies yet.
   if (!isAuthenticated && !isPublicRoute && !isAuthOnlyRoute) {
     const loginUrl = useSubdomainRouting && isAppHost
-      ? buildCrossHostUrl(request, ACCOUNTS_HOST, '/login', '')
+      ? buildCrossHostUrl(request, 'accounts', '/login', '')
       : new URL('/login', request.url);
 
     if (useSubdomainRouting && isAppHost) {
-      const callbackUrl = buildCrossHostUrl(request, APP_HOST, pathname, search);
+      const callbackUrl = buildCrossHostUrl(request, 'app', pathname, search);
       loginUrl.searchParams.set(
         'callbackUrl',
         `${callbackUrl.pathname}${callbackUrl.search}`,
@@ -167,7 +183,7 @@ export function middleware(request: NextRequest) {
     }
 
     const appUrl = useSubdomainRouting
-      ? buildCrossHostUrl(request, APP_HOST, '/app', '')
+      ? buildCrossHostUrl(request, 'app', '/app', '')
       : new URL('/app', request.url);
     return NextResponse.redirect(appUrl);
   }
