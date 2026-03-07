@@ -115,6 +115,25 @@ export function middleware(request: NextRequest) {
 
   const isAuthDomainRoute = isPublicRoute || isAuthOnlyRoute;
 
+  // ─── Root domain routing (no subdomain) ─────────────────────
+  // Redirect /app/* paths to app subdomain
+  // Redirect auth paths to accounts subdomain
+  if (subdomain === null && !isLocalHost(requestHostName)) {
+    // /app paths should go to app subdomain
+    if (pathname.startsWith('/app')) {
+      return NextResponse.redirect(
+        buildCrossHostUrl(request, 'app', pathname.replace(/^\/app/, '') || '/', search),
+      );
+    }
+
+    // Auth paths should go to accounts subdomain
+    if (isAuthDomainRoute) {
+      return NextResponse.redirect(
+        buildCrossHostUrl(request, 'accounts', pathname, search),
+      );
+    }
+  }
+
   // Enforce domain separation in production:
   // - app.rukny.xyz: dashboard/app routes
   // - accounts.rukny.xyz: login/auth routes
