@@ -64,11 +64,8 @@ function buildCrossHostUrl(
   pathname: string,
   search: string,
 ): URL {
-  const url = request.nextUrl.clone();
-  url.host = targetHost;
-  url.pathname = pathname;
-  url.search = search;
-  return url;
+  const protocol = request.nextUrl.protocol;
+  return new URL(`${protocol}//${targetHost}${pathname}${search}`);
 }
 
 export function middleware(request: NextRequest) {
