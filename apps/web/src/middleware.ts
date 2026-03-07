@@ -106,6 +106,26 @@ export function middleware(request: NextRequest) {
   // - app.rukny.xyz: dashboard/app routes
   // - accounts.rukny.xyz: login/auth routes
   if (useSubdomainRouting) {
+    if (pathname === '/') {
+      if (isAppHost) {
+        if (isAuthenticated) {
+          return NextResponse.redirect(
+            buildCrossHostUrl(request, APP_HOST, '/app', ''),
+          );
+        }
+
+        const loginUrl = buildCrossHostUrl(request, ACCOUNTS_HOST, '/login', '');
+        loginUrl.searchParams.set('callbackUrl', '/app');
+        return NextResponse.redirect(loginUrl);
+      }
+
+      if (isAccountsHost) {
+        return NextResponse.redirect(
+          buildCrossHostUrl(request, ACCOUNTS_HOST, '/login', ''),
+        );
+      }
+    }
+
     if (isAppHost && isAuthDomainRoute) {
       return NextResponse.redirect(
         buildCrossHostUrl(request, ACCOUNTS_HOST, pathname, search),
