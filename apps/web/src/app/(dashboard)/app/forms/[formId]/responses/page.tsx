@@ -65,7 +65,6 @@ import {
 } from '@/lib/hooks/useForms';
 import { useGoogleSheets, GoogleSheetsStatus } from '@/lib/hooks/useGoogleSheets';
 import { FieldValueRenderer } from '@/components/ui/field-value-renderer';
-import { AuthClient } from '@/lib/auth/auth-client';
 import { format, formatDistanceToNow, subDays, startOfDay, isWithinInterval } from 'date-fns';
 import { arSA } from 'date-fns/locale';
 import { 
@@ -1851,12 +1850,10 @@ export default function FormResponsesPage() {
     if (!formId) return;
     setIsConnectingDrive(true);
     try {
-      const token = await AuthClient.getToken();
       const response = await fetch(
         `/api/v1/integrations/google-drive/status/${formId}`,
         {
           credentials: 'include',
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
         }
       );
       if (response.ok) {
@@ -1875,12 +1872,10 @@ export default function FormResponsesPage() {
     const fetchDriveStatus = async () => {
       if (!formId) return;
       try {
-        const token = await AuthClient.getToken();
         const response = await fetch(
           `/api/v1/integrations/google-drive/status/${formId}`,
           {
             credentials: 'include',
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
           }
         );
         if (response.ok) {
@@ -1930,7 +1925,17 @@ export default function FormResponsesPage() {
     setIsCached(false);
     try {
       const result = await getFormSubmissions(formId, 1, 1000);
-      const submissionsData = result.submissions as ExtendedFormSubmission[];
+      if (!result) {
+        setSubmissions([]);
+        setTotalSubmissions(0);
+        return;
+      }
+
+      const submissionsData = result.data.map((submission) => ({
+        ...submission,
+        // Legacy UI parts expect submittedAt, while API returns createdAt.
+        submittedAt: submission.completedAt || submission.createdAt,
+      })) as ExtendedFormSubmission[];
       setSubmissions(submissionsData);
       setTotalSubmissions(result.total);
       
@@ -1991,11 +1996,9 @@ export default function FormResponsesPage() {
     setDeletingId(deleteModal.submissionId);
     setDeleteModal({ isOpen: false, submissionId: null });
     try {
-      const token = await AuthClient.getToken();
       const response = await fetch(`/api/v1/forms/${formId}/submissions/${deleteModal.submissionId}`, {
         method: 'DELETE',
         credentials: 'include',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (response.ok) {
         setSubmissions((prev: ExtendedFormSubmission[]) => prev.filter((s) => s.id !== deleteModal.submissionId));
