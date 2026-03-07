@@ -368,7 +368,7 @@ export default function ProfileSettingsPage() {
 
             <div className="space-y-2 pt-1">
               <SettingsRow>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mt-4">
                   <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-xl', hideEmail ? 'bg-amber-500/10' : 'bg-muted/50')}>
                     <Mail className={cn('size-4', hideEmail ? 'text-amber-500' : 'text-muted-foreground')} />
                   </div>
@@ -381,7 +381,7 @@ export default function ProfileSettingsPage() {
               </SettingsRow>
 
               <SettingsRow>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mt-4">
                   <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-xl', hidePhone ? 'bg-amber-500/10' : 'bg-muted/50')}>
                     <Phone className={cn('size-4', hidePhone ? 'text-amber-500' : 'text-muted-foreground')} />
                   </div>
@@ -394,7 +394,7 @@ export default function ProfileSettingsPage() {
               </SettingsRow>
 
               <SettingsRow>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mt-4">
                   <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-xl', hideLocation ? 'bg-amber-500/10' : 'bg-muted/50')}>
                     <MapPin className={cn('size-4', hideLocation ? 'text-amber-500' : 'text-muted-foreground')} />
                   </div>
@@ -492,7 +492,7 @@ export default function ProfileSettingsPage() {
 
           {/* Deactivate / Reactivate */}
           <SettingsRow className="border border-border/30">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 mt-4">
               <div className={cn(
                 'flex size-9 shrink-0 items-center justify-center rounded-xl',
                 isAccountDeactivated ? 'bg-emerald-500/10' : 'bg-amber-500/10'
@@ -549,7 +549,7 @@ export default function ProfileSettingsPage() {
 
           {/* Delete */}
           <SettingsRow className="border border-destructive/20">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 mt-4">
               <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-destructive/10">
                 <Trash2 className="size-4 text-destructive" />
               </div>

@@ -40,6 +40,11 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/providers';
+import Image from 'next/image';
+
+function WhatsAppIcon({ className }: { className?: string }) {
+  return <Image src="/icons/whatsapp.svg" alt="" width={16} height={16} className={className} />;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Types & Data
@@ -89,6 +94,16 @@ export const settingsSections: SettingsSection[] = [
       { href: '/app/settings?tab=events-general', label: 'إعدادات الأحداث', icon: Calendar },
       { href: '/app/settings?tab=tickets', label: 'التذاكر', icon: Ticket },
       { href: '/app/settings?tab=calendar', label: 'التقويم', icon: CalendarDays },
+    ],
+  },
+  {
+    id: 'whatsapp',
+    label: 'WhatsApp Business',
+    icon: WhatsAppIcon,
+    items: [
+      { href: '/app/settings/whatsapp', label: 'إدارة عامة', icon: Settings },
+      { href: '/app/settings/whatsapp/account', label: 'الحساب', icon: User },
+      { href: '/app/settings/whatsapp/templates', label: 'قوالب', icon: FileText },
     ],
   },
 ];
@@ -149,6 +164,16 @@ function SettingsSidebarContent({ onItemClick }: { onItemClick?: () => void }) {
       <nav className="flex-1 overflow-y-auto px-5 py-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">الإعدادات</p>
         <div className="space-y-0.5 w-full">
+          {/* Back to Dashboard Link */}
+          <Link
+            href="/app"
+            onClick={onItemClick}
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-foreground/80 transition-colors hover:bg-muted/50 hover:text-foreground"
+          >
+            <MonitorSmartphone className="size-4 text-muted-foreground" />
+            <span>الرجوع إلى لوحة التحكم</span>
+          </Link>
+
           {/* Direct Profile Link */}
           <Link
             href="/app/settings/profile"

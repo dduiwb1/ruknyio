@@ -9,7 +9,11 @@ export function SidebarWrapper() {
   const isSettings = pathname?.startsWith('/app/settings');
 
   if (isSettings) {
-    return <SettingsSidebarDesktop />;
+    return (
+      <div className="hidden lg:flex">
+        <SettingsSidebarDesktop />
+      </div>
+    );
   }
 
   return <Sidebar />;

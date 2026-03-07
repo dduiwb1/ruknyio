@@ -78,7 +78,7 @@ export default function StoreMarketingPage() {
               className="border rounded-lg p-4"
             >
               <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mt-4">
                   <Megaphone className="size-5 text-primary" />
                   <div>
                     <h3 className="font-medium">{campaign.name}</h3>

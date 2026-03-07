@@ -372,7 +372,7 @@ export default function IntegrationsSettingsPage() {
       />
 
       {/* ── Header ──────────────────────────────────────────── */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 mt-4">
         <div className="flex size-10 items-center justify-center rounded-2xl" style={{ backgroundColor: '#9787F3' }}>
           <GitMerge className="size-[18px] text-white" />
         </div>

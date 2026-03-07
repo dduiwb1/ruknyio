@@ -39,6 +39,10 @@ const labelMap: Record<string, string> = {
   profile: 'الملف الشخصي',
   notifications: 'الإشعارات',
   analytics: 'الإحصائيات',
+  delivery: 'التوصيل',
+  automation: 'الأتمتة',
+  marketing: 'التسويق',
+  ai: 'الذكاء الاصطناعي',
 };
 
 function buildBreadcrumbs(pathname: string) {
@@ -66,11 +70,6 @@ function getParentInfo(pathname: string) {
 export function DashboardNav() {
   const pathname = usePathname();
   const { user, setUser } = useAuth();
-
-  // Hide nav in Settings page
-  if (pathname?.startsWith('/app/settings')) {
-    return null;
-  }
 
   const breadcrumbs = buildBreadcrumbs(pathname);
   const parent = getParentInfo(pathname);

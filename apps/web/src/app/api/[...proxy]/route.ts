@@ -20,7 +20,10 @@ async function handler(
 ) {
   const { proxy } = await params;
   const path = proxy.join('/');
-  const targetUrl = new URL(`/api/v1/${path}`, API_URL);
+  // Support both `/api/forms/...` and `/api/v1/forms/...` client calls.
+  // If the incoming path already starts with `v1/`, do not prepend it again.
+  const normalizedPath = path.startsWith('v1/') ? path : `v1/${path}`;
+  const targetUrl = new URL(`/api/${normalizedPath}`, API_URL);
 
   // Forward query params
   request.nextUrl.searchParams.forEach((value, key) => {

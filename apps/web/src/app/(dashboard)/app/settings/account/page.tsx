@@ -591,7 +591,7 @@ export default function AccountSecurityPage() {
           description="حسابك يستخدم روابط الدخول السريع ( الرابط السحري ) عبر البريد الإلكتروني"
         >
         <SettingsRow>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mt-4">
             <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
               <Link2 className="size-4 text-primary" />
             </div>
@@ -619,7 +619,7 @@ export default function AccountSecurityPage() {
         >
         <div className="space-y-4">
           <SettingsRow>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 mt-4">
               <div
                 className={cn(
                   'flex size-9 shrink-0 items-center justify-center rounded-xl',
@@ -744,7 +744,7 @@ export default function AccountSecurityPage() {
         <div className="space-y-3">
           {/* Google */}
           <SettingsRow>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 mt-4">
               <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-background/80 border border-border/30">
                 <img src="/icons/google.svg" alt="Google" className="size-5" />
               </div>
@@ -778,7 +778,7 @@ export default function AccountSecurityPage() {
 
           {/* LinkedIn */}
           <SettingsRow>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 mt-4">
               <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-background/80 border border-border/30">
                 <img src="/icons/linkedin.svg" alt="LinkedIn" className="size-5" />
               </div>
