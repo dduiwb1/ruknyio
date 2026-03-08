@@ -4,8 +4,11 @@ buildCommand = "npm install && npm run build"
 
 [variables]
 NIXPACKS_NODE_VERSION = "24"
+NPM_CONFIG_FORCE = "true"
 
 [deploy]
 startCommand = "npm run start"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
