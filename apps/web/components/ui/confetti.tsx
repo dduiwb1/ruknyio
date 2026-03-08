@@ -8,12 +8,13 @@ import React, {
   useMemo,
   useRef,
 } from "react"
-import type {
-  GlobalOptions as ConfettiGlobalOptions,
-  CreateTypes as ConfettiInstance,
-  Options as ConfettiOptions,
-} from "canvas-confetti"
 import confetti from "canvas-confetti"
+
+type ConfettiOptions = Record<string, unknown>
+type ConfettiGlobalOptions = Record<string, unknown>
+type ConfettiInstance = ((options?: ConfettiOptions) => void) & {
+  reset: () => void
+}
 
 type Api = {
   fire: (options?: ConfettiOptions) => void
@@ -47,7 +48,7 @@ const Confetti = forwardRef<ConfettiRef, Props>((props, ref) => {
         instanceRef.current = confetti.create(node, {
           ...globalOptions,
           resize: true,
-        })
+        }) as ConfettiInstance
       } else {
         if (instanceRef.current) {
           instanceRef.current.reset()
