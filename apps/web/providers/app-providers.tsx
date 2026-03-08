@@ -9,7 +9,7 @@ import { QueryProvider } from './query-provider';
 import { AuthProvider } from './auth-provider';
 import { PerformanceProvider } from './performance-provider';
 import { ErrorBoundary } from '@/components/error-boundary';
-import { ToastProvider } from '@/components/toast-provider';
+import { ToastProvider } from '@/components/ui/toast';
 import { SessionTimeoutWarning } from '@/components/session-timeout-warning';
 import { NetworkStatusProvider } from '@/components/network-status';
 
