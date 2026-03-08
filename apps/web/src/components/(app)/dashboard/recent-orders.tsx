@@ -107,13 +107,13 @@ export function RecentOrders({ orders, formatCurrency }: RecentOrdersProps) {
               transition={{ delay: index * 0.05 }}
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-2xl bg-card",
-                index === 0 && "bg-primary/10 dark:bg-primary/5"
+                index === 0 && "bg-[#c8e972]/20 dark:bg-[#c8e972]/10"
               )}
             >
               {/* Status Icon */}
               <div className={cn(
                 "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
-                index === 0 ? "bg-primary/20" : "bg-muted/60"
+                index === 0 ? "bg-[#c8e972]" : "bg-muted/60"
               )}>
                 <StatusIcon className={cn(
                   "w-4 h-4",

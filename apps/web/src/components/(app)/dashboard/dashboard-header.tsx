@@ -6,11 +6,16 @@
  */
 
 import {
+  Calendar,
+  ChevronDown,
+  ChevronLeft,
   Package,
   FileText,
   Tag,
   Megaphone,
   Plus,
+  Check,
+  LayoutDashboard,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -54,11 +59,15 @@ export function DashboardHeader({
 
   return (
     <header className="flex items-center justify-between gap-4">
-      {/* Title */}
-      <div>
-        <h1 className="text-lg font-bold text-foreground">الرئيسية</h1>
-        <p className="text-sm text-muted-foreground">تابع نشاط متجرك وإحصائياتك</p>
-      </div>
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-2 text-sm" aria-label="Breadcrumb">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <LayoutDashboard className="h-4 w-4" />
+          <span>لوحة التحكم</span>
+        </div>
+        <ChevronLeft className="h-4 w-4 text-muted-foreground/50 rotate-180" aria-hidden />
+        <span className="font-medium text-foreground">الرئيسية</span>
+      </nav>
 
       {/* Actions */}
       <div className="flex items-center gap-2">
@@ -67,20 +76,20 @@ export function DashboardHeader({
           <button
             type="button"
             onClick={() => { setShowQuickAdd((v) => !v); setShowDate(false); }}
-            className="flex h-9 items-center gap-2 rounded-xl bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            className="flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             <Plus className="h-4 w-4" />
             <span className="hidden sm:inline">إضافة</span>
           </button>
 
           {showQuickAdd && (
-            <div className="absolute left-0 top-full z-50 mt-1 w-44 rounded-xl border border-border/50 bg-card p-1 shadow-lg">
+            <div className="absolute left-0 top-full z-50 mt-1 w-44 rounded-lg border border-border/50 bg-card p-1 shadow-lg">
               {quickAddOptions.map((opt) => (
                 <Link
                   key={opt.href}
                   href={opt.href}
                   onClick={() => setShowQuickAdd(false)}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-muted/50 transition-colors"
+                  className="flex items-center gap-3 rounded-md px-3 py-2 text-sm hover:bg-muted/50 transition-colors"
                 >
                   <div className={cn("p-1.5 rounded-md", opt.color)}>
                     <opt.icon className="h-3.5 w-3.5 text-white" />
@@ -99,11 +108,16 @@ export function DashboardHeader({
 export function DashboardHeaderSkeleton() {
   return (
     <div className="flex items-center justify-between gap-4">
-      <div className="space-y-1.5">
-        <div className="h-5 w-20 rounded bg-muted animate-pulse" />
-        <div className="h-4 w-40 rounded bg-muted animate-pulse" />
+      <div className="flex items-center gap-2">
+        <div className="h-4 w-4 rounded bg-muted animate-pulse" />
+        <div className="h-4 w-20 rounded bg-muted animate-pulse" />
+        <div className="h-4 w-4 rounded bg-muted animate-pulse" />
+        <div className="h-4 w-14 rounded bg-muted animate-pulse" />
       </div>
-      <div className="h-9 w-9 sm:w-24 rounded-xl bg-muted animate-pulse" />
+      <div className="flex gap-2">
+        <div className="h-9 w-9 sm:w-32 rounded-lg bg-muted animate-pulse" />
+        <div className="h-9 w-9 sm:w-20 rounded-lg bg-muted animate-pulse" />
+      </div>
     </div>
   );
 }

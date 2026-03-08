@@ -1,12 +1,13 @@
-import type { ReactNode } from 'react';
+/**
+ * Force all (auth) routes to be dynamic (no static prerender).
+ * Fixes Next.js InvariantError: workUnitAsyncStorage during build.
+ */
+export const dynamic = 'force-dynamic';
 
-export default function AuthLayout({ children }: { children: ReactNode }) {
-  return (
-    <div
-      dir="rtl"
-      className="flex min-h-screen items-center justify-center bg-white px-4 py-12"
-    >
-      <div className="w-full max-w-md">{children}</div>
-    </div>
-  );
+export default function AuthGroupLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return children;
 }

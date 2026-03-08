@@ -123,7 +123,7 @@ export function ActivityBarChart({
                     className={cn(
                       "w-full rounded-full relative overflow-hidden",
                       item.isHighlighted 
-                        ? "bg-primary/60 dark:bg-primary/50" 
+                        ? "bg-[#c8e972] dark:bg-[#b8d962]" 
                         : "bg-muted/80 dark:bg-muted/60"
                     )}
                   >

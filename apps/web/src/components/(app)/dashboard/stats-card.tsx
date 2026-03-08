@@ -32,7 +32,7 @@ export function StatsCard({
       className={cn(
         "rounded-2xl p-4 sm:p-5",
         highlight 
-          ? "bg-primary/10 dark:bg-primary/5" 
+          ? "bg-[#c8e972]/20 dark:bg-[#c8e972]/10" 
           : "bg-muted/30 dark:bg-muted/20"
       )}
     >

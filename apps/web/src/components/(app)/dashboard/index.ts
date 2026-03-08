@@ -8,6 +8,7 @@
  * - RevenueChart
  * - TotalSalesChart
  * - TopProductsTable
+ * - RecentActivities
  * - OverviewStats (NEW)
  * - ActivityBarChart (NEW)
  * - TasksList (NEW)
@@ -20,6 +21,7 @@ export { RevenueChart, RevenueChartSkeleton } from './revenue-chart';
 export type { RevenueChartData, ChartDataPoint } from './revenue-chart';
 export { TotalSalesChart, TotalSalesChartSkeleton } from './total-sales-chart';
 export { TopProductsTable, TopProductsTableSkeleton } from './top-products-table';
+export { RecentActivities, RecentActivitiesSkeleton } from './recent-activities';
 
 // New Components - Modern Design
 export { OverviewStats, OverviewStatsSkeleton } from './overview-stats';

@@ -123,14 +123,14 @@ export function TasksList({
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-2xl transition-colors cursor-pointer",
                 activity.isNew
-                  ? "bg-primary/10 dark:bg-primary/5"
+                  ? "bg-[#c8e972]/20 dark:bg-[#c8e972]/10"
                   : "bg-card hover:bg-muted/50"
               )}
             >
               {/* Icon */}
               <div className={cn(
                 "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
-                activity.isNew ? "bg-primary/20" : "bg-muted/60"
+                activity.isNew ? "bg-[#c8e972]" : "bg-muted/60"
               )}>
                 <IconComponent className={cn(
                   "w-4 h-4",
@@ -159,7 +159,7 @@ export function TasksList({
 
               {/* New Badge */}
               {activity.isNew && (
-                <span className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-[#c8e972] shrink-0" />
               )}
             </motion.div>
           );

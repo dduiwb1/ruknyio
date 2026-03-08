@@ -86,14 +86,14 @@ export function TopProductsTable({
             transition={{ delay: index * 0.05 }}
             className={cn(
               "flex items-center gap-3 px-4 py-3 rounded-2xl bg-card",
-              index === 0 && "bg-primary/10 dark:bg-primary/5"
+              index === 0 && "bg-[#c8e972]/20 dark:bg-[#c8e972]/10"
             )}
           >
             {/* Rank */}
             <div className={cn(
               "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm font-bold",
               index === 0 
-                ? "bg-primary/20 text-foreground" 
+                ? "bg-[#c8e972] text-foreground" 
                 : index === 1 
                   ? "bg-muted/80 text-foreground"
                   : index === 2

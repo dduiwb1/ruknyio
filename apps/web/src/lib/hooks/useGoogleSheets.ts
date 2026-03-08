@@ -1,269 +1,231 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-
-export type GoogleSheetsConnectionState =
-  | 'disconnected'
-  | 'connecting'
-  | 'connected'
-  | 'error';
+import { buildApiPath } from '@/lib/config';
+import { secureFetch } from '@/lib/api/api-client';
 
 export interface GoogleSheetsStatus {
   connected: boolean;
-  spreadsheetId?: string | null;
-  spreadsheetUrl?: string | null;
-  lastSyncAt?: string | null;
-  syncedCount: number;
-  isAutoSync: boolean;
-}
-
-export interface GoogleSheetsConfig {
   spreadsheetId?: string;
   spreadsheetUrl?: string;
   sheetName?: string;
-  isAutoSync: boolean;
   lastSyncAt?: string;
-  syncedCount: number;
+  isAutoSync?: boolean;
 }
 
-interface GoogleSheetsAuthResponse {
-  authUrl?: string;
+export interface UseGoogleSheetsReturn {
+  status: GoogleSheetsStatus | null;
+  isLoading: boolean;
+  error: string | null;
+  connect: (formId: string) => Promise<{ authUrl?: string; spreadsheetUrl?: string } | null>;
+  getStatus: (formId: string) => Promise<GoogleSheetsStatus | null>;
+  exportSubmissions: (formId: string) => Promise<{ spreadsheetUrl?: string } | null>;
+  toggleAutoSync: (formId: string, enabled: boolean) => Promise<boolean>;
+  createNewSpreadsheet: (formId: string) => Promise<{ spreadsheetUrl?: string } | null>;
+  disconnect: (formId: string) => Promise<boolean>;
+  reconnect: (formId: string) => Promise<boolean>;
 }
 
-interface GoogleSheetsExportResponse {
-  count: number;
-  spreadsheetUrl: string;
-}
-
-interface GoogleSheetsSpreadsheetResponse {
-  spreadsheetId?: string;
-  spreadsheetUrl?: string;
-}
-
-const DEFAULT_STATUS: GoogleSheetsStatus = {
-  connected: false,
-  spreadsheetId: null,
-  spreadsheetUrl: null,
-  lastSyncAt: null,
-  syncedCount: 0,
-  isAutoSync: false,
-};
-
-async function parseJson<T>(res: Response): Promise<T | null> {
-  if (!res.ok) return null;
-  try {
-    return (await res.json()) as T;
-  } catch {
-    return null;
-  }
-}
-
-export function useGoogleSheets() {
-  const [connectionState, setConnectionState] =
-    useState<GoogleSheetsConnectionState>('disconnected');
-  const [config, setConfig] = useState<GoogleSheetsConfig | null>(null);
+export function useGoogleSheets(): UseGoogleSheetsReturn {
+  const [status, setStatus] = useState<GoogleSheetsStatus | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const connect = useCallback(async (formId: string) => {
-    setIsLoading(true);
-    setConnectionState('connecting');
+  const connect = useCallback(async (formId: string): Promise<{ authUrl?: string; spreadsheetUrl?: string } | null> => {
     try {
-      const res = await fetch(
-        `/api/v1/integrations/google-sheets/connect/${formId}`,
-        {
-          credentials: 'include',
-        },
-      );
-      const data = await parseJson<GoogleSheetsAuthResponse>(res);
-      if (!data?.authUrl) {
-        setConnectionState('error');
-        return null;
-      }
-
-      return data;
-    } catch {
-      setConnectionState('error');
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const disconnect = useCallback(async (formId: string) => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(
-        `/api/v1/integrations/google-sheets/disconnect/${formId}`,
-        {
-          method: 'DELETE',
-          credentials: 'include',
-        },
-      );
-
-      if (!res.ok) return false;
-
-      setConnectionState('disconnected');
-      setConfig(null);
-      return true;
-    } catch {
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const exportSubmissions = useCallback(async (formId: string) => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(
-        `/api/v1/integrations/google-sheets/export/${formId}`,
-        {
-          method: 'POST',
-          credentials: 'include',
-        },
-      );
-
-      const data = await parseJson<GoogleSheetsExportResponse>(res);
-      if (!data) return null;
-      return data;
-    } catch {
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const sync = useCallback(
-    async (formId: string) => {
-      await exportSubmissions(formId);
-    },
-    [exportSubmissions],
-  );
-
-  const toggleAutoSync = useCallback(async (formId: string, enabled: boolean) => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(
-        `/api/v1/integrations/google-sheets/auto-sync/${formId}`,
-        {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ enabled }),
-        },
-      );
-
-      const data = await parseJson<{ success?: boolean }>(res);
-      return !!data?.success;
-    } catch {
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const createNewSpreadsheet = useCallback(async (formId: string) => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(
-        `/api/v1/integrations/google-sheets/new-spreadsheet/${formId}`,
-        {
-          method: 'POST',
-          credentials: 'include',
-        },
-      );
-
-      const data = await parseJson<GoogleSheetsSpreadsheetResponse>(res);
-      if (!data) return null;
-      return data;
-    } catch {
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const reconnect = useCallback(async (formId: string) => {
-    setIsLoading(true);
-    setConnectionState('connecting');
-    try {
-      const res = await fetch(
-        `/api/v1/integrations/google-sheets/reconnect/${formId}`,
-        {
-          credentials: 'include',
-        },
-      );
-
-      const data = await parseJson<GoogleSheetsAuthResponse>(res);
-      if (!data?.authUrl) {
-        setConnectionState('error');
-        return null;
-      }
-
-      window.location.href = data.authUrl;
-      return data;
-    } catch {
-      setConnectionState('error');
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const getStatus = useCallback(async (formId: string) => {
-    try {
-      const res = await fetch(
-        `/api/v1/integrations/google-sheets/status/${formId}`,
-        {
-          credentials: 'include',
-        },
-      );
-
-      const data = await parseJson<Partial<GoogleSheetsStatus>>(res);
-      if (!data) {
-        setConnectionState('disconnected');
-        setConfig(null);
-        return { ...DEFAULT_STATUS };
-      }
-
-      const normalized: GoogleSheetsStatus = {
-        connected: !!data.connected,
-        spreadsheetId: data.spreadsheetId ?? null,
-        spreadsheetUrl: data.spreadsheetUrl ?? null,
-        lastSyncAt: data.lastSyncAt ?? null,
-        syncedCount: typeof data.syncedCount === 'number' ? data.syncedCount : 0,
-        isAutoSync: !!data.isAutoSync,
-      };
-
-      setConfig({
-        spreadsheetId: normalized.spreadsheetId ?? undefined,
-        spreadsheetUrl: normalized.spreadsheetUrl ?? undefined,
-        isAutoSync: normalized.isAutoSync,
-        lastSyncAt: normalized.lastSyncAt ?? undefined,
-        syncedCount: normalized.syncedCount,
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await secureFetch(buildApiPath(`/integrations/google-sheets/connect/${formId}`), {
+        method: 'GET',
       });
-      setConnectionState(normalized.connected ? 'connected' : 'disconnected');
+      
+      if (response.ok) {
+        const data = await response.json();
+        // If we get authUrl, return it for OAuth redirect
+        if (data?.authUrl) {
+          return { authUrl: data.authUrl };
+        }
+        // Otherwise, set status if already connected
+        setStatus({
+          connected: true,
+          spreadsheetUrl: data?.spreadsheetUrl,
+          spreadsheetId: data?.spreadsheetId,
+          sheetName: data?.sheetName,
+          isAutoSync: data?.isAutoSync || false,
+        });
+        return data;
+      }
+      return null;
+    } catch (err: any) {
+      setError(err.message || 'فشل في الاتصال بـ Google Sheets');
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-      return normalized;
-    } catch {
-      setConnectionState('error');
-      return { ...DEFAULT_STATUS };
+  const getStatus = useCallback(async (formId: string): Promise<GoogleSheetsStatus | null> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      // تعديل المسار ليطابق backend
+      const response = await secureFetch(buildApiPath(`/integrations/google-sheets/status/${formId}`));
+      if (response.ok) {
+        const data = await response.json();
+        const statusData: GoogleSheetsStatus = {
+          connected: data?.connected || false,
+          spreadsheetId: data?.spreadsheetId,
+          spreadsheetUrl: data?.spreadsheetUrl,
+          sheetName: data?.sheetName,
+          lastSyncAt: data?.lastSyncAt,
+          isAutoSync: data?.isAutoSync || false,
+        };
+        setStatus(statusData);
+        return statusData;
+      }
+      
+      setStatus({ connected: false });
+      return { connected: false };
+    } catch (err: any) {
+      setError(err.message || 'فشل في جلب حالة Google Sheets');
+      setStatus({ connected: false });
+      return { connected: false };
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const exportSubmissions = useCallback(async (formId: string): Promise<{ spreadsheetUrl?: string } | null> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await secureFetch(buildApiPath(`/integrations/google-sheets/export/${formId}`), {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data;
+      }
+      return null;
+    } catch (err: any) {
+      setError(err.message || 'فشل في التصدير');
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const toggleAutoSync = useCallback(async (formId: string, enabled: boolean): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await secureFetch(buildApiPath(`/integrations/google-sheets/auto-sync/${formId}`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled }),
+      });
+      
+      if (response.ok) {
+        setStatus(prev => prev ? { ...prev, isAutoSync: enabled } : null);
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      setError(err.message || 'فشل في تحديث الإعدادات');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const createNewSpreadsheet = useCallback(async (formId: string): Promise<{ spreadsheetUrl?: string } | null> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await secureFetch(buildApiPath(`/integrations/google-sheets/new-spreadsheet/${formId}`), {
+        method: 'POST',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setStatus(prev => prev ? { ...prev, connected: true, spreadsheetUrl: data.spreadsheetUrl } : { connected: true, spreadsheetUrl: data.spreadsheetUrl });
+        return data;
+      }
+      return null;
+    } catch (err: any) {
+      setError(err.message || 'فشل في إنشاء الجدول');
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const disconnect = useCallback(async (formId: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await secureFetch(buildApiPath(`/integrations/google-sheets/disconnect/${formId}`), {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        setStatus({ connected: false });
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      setError(err.message || 'فشل في قطع الاتصال');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const reconnect = useCallback(async (formId: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await secureFetch(buildApiPath(`/integrations/google-sheets/reconnect/${formId}`), {
+        method: 'GET',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setStatus({
+          connected: true,
+          spreadsheetUrl: data?.spreadsheetUrl,
+          isAutoSync: data?.isAutoSync,
+        });
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      setError(err.message || 'فشل في إعادة الاتصال');
+      return false;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
   return {
-    status: connectionState,
-    config,
+    status,
     isLoading,
+    error,
     connect,
-    disconnect,
-    sync,
     getStatus,
     exportSubmissions,
     toggleAutoSync,
     createNewSpreadsheet,
+    disconnect,
     reconnect,
   };
 }
+
+export default useGoogleSheets;

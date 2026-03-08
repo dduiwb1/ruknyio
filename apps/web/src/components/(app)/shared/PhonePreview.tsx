@@ -18,15 +18,11 @@ import {
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/providers';
+import { buildApiPath } from '@/lib/config';
+import { secureFetch } from '@/lib/api/api-client';
 
-// API helpers
+// Avatar URL helper
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3001';
-const buildApiPath = (path: string) => {
-  const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
-  return `${base}${path}`;
-};
-const secureFetch = (url: string, opts?: RequestInit) =>
-  fetch(url, { credentials: 'include', ...opts });
 
 const resolveAvatarUrl = (avatar?: string | null): string | null => {
   if (!avatar) return null;
@@ -669,6 +665,15 @@ export function PhonePreview({ className }: PhonePreviewProps) {
           </a>
         )}
       </div>
+
+      {/* Profile URL */}
+      {(profile?.username || displayUsername) && profileUrl && (
+        <div className="mt-3 px-3 py-1.5 bg-gray-50 rounded-lg">
+          <p className="text-[10px] text-gray-400 text-center truncate max-w-[260px]">
+            {profileUrl}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

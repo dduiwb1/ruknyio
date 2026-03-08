@@ -183,13 +183,13 @@ export function RevenueChart({
               dataKey="name" 
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 12, fill: 'var(--color-muted-foreground)' }}
+              tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
               dy={10}
             />
             <YAxis 
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 12, fill: 'var(--color-muted-foreground)' }}
+              tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
               tickFormatter={formatNum}
               dx={-10}
             />
@@ -199,21 +199,21 @@ export function RevenueChart({
             <Line
               type="monotone"
               dataKey="previous"
-              stroke="var(--color-muted-foreground)"
+              stroke="hsl(var(--muted-foreground))"
               strokeWidth={2}
               strokeDasharray="5 5"
               dot={false}
-              activeDot={{ r: 4, fill: 'var(--color-muted-foreground)' }}
+              activeDot={{ r: 4, fill: 'hsl(var(--muted-foreground))' }}
             />
             
             {/* Current Week - Solid Line */}
             <Line
               type="monotone"
               dataKey="current"
-              stroke="var(--color-foreground)"
+              stroke="hsl(var(--foreground))"
               strokeWidth={2.5}
               dot={false}
-              activeDot={{ r: 6, fill: 'var(--color-foreground)' }}
+              activeDot={{ r: 6, fill: 'hsl(var(--foreground))' }}
             />
           </LineChart>
         </ResponsiveContainer>

@@ -85,7 +85,7 @@ export function OverviewStats({
                   className={cn(
                     "w-full rounded-2xl flex flex-col items-center justify-start pt-2 px-1 min-h-[50px]",
                     stat.highlight 
-                      ? "bg-primary/20 dark:bg-primary/15" 
+                      ? "bg-[#c8e972] dark:bg-[#b8d962]" 
                       : "bg-muted/50 dark:bg-muted/30"
                   )}
                 >

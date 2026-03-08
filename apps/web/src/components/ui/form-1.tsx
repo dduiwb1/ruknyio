@@ -1,66 +1,73 @@
-import React from "react";
-import { User, Mail, ArrowLeft } from "lucide-react";
+"use client";
 
-export default function Form1() {
+import React from "react";
+import { User, Mail, ArrowRight } from "lucide-react";
+
+export default function ContactForm() {
   return (
-    <form className="flex flex-col items-center text-sm text-slate-800">
-      <p className="text-xs bg-indigo-200 text-indigo-600 font-medium px-3 py-1 rounded-full">
+    <form className="flex flex-col items-center text-sm text-slate-800 dark:text-slate-200">
+      <p className="text-xs bg-primary/20 text-primary font-medium px-3 py-1 rounded-full">
         تواصل معنا
       </p>
-      <h1 className="text-4xl font-bold py-4 text-center">
-        دعنا نتواصل معك
+      <h1 className="text-4xl font-bold py-4 text-center text-foreground">
+        لنتواصل معك
       </h1>
-      <p className="max-md:text-sm text-gray-500 pb-10 text-center">
-        أو تواصل معنا مباشرة عبر{" "}
-        <a href="#" className="text-indigo-600 hover:underline">
-          hello@rukny.io
+      <p className="max-md:text-sm text-muted-foreground pb-10 text-center">
+        أو تواصل معنا مباشرة على{" "}
+        <a
+          href="#"
+          className="text-primary hover:underline transition-all"
+        >
+          hello@prebuiltui.com
         </a>
       </p>
 
       <div className="max-w-96 w-full px-4">
-        <label htmlFor="name" className="font-medium">
+        <label htmlFor="name" className="font-semibold text-sm mb-2 block text-foreground">
           الاسم الكامل
         </label>
-        <div className="flex items-center mt-2 mb-4 h-11 pr-3 border border-slate-300 rounded-full focus-within:ring-2 focus-within:ring-indigo-400 transition-all overflow-hidden">
-          <User className="size-5 text-slate-600 shrink-0" />
+        <div className="flex items-center mt-2 mb-4 h-12 pl-4 border-2 border-slate-300 dark:border-slate-600 rounded-full focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary transition-all duration-200 overflow-hidden bg-background">
+          <User className="h-5 w-5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
           <input
             type="text"
-            className="h-full px-2 w-full outline-none bg-transparent"
+            id="name"
+            className="h-full px-3 w-full outline-none bg-transparent text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500"
             placeholder="أدخل اسمك الكامل"
             required
           />
         </div>
 
-        <label htmlFor="email-address" className="font-medium mt-4">
+        <label htmlFor="email-address" className="font-semibold text-sm mb-2 block text-foreground mt-4">
           البريد الإلكتروني
         </label>
-        <div className="flex items-center mt-2 mb-4 h-11 pr-3 border border-slate-300 rounded-full focus-within:ring-2 focus-within:ring-indigo-400 transition-all overflow-hidden">
-          <Mail className="size-5 text-slate-600 shrink-0" />
+        <div className="flex items-center mt-2 mb-4 h-12 pl-4 border-2 border-slate-300 dark:border-slate-600 rounded-full focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary transition-all duration-200 overflow-hidden bg-background">
+          <Mail className="h-5 w-5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
           <input
             type="email"
-            dir="ltr"
-            className="h-full px-2 w-full outline-none bg-transparent text-left"
-            placeholder="example@email.com"
+            id="email-address"
+            className="h-full px-3 w-full outline-none bg-transparent text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500"
+            placeholder="أدخل بريدك الإلكتروني"
             required
           />
         </div>
 
-        <label htmlFor="message" className="font-medium mt-4">
+        <label htmlFor="message" className="font-semibold text-sm mb-2 block text-foreground mt-4">
           الرسالة
         </label>
         <textarea
           rows={4}
-          className="w-full mt-2 p-3 bg-transparent border border-slate-300 rounded-2xl resize-none outline-none focus:ring-2 focus-within:ring-indigo-400 transition-all"
-          placeholder="اكتب رسالتك هنا..."
+          id="message"
+          className="w-full mt-2 p-4 bg-background border-2 border-slate-300 dark:border-slate-600 rounded-2xl resize-none outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500"
+          placeholder="اكتب رسالتك هنا"
           required
         ></textarea>
 
         <button
           type="submit"
-          className="flex items-center justify-center gap-1.5 mt-5 bg-indigo-500 hover:bg-indigo-600 text-white py-2.5 w-full rounded-full transition font-medium"
+          className="flex items-center justify-center gap-2 mt-5 bg-primary hover:bg-primary/90 text-primary-foreground py-2.5 w-full rounded-full transition-all duration-200 font-semibold shadow-sm hover:shadow-md"
         >
-          إرسال الرسالة
-          <ArrowLeft className="size-5 mt-0.5" />
+          إرسال النموذج
+          <ArrowRight className="h-5 w-5" />
         </button>
       </div>
     </form>
