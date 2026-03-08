@@ -1,11 +1,11 @@
 [build]
 builder = "nixpacks"
-buildCommand = "npm install && npm run build --workspace=apps/web"
+buildCommand = "npm install && npm run build"
 
 [variables]
 NIXPACKS_NODE_VERSION = "24"
 
 [deploy]
-startCommand = "npm run start --workspace=apps/web"
+startCommand = "npm run start"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
