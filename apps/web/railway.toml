@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "npm run build --workspace=apps/web"
+buildCommand = "npm install && npm run build --workspace=apps/web"
 
 [variables]
 NIXPACKS_NODE_VERSION = "24"
