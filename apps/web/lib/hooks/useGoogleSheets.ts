@@ -23,10 +23,10 @@ export function useGoogleSheets() {
     status: GoogleSheetsStatus.IDLE,
     isConnected: false,
     error: null as string | null,
-    connect: async () => {},
+    connect: async (_formId: string): Promise<{ authUrl?: string } | null> => { return null; },
     disconnect: async () => {},
     sync: async () => {},
     config: null as GoogleSheetsConfig | null,
-    updateConfig: async (config: GoogleSheetsConfig) => {},
+    updateConfig: async (_config: GoogleSheetsConfig) => {},
   };
 }
